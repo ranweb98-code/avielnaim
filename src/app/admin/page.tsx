@@ -11,6 +11,7 @@ import { ErrorMessage } from "@/components/ErrorMessage";
 import { GlassCard } from "@/components/GlassCard";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { cn } from "@/lib/cn";
+import { formatJerusalemDate, nowInJerusalem } from "@/lib/timezone";
 import { parseInspoIds } from "@/lib/utils";
 
 type Appointment = {
@@ -29,6 +30,7 @@ type Appointment = {
 type InspoImage = { id: number; src: string; label: string };
 
 const TABS = [
+  { key: "today", label: "היום" },
   { key: "pending", label: "ממתינים" },
   { key: "confirmed", label: "מאושרים" },
   { key: "cancelled", label: "בוטלו" },
@@ -37,7 +39,7 @@ const TABS = [
 export default function AdminPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [inspoMap, setInspoMap] = useState<Record<number, InspoImage>>({});
-  const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("pending");
+  const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("today");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [updating, setUpdating] = useState<number | null>(null);
@@ -104,7 +106,19 @@ export default function AdminPage() {
     window.location.href = "/admin/login";
   }
 
-  const filtered = appointments.filter((a) => a.status === tab);
+  const todayJerusalem = formatJerusalemDate(nowInJerusalem());
+
+  const filtered = appointments
+    .filter((a) => {
+      if (tab === "today") {
+        return a.date === todayJerusalem && a.status !== "cancelled";
+      }
+      return a.status === tab;
+    })
+    .sort((a, b) => {
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      return a.time.localeCompare(b.time);
+    });
 
   if (loading) return <LoadingSpinner />;
 
@@ -128,26 +142,36 @@ export default function AdminPage() {
         </div>
       )}
 
-      <div className="mb-6 flex gap-2">
+      <div className="mb-6 flex gap-2 overflow-x-auto hide-scrollbar">
         {TABS.map((t) => (
           <button
             key={t.key}
             type="button"
             onClick={() => setTab(t.key)}
             className={cn(
-              "min-h-11 flex-1 rounded-xl text-sm transition-all duration-200",
+              "min-h-11 shrink-0 rounded-xl px-3 text-sm transition-all duration-200",
               tab === t.key
                 ? "bg-accent-copper/30 text-accent-gold"
                 : "bg-cream/5 text-cream/60 hover:bg-cream/10"
             )}
           >
             {t.label}
+            {t.key === "today" && (
+              <span className="mr-1 text-xs opacity-70">({todayJerusalem})</span>
+            )}
           </button>
         ))}
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState title="אין תורים" description={`אין תורים בסטטוס "${TABS.find((t) => t.key === tab)?.label}"`} />
+        <EmptyState
+          title="אין תורים"
+          description={
+            tab === "today"
+              ? `אין תורים פעילים להיום (${todayJerusalem})`
+              : `אין תורים בסטטוס "${TABS.find((t) => t.key === tab)?.label}"`
+          }
+        />
       ) : (
         <div className="space-y-4">
           {filtered.map((appt) => {

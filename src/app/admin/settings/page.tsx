@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Plus, Trash2 } from "lucide-react";
+import { ArrowRight, Pencil, Plus, Trash2, X } from "lucide-react";
 import { AdminPanelHeader } from "@/components/AdminPanelHeader";
 import { Button } from "@/components/Button";
 import { ErrorMessage } from "@/components/ErrorMessage";
@@ -63,6 +63,14 @@ export default function AdminSettingsPage() {
     description: "",
     durationMin: "30",
     price: "80",
+  });
+  const [editingServiceId, setEditingServiceId] = useState<number | null>(null);
+  const [editService, setEditService] = useState({
+    name: "",
+    description: "",
+    durationMin: "30",
+    price: "80",
+    active: true,
   });
 
   const load = useCallback(async () => {
@@ -151,7 +159,47 @@ export default function AdminSettingsPage() {
   async function deleteService(id: number) {
     if (!confirm("למחוק שירות?")) return;
     await fetch(`/api/admin/services/${id}`, { method: "DELETE" });
+    if (editingServiceId === id) setEditingServiceId(null);
     await load();
+  }
+
+  function startEditService(service: Service) {
+    setEditingServiceId(service.id);
+    setEditService({
+      name: service.name,
+      description: service.description ?? "",
+      durationMin: String(service.durationMin),
+      price: String(service.price),
+      active: service.active,
+    });
+  }
+
+  async function saveServiceEdit() {
+    if (editingServiceId === null || !editService.name) return;
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/admin/services/${editingServiceId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editService.name,
+          description: editService.description || undefined,
+          durationMin: parseInt(editService.durationMin, 10),
+          price: parseInt(editService.price, 10),
+          active: editService.active,
+        }),
+      });
+      if (!res.ok) {
+        setError("שגיאה בעדכון שירות");
+        return;
+      }
+      setEditingServiceId(null);
+      await load();
+      setSuccess("שירות עודכן");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function addInspo() {
@@ -301,16 +349,112 @@ export default function AdminSettingsPage() {
           <h2 className="mb-4 font-serif text-xl">שירותים</h2>
           <div className="space-y-3">
             {services.map((s) => (
-              <GlassCard key={s.id} className="flex items-center justify-between gap-2">
-                <div>
-                  <p className="font-medium">{s.name}</p>
-                  <p className="text-sm text-cream/50">
-                    {s.durationMin} דק&apos; · {s.price} ₪
-                  </p>
-                </div>
-                <Button variant="danger" onClick={() => deleteService(s.id)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+              <GlassCard key={s.id} className="space-y-3">
+                {editingServiceId === s.id ? (
+                  <>
+                    <Input
+                      label="שם שירות"
+                      value={editService.name}
+                      onChange={(e) =>
+                        setEditService({ ...editService, name: e.target.value })
+                      }
+                    />
+                    <Input
+                      label="תיאור"
+                      value={editService.description}
+                      onChange={(e) =>
+                        setEditService({
+                          ...editService,
+                          description: e.target.value,
+                        })
+                      }
+                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <Input
+                        label="משך (דק')"
+                        type="number"
+                        value={editService.durationMin}
+                        onChange={(e) =>
+                          setEditService({
+                            ...editService,
+                            durationMin: e.target.value,
+                          })
+                        }
+                      />
+                      <Input
+                        label="מחיר (₪)"
+                        type="number"
+                        value={editService.price}
+                        onChange={(e) =>
+                          setEditService({
+                            ...editService,
+                            price: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <label className="flex items-center gap-2 text-sm text-cream/70">
+                      <input
+                        type="checkbox"
+                        checked={editService.active}
+                        onChange={(e) =>
+                          setEditService({
+                            ...editService,
+                            active: e.target.checked,
+                          })
+                        }
+                      />
+                      שירות פעיל (מוצג ללקוחות)
+                    </label>
+                    <div className="flex gap-2">
+                      <Button
+                        className="flex-1"
+                        onClick={saveServiceEdit}
+                        loading={saving}
+                      >
+                        שמור שינויים
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        onClick={() => setEditingServiceId(null)}
+                      >
+                        <X className="h-4 w-4" />
+                        ביטול
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="font-medium">
+                        {s.name}
+                        {!s.active && (
+                          <span className="mr-2 text-xs text-cream/40">
+                            (לא פעיל)
+                          </span>
+                        )}
+                      </p>
+                      {s.description && (
+                        <p className="text-sm text-cream/50">{s.description}</p>
+                      )}
+                      <p className="text-sm text-cream/50">
+                        {s.durationMin} דק&apos; · {s.price} ₪
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="secondary"
+                        onClick={() => startEditService(s)}
+                        aria-label={`ערוך ${s.name}`}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="danger" onClick={() => deleteService(s.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </GlassCard>
             ))}
             <GlassCard className="space-y-3">
@@ -378,16 +522,18 @@ export default function AdminSettingsPage() {
                 </Button>
               </div>
             ))}
-            <div className="flex flex-wrap gap-2">
+            <div className="grid gap-3">
               <Input
+                label="תאריך לחסימה"
                 type="date"
                 value={newBlockedDate}
                 onChange={(e) => setNewBlockedDate(e.target.value)}
               />
               <Input
-                placeholder="סיבה (אופציונלי)"
+                label="סיבה (אופציונלי)"
                 value={newBlockedReason}
                 onChange={(e) => setNewBlockedReason(e.target.value)}
+                placeholder="חופשה, אירוע..."
               />
             </div>
             <Button

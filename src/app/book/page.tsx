@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Check, MoreHorizontal, Star } from "lucide-react";
@@ -44,7 +44,7 @@ export default function BookPage() {
   const [confirmed, setConfirmed] = useState(false);
 
   const selectedService = services.find((s) => s.id === serviceId);
-  const minDate = useMemo(() => formatJerusalemDate(nowInJerusalem()), []);
+  const minDate = formatJerusalemDate(nowInJerusalem());
 
   useEffect(() => {
     fetch("/api/public")

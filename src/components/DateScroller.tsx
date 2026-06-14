@@ -1,8 +1,12 @@
 "use client";
 
-import { addDays, format, parseISO } from "date-fns";
-import { he } from "date-fns/locale";
+import { addDays } from "date-fns";
 import { cn } from "@/lib/cn";
+import {
+  formatJerusalemDate,
+  nowInJerusalem,
+  parseJerusalemDate,
+} from "@/lib/timezone";
 
 type DateScrollerProps = {
   selectedDate: string;
@@ -17,16 +21,24 @@ export function DateScroller({
   daysCount = 14,
   startDate,
 }: DateScrollerProps) {
-  const start = startDate ? parseISO(startDate) : new Date();
-  const days = Array.from({ length: daysCount }, (_, i) => addDays(start, i));
+  const base = startDate ?? formatJerusalemDate(nowInJerusalem());
+  const days = Array.from({ length: daysCount }, (_, i) =>
+    formatJerusalemDate(addDays(parseJerusalemDate(base), i))
+  );
 
   return (
     <div className="hide-scrollbar flex gap-2 overflow-x-auto pb-1">
-      {days.map((day) => {
-        const dateStr = format(day, "yyyy-MM-dd");
+      {days.map((dateStr) => {
         const isSelected = dateStr === selectedDate;
-        const dayName = format(day, "EEE", { locale: he });
-        const dayNum = format(day, "d");
+        const day = parseJerusalemDate(dateStr);
+        const dayName = new Intl.DateTimeFormat("he-IL", {
+          weekday: "short",
+          timeZone: "Asia/Jerusalem",
+        }).format(day);
+        const dayNum = new Intl.DateTimeFormat("he-IL", {
+          day: "numeric",
+          timeZone: "Asia/Jerusalem",
+        }).format(day);
 
         return (
           <button
