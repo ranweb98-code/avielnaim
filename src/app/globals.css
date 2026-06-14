@@ -89,6 +89,45 @@ body {
   );
 }
 
+.brand-lockup {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+}
+
+.brand-lockup-icon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  margin-top: 0.35rem;
+  color: var(--gold-start);
+}
+
+.brand-lockup-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  line-height: 1;
+}
+
+.brand-lockup-name {
+  font-family: var(--font-display), "Times New Roman", serif;
+  font-size: 1.35rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--text-primary);
+}
+
+.brand-lockup-tag {
+  font-family: var(--font-heebo), Arial, sans-serif;
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  text-transform: lowercase;
+  color: rgba(212, 175, 55, 0.75);
+  padding-inline-start: 0.125rem;
+}
+
 .badge-gold {
   display: inline-flex;
   align-items: center;

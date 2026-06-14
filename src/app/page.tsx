@@ -42,11 +42,12 @@ export default async function HomePage() {
         <div className="hero-overlay-luxe absolute inset-0" />
 
         <div className="relative flex min-h-[calc(100dvh+env(safe-area-inset-top,0px))] flex-col px-5 pb-8 pt-[calc(1rem+env(safe-area-inset-top,0px))]">
-          <div className="flex items-center gap-2">
-            <Scissors className="h-5 w-5 text-gold-start" />
-            <span className="text-lg font-semibold text-text-primary">
-              {businessName}
-            </span>
+          <div className="brand-lockup">
+            <Scissors className="brand-lockup-icon" aria-hidden />
+            <div className="brand-lockup-text">
+              <span className="brand-lockup-name">Aviel Naim</span>
+              <span className="brand-lockup-tag">barbershop</span>
+            </div>
           </div>
 
           <div className="mt-auto space-y-6">
@@ -68,8 +69,7 @@ export default async function HomePage() {
       {/* Dashboard — Luxe Cuts screen 2 adapted */}
       <div className="mx-auto max-w-lg space-y-8 px-4 py-8">
         <div>
-          <p className="text-sm text-text-secondary">שלום 👋</p>
-          <h2 className="mt-1 text-2xl font-bold text-text-primary">
+          <h2 className="text-2xl font-bold text-text-primary">
             שדרג את הסגנון שלך
           </h2>
           <p className="mt-1 text-sm text-text-secondary">

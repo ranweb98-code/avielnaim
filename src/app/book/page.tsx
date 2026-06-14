@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Check, MoreHorizontal, Star } from "lucide-react";
+import { ArrowRight, Check, Star } from "lucide-react";
 import { Button } from "@/components/Button";
 import { DateScroller } from "@/components/DateScroller";
 import { ErrorMessage } from "@/components/ErrorMessage";
@@ -183,7 +183,7 @@ export default function BookPage() {
           sizes="100vw"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-bg-app/90 via-bg-app/20 to-bg-app" />
-        <div className="absolute inset-x-0 top-0 flex items-center justify-between px-4 pt-[calc(0.75rem+env(safe-area-inset-top,0px))]">
+        <div className="absolute inset-x-0 top-0 flex items-center px-4 pt-[calc(0.75rem+env(safe-area-inset-top,0px))]">
           <Link
             href="/"
             className="flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-text-primary backdrop-blur-sm"
@@ -191,13 +191,6 @@ export default function BookPage() {
           >
             <ArrowRight className="h-5 w-5" />
           </Link>
-          <button
-            type="button"
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-text-primary backdrop-blur-sm"
-            aria-label="תפריט"
-          >
-            <MoreHorizontal className="h-5 w-5" />
-          </button>
         </div>
       </div>
 
@@ -206,7 +199,7 @@ export default function BookPage() {
         <div className="-mt-10 mb-6">
           <span className="badge-gold">ספר מקצועי</span>
           <h1 className="mt-3 text-2xl font-bold text-text-primary">
-            {businessName}
+            Aviel Naim
           </h1>
           <div className="mt-2 flex items-center gap-1 text-sm text-text-secondary">
             <Star className="h-4 w-4 fill-gold-start text-gold-start" />
