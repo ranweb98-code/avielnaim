@@ -1,0 +1,70 @@
+import { NextRequest, NextResponse } from "next/server";
+import { addHours } from "date-fns";
+import { sendReminderEmail } from "@/lib/email";
+import { prisma } from "@/lib/prisma";
+import { getSetting } from "@/lib/settings";
+import { parseJerusalemDateTime } from "@/lib/timezone";
+
+function isAuthorized(request: NextRequest): boolean {
+  if (process.env.ENABLE_CRON !== "true") {
+    return false;
+  }
+
+  const cronSecret = process.env.CRON_SECRET ?? process.env.AUTH_SECRET;
+  const authHeader = request.headers.get("authorization");
+  const vercelCron = request.headers.get("x-vercel-cron");
+
+  if (vercelCron) return true;
+  if (authHeader === `Bearer ${cronSecret}`) return true;
+
+  return process.env.NODE_ENV === "development";
+}
+
+export async function GET(request: NextRequest) {
+  if (!isAuthorized(request)) {
+    return NextResponse.json({ error: "לא מורשה" }, { status: 401 });
+  }
+
+  const reminderHours = parseInt(
+    process.env.REMINDER_HOURS_BEFORE ??
+      (await getSetting("reminderHours", "24")),
+    10
+  );
+
+  const now = new Date();
+  const windowStart = addHours(now, reminderHours - 1);
+  const windowEnd = addHours(now, reminderHours + 1);
+
+  const appointments = await prisma.appointment.findMany({
+    where: {
+      status: "confirmed",
+      reminderSentAt: null,
+    },
+  });
+
+  let sent = 0;
+
+  for (const appt of appointments) {
+    const apptDateTime = parseJerusalemDateTime(appt.date, appt.time);
+
+    if (apptDateTime >= windowStart && apptDateTime <= windowEnd) {
+      await sendReminderEmail({
+        customerEmail: appt.customerEmail,
+        customerName: appt.customerName,
+        serviceName: appt.serviceName,
+        date: appt.date,
+        time: appt.time,
+        hoursBefore: reminderHours,
+      });
+
+      await prisma.appointment.update({
+        where: { id: appt.id },
+        data: { reminderSentAt: new Date() },
+      });
+
+      sent++;
+    }
+  }
+
+  return NextResponse.json({ sent, checked: appointments.length });
+}

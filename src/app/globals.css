@@ -1,0 +1,202 @@
+@import "tailwindcss";
+
+:root {
+  --bg-app: #121212;
+  --bg-card: #1e1e1e;
+  --bg-card-hover: #252525;
+  --gold-start: #d4af37;
+  --gold-end: #8a6623;
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0a0;
+  --text-muted: #707070;
+}
+
+@theme inline {
+  --color-bg-app: var(--bg-app);
+  --color-bg-card: var(--bg-card);
+  --color-bg-card-hover: var(--bg-card-hover);
+  --color-gold-start: var(--gold-start);
+  --color-gold-end: var(--gold-end);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-cream: var(--text-primary);
+  --color-accent-gold: var(--gold-start);
+  --color-accent-copper: var(--gold-end);
+  --color-bg-primary: var(--bg-app);
+  --color-bg-secondary: var(--bg-card);
+  --color-muted: var(--text-muted);
+  --font-sans: var(--font-heebo);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg-app);
+  color: var(--text-primary);
+  font-family: var(--font-heebo), Arial, sans-serif;
+  min-height: 100dvh;
+}
+
+.btn-gold {
+  background: linear-gradient(135deg, var(--gold-start), var(--gold-end));
+  color: #121212;
+  font-weight: 600;
+  border-radius: 1rem;
+  box-shadow: 0 4px 20px rgba(212, 175, 55, 0.25);
+  transition: all 0.2s ease;
+}
+
+.btn-gold:hover:not(:disabled) {
+  box-shadow: 0 6px 28px rgba(212, 175, 55, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-gold:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.card-app {
+  background: var(--bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 1rem;
+}
+
+.card-app-hover {
+  transition: background 0.2s ease;
+}
+
+.card-app-hover:hover {
+  background: var(--bg-card-hover);
+}
+
+.hero-overlay-luxe {
+  background: linear-gradient(
+    to bottom,
+    rgba(18, 18, 18, 0.2) 0%,
+    rgba(18, 18, 18, 0.55) 45%,
+    rgba(18, 18, 18, 0.92) 80%,
+    rgba(18, 18, 18, 1) 100%
+  );
+}
+
+.badge-gold {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, var(--gold-start), var(--gold-end));
+  color: #121212;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.date-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.5rem;
+  min-height: 4.5rem;
+  border-radius: 1rem;
+  background: var(--bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.date-pill-selected {
+  background: linear-gradient(135deg, var(--gold-start), var(--gold-end));
+  color: #121212;
+  border-color: transparent;
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.3);
+}
+
+.time-pill {
+  min-height: 2.75rem;
+  border-radius: 0.75rem;
+  background: var(--bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.time-pill-selected {
+  background: linear-gradient(135deg, var(--gold-start), var(--gold-end));
+  color: #121212;
+  border-color: transparent;
+  font-weight: 600;
+}
+
+.service-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.service-row:last-child {
+  border-bottom: none;
+}
+
+.service-row-selected {
+  opacity: 1;
+}
+
+.service-row-unselected {
+  opacity: 0.55;
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.page-shell {
+  min-height: 100dvh;
+  padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 768px) {
+  .page-shell {
+    padding-bottom: 2rem;
+  }
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+::selection {
+  background: rgba(212, 175, 55, 0.35);
+}
+
+input[type="date"] {
+  color-scheme: dark;
+}
+
+.glass-card {
+  background: var(--bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 1rem;
+}
