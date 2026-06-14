@@ -11,6 +11,8 @@ import {
   formatPrice,
 } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const [services, settings, workingHours] = await Promise.all([
     prisma.service.findMany({
@@ -28,7 +30,7 @@ export default async function HomePage() {
   return (
     <div className="bg-bg-app">
       {/* Welcome Hero — Luxe Cuts screen 1 */}
-      <section className="relative min-h-[88dvh] overflow-hidden">
+      <section className="relative -mt-[env(safe-area-inset-top,0px)] min-h-[calc(100dvh+env(safe-area-inset-top,0px))] overflow-hidden">
         <Image
           src={HERO_IMAGE}
           alt={businessName}
@@ -39,8 +41,8 @@ export default async function HomePage() {
         />
         <div className="hero-overlay-luxe absolute inset-0" />
 
-        <div className="relative flex min-h-[88dvh] flex-col px-5 pb-8 pt-safe">
-          <div className="flex items-center gap-2 pt-4">
+        <div className="relative flex min-h-[calc(100dvh+env(safe-area-inset-top,0px))] flex-col px-5 pb-8 pt-[calc(1rem+env(safe-area-inset-top,0px))]">
+          <div className="flex items-center gap-2">
             <Scissors className="h-5 w-5 text-gold-start" />
             <span className="text-lg font-semibold text-text-primary">
               {businessName}

@@ -182,7 +182,7 @@ export default function BookPage() {
           className="object-cover object-top grayscale"
           sizes="100vw"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-bg-app" />
+        <div className="absolute inset-0 bg-gradient-to-b from-bg-app/80 via-transparent to-bg-app" />
         <div className="absolute inset-x-0 top-0 flex items-center justify-between px-4 pt-safe">
           <Link
             href="/"

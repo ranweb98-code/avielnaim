@@ -80,7 +80,9 @@ body {
 .hero-overlay-luxe {
   background: linear-gradient(
     to bottom,
-    rgba(18, 18, 18, 0.2) 0%,
+    rgba(18, 18, 18, 1) 0%,
+    rgba(18, 18, 18, 0.75) 12%,
+    rgba(18, 18, 18, 0.35) 30%,
     rgba(18, 18, 18, 0.55) 45%,
     rgba(18, 18, 18, 0.92) 80%,
     rgba(18, 18, 18, 1) 100%
@@ -169,7 +171,16 @@ body {
 
 .page-shell {
   min-height: 100dvh;
-  padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+.bottom-nav-floating {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 @media (min-width: 768px) {

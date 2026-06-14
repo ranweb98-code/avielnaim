@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  COOKIE_NAME,
   createSession,
-  setSessionCookie,
   clearSessionCookie,
+  sessionCookieOptions,
 } from "@/lib/auth";
 import { loginSchema } from "@/lib/schemas";
 
@@ -22,9 +23,10 @@ export async function POST(request: NextRequest) {
     }
 
     const token = await createSession();
-    await setSessionCookie(token);
+    const response = NextResponse.json({ success: true });
+    response.cookies.set(COOKIE_NAME, token, sessionCookieOptions);
 
-    return NextResponse.json({ success: true });
+    return response;
   } catch (error) {
     console.error("Login error:", error);
     return NextResponse.json({ error: "שגיאה בהתחברות" }, { status: 500 });

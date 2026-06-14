@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Lock } from "lucide-react";
 import { Button } from "@/components/Button";
 import { ErrorMessage } from "@/components/ErrorMessage";
@@ -9,7 +9,6 @@ import { GlassCard } from "@/components/GlassCard";
 import { Input } from "@/components/Input";
 
 export function AdminLoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") ?? "/admin";
 
@@ -36,8 +35,7 @@ export function AdminLoginForm() {
         return;
       }
 
-      router.push(redirect);
-      router.refresh();
+      window.location.assign(redirect);
     } catch {
       setError("שגיאה בהתחברות");
     } finally {

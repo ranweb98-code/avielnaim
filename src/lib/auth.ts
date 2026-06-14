@@ -3,6 +3,14 @@ import { cookies } from "next/headers";
 
 const COOKIE_NAME = "barber-admin-session";
 
+export const sessionCookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax" as const,
+  path: "/",
+  maxAge: 60 * 60 * 24 * 7,
+};
+
 function getSecret() {
   const secret = process.env.AUTH_SECRET;
   if (!secret) {
@@ -30,13 +38,7 @@ export async function verifySession(token: string) {
 
 export async function setSessionCookie(token: string) {
   const cookieStore = await cookies();
-  cookieStore.set(COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7,
-  });
+  cookieStore.set(COOKIE_NAME, token, sessionCookieOptions);
 }
 
 export async function clearSessionCookie() {
