@@ -11,7 +11,7 @@ import { ErrorMessage } from "@/components/ErrorMessage";
 import { GlassCard } from "@/components/GlassCard";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { cn } from "@/lib/cn";
-import { formatJerusalemDate, nowInJerusalem } from "@/lib/timezone";
+import { formatJerusalemDate } from "@/lib/timezone";
 import { parseInspoIds } from "@/lib/utils";
 
 type Appointment = {
@@ -106,7 +106,7 @@ export default function AdminPage() {
     window.location.href = "/admin/login";
   }
 
-  const todayJerusalem = formatJerusalemDate(nowInJerusalem());
+  const todayJerusalem = formatJerusalemDate();
 
   const filtered = appointments
     .filter((a) => {

@@ -4,7 +4,6 @@ import { addDays } from "date-fns";
 import { cn } from "@/lib/cn";
 import {
   formatJerusalemDate,
-  nowInJerusalem,
   parseJerusalemDate,
 } from "@/lib/timezone";
 
@@ -21,7 +20,7 @@ export function DateScroller({
   daysCount = 14,
   startDate,
 }: DateScrollerProps) {
-  const base = startDate ?? formatJerusalemDate(nowInJerusalem());
+  const base = startDate ?? formatJerusalemDate();
   const days = Array.from({ length: daysCount }, (_, i) =>
     formatJerusalemDate(addDays(parseJerusalemDate(base), i))
   );

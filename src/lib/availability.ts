@@ -2,8 +2,8 @@ import { prisma } from "@/lib/prisma";
 import {
   generateTimeSlots,
   getJerusalemDayOfWeek,
+  getJerusalemTimeMinutes,
   isTodayInJerusalem,
-  nowInJerusalem,
   rangesOverlap,
   timeToMinutes,
 } from "@/lib/timezone";
@@ -80,9 +80,7 @@ export async function getAvailableSlots(
   });
 
   if (isTodayInJerusalem(date)) {
-    const now = nowInJerusalem();
-    const nowMinutes = now.getHours() * 60 + now.getMinutes();
-    const minAllowed = nowMinutes + MIN_ADVANCE_MINUTES;
+    const minAllowed = getJerusalemTimeMinutes() + MIN_ADVANCE_MINUTES;
 
     availableSlots = availableSlots.filter(
       (slot) => timeToMinutes(slot) >= minAllowed

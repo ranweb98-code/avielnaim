@@ -12,7 +12,7 @@ import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { ServiceList } from "@/components/ServiceList";
 import { TimeSlotGrid } from "@/components/TimeSlotGrid";
 import { HERO_IMAGE } from "@/lib/assets";
-import { formatJerusalemDate, nowInJerusalem } from "@/lib/timezone";
+import { formatJerusalemDate } from "@/lib/timezone";
 
 type Service = {
   id: number;
@@ -44,7 +44,7 @@ export default function BookPage() {
   const [confirmed, setConfirmed] = useState(false);
 
   const selectedService = services.find((s) => s.id === serviceId);
-  const minDate = formatJerusalemDate(nowInJerusalem());
+  const minDate = formatJerusalemDate();
 
   useEffect(() => {
     fetch("/api/public")
@@ -173,7 +173,7 @@ export default function BookPage() {
   return (
     <div className="bg-bg-app pb-8">
       {/* Hero header — Luxe screen 3 */}
-      <div className="relative h-64 overflow-hidden">
+      <div className="relative -mt-[env(safe-area-inset-top,0px)] h-[calc(16rem+env(safe-area-inset-top,0px))] overflow-hidden">
         <Image
           src={HERO_IMAGE}
           alt={businessName}
@@ -182,8 +182,8 @@ export default function BookPage() {
           className="object-cover object-top grayscale"
           sizes="100vw"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-bg-app/80 via-transparent to-bg-app" />
-        <div className="absolute inset-x-0 top-0 flex items-center justify-between px-4 pt-safe">
+        <div className="absolute inset-0 bg-gradient-to-b from-bg-app/90 via-bg-app/20 to-bg-app" />
+        <div className="absolute inset-x-0 top-0 flex items-center justify-between px-4 pt-[calc(0.75rem+env(safe-area-inset-top,0px))]">
           <Link
             href="/"
             className="flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-text-primary backdrop-blur-sm"

@@ -7,24 +7,41 @@ export function nowInJerusalem(): Date {
   return toZonedTime(new Date(), JERUSALEM_TZ);
 }
 
-export function formatJerusalemDate(date: Date, pattern = "yyyy-MM-dd"): string {
+export function formatJerusalemDate(
+  date: Date = new Date(),
+  pattern = "yyyy-MM-dd"
+): string {
   return formatInTimeZone(date, JERUSALEM_TZ, pattern);
 }
 
 export function parseJerusalemDate(dateStr: string): Date {
-  return fromZonedTime(parseISO(`${dateStr}T00:00:00`), JERUSALEM_TZ);
+  return fromZonedTime(parseISO(`${dateStr}T12:00:00`), JERUSALEM_TZ);
 }
 
 export function parseJerusalemDateTime(dateStr: string, timeStr: string): Date {
   return fromZonedTime(parseISO(`${dateStr}T${timeStr}:00`), JERUSALEM_TZ);
 }
 
+/** JS convention: 0=Sunday … 6=Saturday — always in Asia/Jerusalem */
 export function getJerusalemDayOfWeek(dateStr: string): number {
-  return parseJerusalemDate(dateStr).getDay();
+  const isoDay = parseInt(
+    formatInTimeZone(
+      fromZonedTime(parseISO(`${dateStr}T12:00:00`), JERUSALEM_TZ),
+      JERUSALEM_TZ,
+      "i"
+    ),
+    10
+  );
+  return isoDay === 7 ? 0 : isoDay;
 }
 
 export function isTodayInJerusalem(dateStr: string): boolean {
-  return dateStr === formatJerusalemDate(nowInJerusalem());
+  return dateStr === formatJerusalemDate(new Date());
+}
+
+export function getJerusalemTimeMinutes(): number {
+  const hhmm = formatInTimeZone(new Date(), JERUSALEM_TZ, "HH:mm");
+  return timeToMinutes(hhmm);
 }
 
 export function timeToMinutes(time: string): number {
