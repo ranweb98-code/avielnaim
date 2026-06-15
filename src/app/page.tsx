@@ -38,21 +38,21 @@ export default async function HomePage() {
             fill
             priority
             quality={95}
-            className="object-cover object-[center_15%]"
+            className="object-cover"
             sizes="100vw"
           />
           <div className="hero-overlay-luxe absolute inset-0" aria-hidden />
         </div>
 
         <div className="relative z-10 flex min-h-[calc(100dvh+env(safe-area-inset-top,0px))] flex-col md:min-h-0 md:site-container md:grid md:grid-cols-2 md:items-center md:gap-12">
-          <div className="hidden md:relative md:order-2 md:block md:h-[32rem] md:overflow-hidden md:rounded-3xl md:shadow-lg">
+          <div className="hero-image-frame hidden md:relative md:order-2 md:block md:h-[36rem] md:overflow-hidden md:rounded-3xl md:shadow-lg">
             <Image
               src={HERO_IMAGE}
               alt={businessName}
               fill
               priority
               quality={95}
-              className="object-cover object-center md:rounded-3xl"
+              className="object-cover md:rounded-3xl"
               sizes="(min-width: 768px) 50vw, 100vw"
             />
             <div className="hero-overlay-luxe hero-overlay-luxe--card absolute inset-0 md:rounded-3xl" aria-hidden />

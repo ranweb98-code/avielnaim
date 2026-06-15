@@ -173,25 +173,28 @@ export default function BookPage() {
   return (
     <div className="bg-bg-app pb-8">
       {/* Hero header */}
-      <div className="relative -mt-[env(safe-area-inset-top,0px)] h-[calc(16rem+env(safe-area-inset-top,0px))] overflow-hidden md:mt-0 md:h-56">
-        <div className="relative h-full md:mx-auto md:max-w-6xl md:overflow-hidden md:rounded-b-3xl md:px-8 md:shadow-md">
-          <div className="relative h-full md:rounded-b-3xl">
-          <Image
-            src={HERO_IMAGE}
-            alt={businessName}
-            fill
-            priority
-            quality={95}
-            className="object-cover object-top md:rounded-b-3xl"
-            sizes="100vw"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-bg-app/90 via-bg-app/20 to-bg-app md:rounded-b-3xl" />
-          <div className="absolute inset-x-0 top-0 flex items-center px-4 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] md:hidden">
-            <Link href="/" className="hero-back-btn" aria-label="חזרה">
-              <ArrowRight className="h-5 w-5" />
-            </Link>
+      <div className="book-hero relative -mt-[env(safe-area-inset-top,0px)] h-[calc(16rem+env(safe-area-inset-top,0px))] overflow-hidden md:mt-0 md:h-[22rem]">
+        <div className="relative h-full md:mx-auto md:max-w-6xl md:px-8">
+          <div className="book-hero__media md:overflow-hidden md:rounded-b-3xl md:shadow-md">
+            <Image
+              src={HERO_IMAGE}
+              alt={businessName}
+              fill
+              priority
+              quality={95}
+              className="object-cover"
+              sizes="100vw"
+            />
+            <div
+              className="book-hero__overlay hero-overlay-luxe absolute inset-0 md:rounded-b-3xl"
+              aria-hidden
+            />
           </div>
-          </div>
+        </div>
+        <div className="absolute inset-x-0 top-0 z-10 flex items-center px-5 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] md:hidden">
+          <Link href="/" className="hero-back-btn" aria-label="חזרה">
+            <ArrowRight className="h-5 w-5" />
+          </Link>
         </div>
       </div>
 
