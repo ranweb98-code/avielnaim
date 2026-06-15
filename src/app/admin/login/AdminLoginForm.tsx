@@ -44,7 +44,8 @@ export function AdminLoginForm() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4 py-12">
+    <div className="site-container py-12">
+      <div className="mx-auto flex min-h-[70vh] w-full max-w-md flex-col justify-center">
       <div className="mb-8 text-center">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-accent-copper/20">
           <Lock className="h-7 w-7 text-accent-gold" />
@@ -68,6 +69,7 @@ export function AdminLoginForm() {
           </Button>
         </form>
       </GlassCard>
+      </div>
     </div>
   );
 }

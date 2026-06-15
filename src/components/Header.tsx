@@ -20,7 +20,7 @@ export function Header() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 border-b border-border-subtle bg-bg-app/95 backdrop-blur-xl pt-safe",
+        "app-header sticky top-0 z-40 backdrop-blur-xl",
         hideOnMobile && "hidden md:block"
       )}
     >

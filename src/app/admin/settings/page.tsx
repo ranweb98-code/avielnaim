@@ -234,7 +234,7 @@ export default function AdminSettingsPage() {
   return (
     <div>
       <AdminPanelHeader />
-      <div className="mx-auto max-w-2xl space-y-8 px-4 pb-12 md:max-w-5xl md:px-8">
+      <div className="site-container max-w-5xl space-y-8 pb-12">
         <Link
           href="/admin"
           className="inline-flex items-center gap-1 text-sm text-cream/50 hover:text-cream"

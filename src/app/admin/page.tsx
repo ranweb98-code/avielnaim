@@ -125,7 +125,7 @@ export default function AdminPage() {
   return (
     <div>
       <AdminPanelHeader />
-      <div className="mx-auto max-w-2xl px-4 pb-6 md:max-w-5xl md:px-8">
+      <div className="site-container max-w-5xl pb-6">
       <div className="mb-4 flex items-center justify-between">
         <Link href="/" className="text-sm text-cream/50 hover:text-cream">
           ← חזרה לאתר

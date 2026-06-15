@@ -66,7 +66,7 @@ export default async function HomePage() {
       </section>
 
       {/* Dashboard */}
-      <div className="site-container space-y-8 py-8 max-md:mx-auto max-md:max-w-lg max-md:px-4">
+      <div className="site-container space-y-8 py-8">
         <div>
           <h2 className="text-2xl font-bold text-text-primary">
             שדרג את הסגנון שלך

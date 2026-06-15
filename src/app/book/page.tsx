@@ -142,7 +142,7 @@ export default function BookPage() {
 
   if (confirmed) {
     return (
-      <div className="site-container max-md:mx-auto max-md:max-w-lg max-md:px-4 py-12 text-center md:max-w-xl">
+      <div className="site-container max-w-xl py-12 text-center">
         <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-bg-card">
           <Check className="h-8 w-8 text-gold-start" />
         </div>
@@ -194,7 +194,7 @@ export default function BookPage() {
         </div>
       </div>
 
-      <div className="site-container relative max-md:mx-auto max-md:max-w-lg max-md:px-4">
+      <div className="site-container relative">
         <div className="-mt-10 mb-6 md:-mt-8 md:mb-8">
           <span className="badge-gold">ספר מקצועי</span>
           <h1 className="mt-3 text-2xl font-bold text-text-primary md:text-3xl">

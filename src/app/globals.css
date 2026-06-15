@@ -45,6 +45,7 @@
 
 html {
   scroll-behavior: smooth;
+  background: var(--bg-app);
 }
 
 body {
@@ -52,6 +53,13 @@ body {
   color: var(--text-primary);
   font-family: var(--font-heebo), Arial, sans-serif;
   min-height: 100dvh;
+  min-height: 100svh;
+}
+
+.site-container {
+  margin-inline: auto;
+  width: 100%;
+  padding-inline: 1.25rem;
 }
 
 .btn-gold {
@@ -207,7 +215,14 @@ body {
 
 .page-shell {
   min-height: 100dvh;
+  min-height: 100svh;
   padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+.app-header {
+  background: var(--bg-app);
+  border-bottom: 1px solid var(--border-subtle);
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 .bottom-nav-floating {
@@ -225,8 +240,6 @@ body {
   }
 
   .site-container {
-    margin-inline: auto;
-    width: 100%;
     max-width: 72rem;
     padding-inline: 2rem;
   }
