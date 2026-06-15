@@ -29,45 +29,44 @@ export default async function HomePage() {
 
   return (
     <div className="bg-bg-app">
-      {/* Welcome Hero — Luxe Cuts screen 1 */}
-      <section className="relative -mt-[env(safe-area-inset-top,0px)] min-h-[calc(100dvh+env(safe-area-inset-top,0px))] overflow-hidden">
-        <Image
-          src={HERO_IMAGE}
-          alt={businessName}
-          fill
-          priority
-          className="object-cover object-center grayscale"
-          sizes="100vw"
-        />
-        <div className="hero-overlay-luxe absolute inset-0" />
-
-        <div className="relative flex min-h-[calc(100dvh+env(safe-area-inset-top,0px))] flex-col px-5 pb-8 pt-[calc(1rem+env(safe-area-inset-top,0px))]">
-          <div className="brand-lockup">
-            <Scissors className="brand-lockup-icon" aria-hidden />
-            <div className="brand-lockup-text">
-              <span className="brand-lockup-name">Aviel Naim</span>
-              <span className="brand-lockup-tag">barbershop</span>
-            </div>
+      {/* Welcome Hero — mobile full-screen, desktop split */}
+      <section className="relative -mt-[env(safe-area-inset-top,0px)] min-h-[calc(100dvh+env(safe-area-inset-top,0px))] overflow-hidden md:mt-0 md:min-h-0 md:overflow-visible md:py-8">
+        <div className="md:site-container md:grid md:grid-cols-2 md:items-center md:gap-12">
+          <div className="absolute inset-0 md:relative md:inset-auto md:order-2 md:h-[32rem] md:overflow-hidden md:rounded-3xl md:shadow-lg">
+            <Image
+              src={HERO_IMAGE}
+              alt={businessName}
+              fill
+              priority
+              className="object-cover object-center md:rounded-3xl"
+              sizes="(min-width: 768px) 50vw, 100vw"
+            />
+            <div className="hero-overlay-luxe absolute inset-0 md:hero-overlay-luxe--card md:rounded-3xl" />
           </div>
 
-          <div className="mt-auto space-y-6">
-            <h1 className="max-w-sm text-3xl font-bold leading-tight text-text-primary">
-              גלה את הספר המוביל
-              <br />
-              וקבע את הסגנון שלך
-            </h1>
-            <Link href="/book" className="block">
-              <Button className="min-h-14 w-full text-base">
-                <Scissors className="h-5 w-5" />
-                התחל
-              </Button>
-            </Link>
+          <div className="relative flex min-h-[calc(100dvh+env(safe-area-inset-top,0px))] flex-col px-5 pb-8 pt-[calc(1rem+env(safe-area-inset-top,0px))] md:order-1 md:min-h-0 md:justify-center md:px-0 md:pb-0 md:pt-0">
+            <div className="brand-lockup">
+              <span className="brand-lockup-name md:text-4xl">Aviel Naim</span>
+            </div>
+
+            <p className="mt-4 hidden max-w-sm text-text-secondary md:block">
+              בחר שירות, תאריך ושעה — בקלות
+            </p>
+
+            <div className="mt-auto md:mt-8">
+              <Link href="/book" className="block md:inline-block">
+                <Button className="min-h-14 w-full text-base md:min-w-48 md:w-auto">
+                  <Scissors className="h-5 w-5" />
+                  התחל
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Dashboard — Luxe Cuts screen 2 adapted */}
-      <div className="mx-auto max-w-lg space-y-8 px-4 py-8">
+      {/* Dashboard */}
+      <div className="site-container space-y-8 py-8 max-md:mx-auto max-md:max-w-lg max-md:px-4">
         <div>
           <h2 className="text-2xl font-bold text-text-primary">
             שדרג את הסגנון שלך
@@ -84,7 +83,7 @@ export default async function HomePage() {
               src={HERO_IMAGE}
               alt={businessName}
               fill
-              className="object-cover grayscale"
+              className="object-cover"
               sizes="64px"
             />
           </div>
@@ -106,7 +105,7 @@ export default async function HomePage() {
           <h3 className="mb-4 text-lg font-semibold text-text-primary">
             השירותים שלנו
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
             {services.map((service) => (
               <div
                 key={service.id}
@@ -138,6 +137,7 @@ export default async function HomePage() {
           </Link>
         </section>
 
+        <div className="md:grid md:grid-cols-2 md:gap-8">
         {/* Hours */}
         <section>
           <div className="mb-4 flex items-center gap-2">
@@ -150,7 +150,7 @@ export default async function HomePage() {
             {workingHours.map((wh) => (
               <div
                 key={wh.dayOfWeek}
-                className="flex justify-between border-b border-white/5 py-2 last:border-0"
+                className="flex justify-between border-b border-border-subtle py-2 last:border-0"
               >
                 <span className="text-text-secondary">
                   {DAY_NAMES[wh.dayOfWeek]}
@@ -186,6 +186,7 @@ export default async function HomePage() {
             )}
           </div>
         </section>
+        </div>
       </div>
     </div>
   );

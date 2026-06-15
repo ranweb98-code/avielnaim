@@ -2,31 +2,66 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Calendar, Home, Lock, Scissors } from "lucide-react";
+import { Calendar, Home, Lock } from "lucide-react";
 import { cn } from "@/lib/cn";
+
+const DESKTOP_LINKS = [
+  { href: "/", label: "בית" },
+  { href: "/book", label: "קביעת תור" },
+  { href: "/admin/login", label: "ניהול" },
+] as const;
 
 export function Header() {
   const pathname = usePathname();
   const isHome = pathname === "/";
   const isBook = pathname === "/book";
-
-  if (isHome || isBook) {
-    return null;
-  }
+  const hideOnMobile = isHome || isBook;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/5 bg-bg-app/95 backdrop-blur-xl pt-safe">
-      <div className="mx-auto flex max-w-lg items-center justify-between px-4 py-3">
-        <Link
-          href="/"
-          className="flex items-center gap-2 text-lg font-semibold text-text-primary"
+    <header
+      className={cn(
+        "sticky top-0 z-40 border-b border-border-subtle bg-bg-app/95 backdrop-blur-xl pt-safe",
+        hideOnMobile && "hidden md:block"
+      )}
+    >
+      <div className="site-container flex items-center justify-between py-3">
+        <Link href="/" className="brand-lockup">
+          <span className="brand-lockup-name">Aviel Naim</span>
+        </Link>
+
+        <nav
+          className="hidden items-center gap-1 md:flex"
+          aria-label="ניווט ראשי"
         >
-          <Scissors className="h-5 w-5 text-gold-start" />
-          Barber Noir
-        </Link>
-        <Link href="/book" className="btn-gold px-4 py-2 text-sm">
-          קביעת תור
-        </Link>
+          {DESKTOP_LINKS.map(({ href, label }) => {
+            const active =
+              href === "/"
+                ? pathname === "/"
+                : pathname === href || pathname.startsWith(`${href}/`);
+
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  "rounded-xl px-4 py-2 text-sm font-medium transition-colors",
+                  active
+                    ? "bg-gold-start/15 text-gold-end"
+                    : "text-text-secondary hover:bg-stone-900/5 hover:text-text-primary"
+                )}
+              >
+                {label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {!isBook && (
+          <Link href="/book" className="btn-gold shrink-0 px-4 py-2 text-sm">
+            קביעת תור
+          </Link>
+        )}
+        {isBook && <div className="hidden w-[89px] md:block" aria-hidden />}
       </div>
     </header>
   );
@@ -72,11 +107,11 @@ export function BottomNav() {
               aria-current={active ? "page" : undefined}
               className={cn(
                 "flex min-h-11 min-w-11 items-center justify-center rounded-2xl px-4 py-2 transition-all duration-200",
-                active && !subtle && "bg-white/15 text-text-primary",
-                active && subtle && "bg-white/10 text-text-muted",
+                active && !subtle && "bg-gold-start/15 text-gold-end",
+                active && subtle && "bg-stone-900/5 text-text-muted",
                 !active &&
                   !subtle &&
-                  "text-text-secondary hover:bg-white/5 hover:text-text-primary",
+                  "text-text-secondary hover:bg-stone-900/5 hover:text-text-primary",
                 subtle &&
                   !active &&
                   "opacity-40 hover:opacity-70 text-text-muted"

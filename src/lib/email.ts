@@ -68,13 +68,13 @@ export async function sendOwnerNewAppointmentEmail(data: {
       ? `<p><strong>תמונות השראה:</strong></p><ul>${data.inspoImages
           .map(
             (img) =>
-              `<li><a href="${img.src}" style="color:#C9A86A">${img.label}</a></li>`
+              `<li><a href="${img.src}" style="color:#345570">${img.label}</a></li>`
           )
           .join("")}</ul>`
       : "<p>לא נבחרו תמונות השראה</p>";
 
   const html = emailLayout(`
-    <h2 style="color:#C9A86A; margin-top:0;">תור חדש נקבע — ${businessName}</h2>
+    <h2 style="color:#345570; margin-top:0;">תור חדש נקבע — ${businessName}</h2>
     <p><strong>שירות:</strong> ${data.serviceName}</p>
     <p><strong>תאריך:</strong> ${data.date}</p>
     <p><strong>שעה:</strong> ${data.time}</p>
@@ -110,7 +110,7 @@ export async function sendCustomerConfirmationEmail(data: {
   if (data.status === "cancelled") statusText = "בוטל";
 
   const html = emailLayout(`
-    <h2 style="color:#C9A86A; margin-top:0;">שלום ${data.customerName},</h2>
+    <h2 style="color:#345570; margin-top:0;">שלום ${data.customerName},</h2>
     <p>התור שלך ב-${businessName} ${data.status === "pending" ? "נקלט בהצלחה" : "עודכן"}.</p>
     <p><strong>סטטוס:</strong> ${statusText}</p>
     <p><strong>שירות:</strong> ${data.serviceName}</p>
@@ -141,7 +141,7 @@ export async function sendReminderEmail(data: {
   const address = await getSetting("businessAddress", "");
 
   const html = emailLayout(`
-    <h2 style="color:#C9A86A; margin-top:0;">תזכורת לתור — ${businessName}</h2>
+    <h2 style="color:#345570; margin-top:0;">תזכורת לתור — ${businessName}</h2>
     <p>שלום ${data.customerName},</p>
     <p>מזכירים שהתור שלך בעוד ${data.hoursBefore} שעות:</p>
     <p><strong>שירות:</strong> ${data.serviceName}</p>

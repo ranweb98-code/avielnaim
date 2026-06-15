@@ -125,7 +125,7 @@ export default function AdminPage() {
   return (
     <div>
       <AdminPanelHeader />
-      <div className="mx-auto max-w-2xl px-4 pb-6">
+      <div className="mx-auto max-w-2xl px-4 pb-6 md:max-w-5xl md:px-8">
       <div className="mb-4 flex items-center justify-between">
         <Link href="/" className="text-sm text-cream/50 hover:text-cream">
           ← חזרה לאתר
@@ -151,8 +151,8 @@ export default function AdminPage() {
             className={cn(
               "min-h-11 shrink-0 rounded-xl px-3 text-sm transition-all duration-200",
               tab === t.key
-                ? "bg-accent-copper/30 text-accent-gold"
-                : "bg-cream/5 text-cream/60 hover:bg-cream/10"
+                ? "bg-gold-start/15 text-gold-end font-medium"
+                : "bg-stone-900/5 text-text-secondary hover:bg-stone-900/8"
             )}
           >
             {t.label}

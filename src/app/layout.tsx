@@ -23,13 +23,13 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
-    title: "Barber Noir",
+    statusBarStyle: "default",
+    title: "Aviel Naim",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#121212",
+  themeColor: "#F9F6F1",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,

@@ -17,8 +17,8 @@ export function Button({
   const variants = {
     primary: "btn-gold",
     secondary:
-      "bg-bg-card text-text-primary border border-white/10 hover:bg-bg-card-hover rounded-2xl",
-    ghost: "text-text-secondary hover:text-text-primary hover:bg-white/5 rounded-2xl",
+      "bg-bg-card text-text-primary border border-border-subtle hover:bg-bg-card-hover rounded-2xl shadow-sm",
+    ghost: "text-text-secondary hover:text-text-primary hover:bg-stone-900/5 rounded-2xl",
     danger:
       "bg-red-900/40 text-red-200 border border-red-700/50 hover:bg-red-900/60 rounded-2xl",
   };

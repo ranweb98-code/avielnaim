@@ -3,7 +3,7 @@ import { Settings } from "lucide-react";
 
 export function AdminPanelHeader() {
   return (
-    <div className="mx-auto max-w-2xl px-4 pt-6">
+    <div className="mx-auto max-w-2xl px-4 pt-6 md:max-w-5xl md:px-8">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="font-serif text-2xl">פאנל ניהול</h1>
         <Link

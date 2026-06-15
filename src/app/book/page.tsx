@@ -142,7 +142,7 @@ export default function BookPage() {
 
   if (confirmed) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-12 text-center">
+      <div className="site-container max-md:mx-auto max-md:max-w-lg max-md:px-4 py-12 text-center md:max-w-xl">
         <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-bg-card">
           <Check className="h-8 w-8 text-gold-start" />
         </div>
@@ -172,33 +172,32 @@ export default function BookPage() {
 
   return (
     <div className="bg-bg-app pb-8">
-      {/* Hero header — Luxe screen 3 */}
-      <div className="relative -mt-[env(safe-area-inset-top,0px)] h-[calc(16rem+env(safe-area-inset-top,0px))] overflow-hidden">
-        <Image
-          src={HERO_IMAGE}
-          alt={businessName}
-          fill
-          priority
-          className="object-cover object-top grayscale"
-          sizes="100vw"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-bg-app/90 via-bg-app/20 to-bg-app" />
-        <div className="absolute inset-x-0 top-0 flex items-center px-4 pt-[calc(0.75rem+env(safe-area-inset-top,0px))]">
-          <Link
-            href="/"
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-text-primary backdrop-blur-sm"
-            aria-label="חזרה"
-          >
-            <ArrowRight className="h-5 w-5" />
-          </Link>
+      {/* Hero header */}
+      <div className="relative -mt-[env(safe-area-inset-top,0px)] h-[calc(16rem+env(safe-area-inset-top,0px))] overflow-hidden md:mt-0 md:h-56">
+        <div className="relative h-full md:mx-auto md:max-w-6xl md:overflow-hidden md:rounded-b-3xl md:px-8 md:shadow-md">
+          <div className="relative h-full md:rounded-b-3xl">
+          <Image
+            src={HERO_IMAGE}
+            alt={businessName}
+            fill
+            priority
+            className="object-cover object-top md:rounded-b-3xl"
+            sizes="100vw"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-bg-app/90 via-bg-app/20 to-bg-app md:rounded-b-3xl" />
+          <div className="absolute inset-x-0 top-0 flex items-center px-4 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] md:hidden">
+            <Link href="/" className="hero-back-btn" aria-label="חזרה">
+              <ArrowRight className="h-5 w-5" />
+            </Link>
+          </div>
+          </div>
         </div>
       </div>
 
-      <div className="relative mx-auto max-w-lg px-4">
-        {/* Profile card overlapping hero */}
-        <div className="-mt-10 mb-6">
+      <div className="site-container relative max-md:mx-auto max-md:max-w-lg max-md:px-4">
+        <div className="-mt-10 mb-6 md:-mt-8 md:mb-8">
           <span className="badge-gold">ספר מקצועי</span>
-          <h1 className="mt-3 text-2xl font-bold text-text-primary">
+          <h1 className="mt-3 text-2xl font-bold text-text-primary md:text-3xl">
             Aviel Naim
           </h1>
           <div className="mt-2 flex items-center gap-1 text-sm text-text-secondary">
@@ -214,8 +213,10 @@ export default function BookPage() {
           </div>
         )}
 
+        <div className="md:grid md:grid-cols-2 md:items-start md:gap-10">
+          <div className="space-y-8">
         {/* Services */}
-        <section className="mb-8">
+        <section>
           <h2 className="mb-3 text-lg font-semibold text-text-primary">
             בחר שירות
           </h2>
@@ -230,7 +231,7 @@ export default function BookPage() {
         </section>
 
         {/* Date scroller */}
-        <section className="mb-8">
+        <section>
           <h2 className="mb-3 text-lg font-semibold text-text-primary">
             זמין היום
           </h2>
@@ -247,7 +248,7 @@ export default function BookPage() {
 
         {/* Time slots */}
         {date && serviceId && (
-          <section className="mb-8">
+          <section>
             <h2 className="mb-3 text-lg font-semibold text-text-primary">
               בחר שעה
             </h2>
@@ -262,9 +263,11 @@ export default function BookPage() {
             )}
           </section>
         )}
+          </div>
 
-        {/* Style notes — optional inspo replacement */}
-        <section className="mb-8">
+          <div className="mt-8 space-y-8 md:mt-0 md:sticky md:top-24">
+        {/* Style notes */}
+        <section>
           <h2 className="mb-1 text-lg font-semibold text-text-primary">
             סגנון רצוי
           </h2>
@@ -280,7 +283,7 @@ export default function BookPage() {
         </section>
 
         {/* Contact details */}
-        <section className="mb-8 space-y-4">
+        <section className="space-y-4">
           <h2 className="text-lg font-semibold text-text-primary">
             פרטים אישיים
           </h2>
@@ -337,6 +340,8 @@ export default function BookPage() {
         >
           אשר תור
         </Button>
+          </div>
+        </div>
       </div>
     </div>
   );
