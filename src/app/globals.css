@@ -100,12 +100,46 @@ body {
 .hero-overlay-luxe {
   background: linear-gradient(
     to bottom,
-    rgba(249, 246, 241, 0.94) 0%,
-    rgba(249, 246, 241, 0.55) 18%,
-    rgba(249, 246, 241, 0.12) 42%,
-    rgba(249, 246, 241, 0.45) 72%,
-    rgba(249, 246, 241, 1) 100%
+    rgba(249, 246, 241, 0.08) 0%,
+    rgba(249, 246, 241, 0.04) 20%,
+    transparent 45%,
+    rgba(249, 246, 241, 0.4) 75%,
+    rgba(249, 246, 241, 0.95) 100%
   );
+}
+
+.hero-top-bar {
+  position: relative;
+  z-index: 10;
+}
+
+.hero-bottom-bar {
+  position: relative;
+  z-index: 10;
+  margin-top: auto;
+}
+
+@media (max-width: 767px) {
+  .hero-top-bar {
+    padding-top: calc(0.75rem + env(safe-area-inset-top, 0px));
+    padding-bottom: 1.5rem;
+    background: linear-gradient(
+      180deg,
+      rgba(249, 246, 241, 0.92) 0%,
+      rgba(249, 246, 241, 0.55) 55%,
+      transparent 100%
+    );
+  }
+
+  .hero-bottom-bar {
+    padding-bottom: 1.5rem;
+    background: linear-gradient(
+      0deg,
+      rgba(249, 246, 241, 0.95) 0%,
+      rgba(249, 246, 241, 0.5) 50%,
+      transparent 100%
+    );
+  }
 }
 
 .brand-lockup {
@@ -246,6 +280,12 @@ body {
 
   .brand-lockup-name {
     font-size: 1.5rem;
+  }
+
+  .hero-top-bar,
+  .hero-bottom-bar {
+    padding-top: 0;
+    padding-bottom: 0;
   }
 
   .hero-overlay-luxe--card {

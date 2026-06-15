@@ -38,22 +38,23 @@ export default async function HomePage() {
               alt={businessName}
               fill
               priority
-              className="object-cover object-center md:rounded-3xl"
+              className="object-cover object-top md:rounded-3xl md:object-center"
               sizes="(min-width: 768px) 50vw, 100vw"
             />
             <div className="hero-overlay-luxe absolute inset-0 md:hero-overlay-luxe--card md:rounded-3xl" />
           </div>
 
-          <div className="relative flex min-h-[calc(100dvh+env(safe-area-inset-top,0px))] flex-col px-5 pb-8 pt-[calc(1rem+env(safe-area-inset-top,0px))] md:order-1 md:min-h-0 md:justify-center md:px-0 md:pb-0 md:pt-0">
-            <div className="brand-lockup">
-              <span className="brand-lockup-name md:text-4xl">Aviel Naim</span>
+          <div className="relative flex min-h-[calc(100dvh+env(safe-area-inset-top,0px))] flex-col md:order-1 md:min-h-0 md:justify-center md:px-0 md:pb-0 md:pt-0">
+            <div className="hero-top-bar site-container md:p-0 md:pt-0">
+              <div className="brand-lockup">
+                <span className="brand-lockup-name md:text-4xl">Aviel Naim</span>
+              </div>
+              <p className="mt-4 hidden max-w-sm text-text-secondary md:block">
+                בחר שירות, תאריך ושעה — בקלות
+              </p>
             </div>
 
-            <p className="mt-4 hidden max-w-sm text-text-secondary md:block">
-              בחר שירות, תאריך ושעה — בקלות
-            </p>
-
-            <div className="mt-auto md:mt-8">
+            <div className="hero-bottom-bar site-container md:mt-8 md:p-0 md:pb-0">
               <Link href="/book" className="block md:inline-block">
                 <Button className="min-h-14 w-full text-base md:min-w-48 md:w-auto">
                   <Scissors className="h-5 w-5" />
