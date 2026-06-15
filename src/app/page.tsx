@@ -29,55 +29,33 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* Welcome Hero — full bleed, no cream wrapper above image */}
-      <section className="hero-mobile relative -mt-[env(safe-area-inset-top,0px)] min-h-[100svh] min-h-[100dvh] pt-[env(safe-area-inset-top,0px)] md:mt-0 md:min-h-0 md:overflow-visible md:py-10 md:pt-0">
-        <div className="hero-mobile__media md:hidden">
-          <Image
-            src={HERO_IMAGE}
-            alt={businessName}
-            fill
-            priority
-            quality={95}
-            className="object-cover"
-            sizes="100vw"
-          />
-          <div className="hero-overlay-luxe absolute inset-0" aria-hidden />
-        </div>
-
-        <div className="hero-desktop relative z-10 flex min-h-[calc(100svh-env(safe-area-inset-top,0px))] min-h-[calc(100dvh-env(safe-area-inset-top,0px))] flex-col md:min-h-0">
-          <div className="hero-image-frame order-2 hidden md:relative md:block md:overflow-hidden md:rounded-3xl md:shadow-lg">
+      {/* Welcome Hero */}
+      <section className="hero-section relative -mt-[env(safe-area-inset-top,0px)] min-h-[100svh] min-h-[100dvh] pt-[env(safe-area-inset-top,0px)] md:mt-0 md:min-h-0 md:bg-bg-app md:pt-0">
+        {/* ── Mobile ── */}
+        <div className="relative flex min-h-[calc(100svh-env(safe-area-inset-top,0px))] min-h-[calc(100dvh-env(safe-area-inset-top,0px))] flex-col md:hidden">
+          <div className="hero-mobile__media">
             <Image
               src={HERO_IMAGE}
               alt={businessName}
               fill
               priority
               quality={95}
-              className="object-cover md:rounded-3xl"
-              sizes="(min-width: 768px) 320px, 100vw"
+              className="object-cover"
+              sizes="100vw"
             />
-            <div className="hero-overlay-luxe hero-overlay-luxe--card absolute inset-0 md:rounded-3xl" aria-hidden />
+            <div className="hero-overlay-luxe absolute inset-0" aria-hidden />
           </div>
 
-          <div className="hero-content-col relative order-1 flex min-h-[calc(100svh-env(safe-area-inset-top,0px))] min-h-[calc(100dvh-env(safe-area-inset-top,0px))] flex-col md:min-h-0">
-            <p className="hero-tagline site-container hidden md:block md:p-0">
-              סגנון מדויק, תור בקליק — המספרה שלך מחכה.
-            </p>
-
-            <div className="hero-top-bar site-container md:hidden md:p-0">
+          <div className="relative z-10 flex flex-1 flex-col">
+            <div className="hero-top-bar site-container">
               <div className="brand-lockup">
                 <span className="brand-lockup-name">Aviel Naim</span>
               </div>
             </div>
 
-            <div className="hero-bottom-bar site-container md:mt-0 md:p-0 md:pb-0">
-              <div className="hidden md:mb-6 md:block">
-                <span className="brand-lockup-name text-4xl">Aviel Naim</span>
-                <p className="mt-3 max-w-sm text-base text-text-secondary">
-                  בחר שירות, תאריך ושעה — בקלות
-                </p>
-              </div>
-              <Link href="/book" className="block md:inline-block">
-                <Button className="min-h-14 w-full text-base md:min-w-48 md:w-auto">
+            <div className="hero-bottom-bar site-container">
+              <Link href="/book" className="block">
+                <Button className="min-h-14 w-full text-base">
                   <Scissors className="h-5 w-5" />
                   התחל
                 </Button>
@@ -85,12 +63,45 @@ export default async function HomePage() {
             </div>
           </div>
         </div>
+
+        {/* ── Desktop ── */}
+        <div className="hero-desktop hidden md:grid">
+          <div className="hero-desktop__copy">
+            <p className="hero-eyebrow">מספרה פרימיום · תל אביב</p>
+            <h1 className="hero-title">Aviel Naim</h1>
+            <p className="hero-lead">
+              סגנון מדויק, תור בקליק — המספרה שלך מחכה.
+            </p>
+            <p className="hero-desc">
+              בחר שירות, תאריך ושעה — בקלות. ללא שיחות, ללא המתנה.
+            </p>
+            <div className="hero-actions">
+              <Link href="/book">
+                <Button className="min-h-14 px-8 text-base">
+                  <Scissors className="h-5 w-5" />
+                  קביעת תור
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          <div className="hero-image-frame">
+            <Image
+              src={HERO_IMAGE}
+              alt={businessName}
+              fill
+              priority
+              quality={95}
+              className="object-cover"
+              sizes="(min-width: 768px) 480px, 100vw"
+            />
+          </div>
+        </div>
       </section>
 
       <div className="bg-bg-app">
-      {/* Dashboard */}
-      <div className="site-container space-y-8 py-8">
-        <div>
+      <div className="site-container space-y-10 py-8 md:space-y-14 md:py-14">
+        <div className="md:hidden">
           <h2 className="text-2xl font-bold text-text-primary">
             שדרג את הסגנון שלך
           </h2>
@@ -99,8 +110,8 @@ export default async function HomePage() {
           </p>
         </div>
 
-        {/* Barber card */}
-        <div className="card-app flex items-center gap-4 p-4">
+        {/* Barber card — mobile only */}
+        <div className="card-app flex items-center gap-4 p-4 md:hidden">
           <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl">
             <Image
               src={HERO_IMAGE}
@@ -125,10 +136,11 @@ export default async function HomePage() {
 
         {/* Services */}
         <section>
-          <h3 className="mb-4 text-lg font-semibold text-text-primary">
-            השירותים שלנו
-          </h3>
-          <div className="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
+          <div className="section-heading">
+            <h3 className="section-heading__title">השירותים שלנו</h3>
+            <p className="section-heading__sub">מחירים שקופים, תוצאה מדויקת</p>
+          </div>
+          <div className="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0 lg:grid-cols-3">
             {services.map((service) => (
               <div
                 key={service.id}
@@ -153,21 +165,19 @@ export default async function HomePage() {
               </div>
             ))}
           </div>
-          <Link href="/book" className="mt-4 block">
+          <Link href="/book" className="mt-6 block md:hidden">
             <Button variant="secondary" className="w-full">
               קביעת תור
             </Button>
           </Link>
         </section>
 
-        <div className="md:grid md:grid-cols-2 md:gap-8">
+        <div className="md:grid md:grid-cols-2 md:gap-10">
         {/* Hours */}
         <section>
-          <div className="mb-4 flex items-center gap-2">
-            <Clock className="h-5 w-5 text-gold-start" />
-            <h3 className="text-lg font-semibold text-text-primary">
-              שעות פעילות
-            </h3>
+          <div className="section-heading">
+            <Clock className="section-heading__icon" />
+            <h3 className="section-heading__title">שעות פעילות</h3>
           </div>
           <div className="card-app space-y-2 p-4">
             {workingHours.map((wh) => (
@@ -187,10 +197,11 @@ export default async function HomePage() {
         </section>
 
         {/* Contact */}
-        <section className="pb-8">
-          <h3 className="mb-4 text-lg font-semibold text-text-primary">
-            יצירת קשר
-          </h3>
+        <section className="pb-8 md:pb-0">
+          <div className="section-heading">
+            <MapPin className="section-heading__icon" />
+            <h3 className="section-heading__title">יצירת קשר</h3>
+          </div>
           <div className="card-app space-y-4 p-4">
             {phone && (
               <a
