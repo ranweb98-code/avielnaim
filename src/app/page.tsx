@@ -30,18 +30,32 @@ export default async function HomePage() {
   return (
     <div className="bg-bg-app">
       {/* Welcome Hero — mobile full-screen, desktop split */}
-      <section className="relative -mt-[env(safe-area-inset-top,0px)] min-h-[calc(100dvh+env(safe-area-inset-top,0px))] overflow-hidden md:mt-0 md:min-h-0 md:overflow-visible md:py-8">
-        <div className="md:site-container md:grid md:grid-cols-2 md:items-center md:gap-12">
-          <div className="absolute inset-0 md:relative md:inset-auto md:order-2 md:h-[32rem] md:overflow-hidden md:rounded-3xl md:shadow-lg">
+      <section className="hero-mobile relative -mt-[env(safe-area-inset-top,0px)] min-h-[calc(100dvh+env(safe-area-inset-top,0px))] overflow-hidden md:mt-0 md:min-h-0 md:overflow-visible md:py-8">
+        <div className="hero-mobile__media md:hidden">
+          <Image
+            src={HERO_IMAGE}
+            alt={businessName}
+            fill
+            priority
+            quality={95}
+            className="object-cover object-[center_15%]"
+            sizes="100vw"
+          />
+          <div className="hero-overlay-luxe absolute inset-0" aria-hidden />
+        </div>
+
+        <div className="relative z-10 flex min-h-[calc(100dvh+env(safe-area-inset-top,0px))] flex-col md:min-h-0 md:site-container md:grid md:grid-cols-2 md:items-center md:gap-12">
+          <div className="hidden md:relative md:order-2 md:block md:h-[32rem] md:overflow-hidden md:rounded-3xl md:shadow-lg">
             <Image
               src={HERO_IMAGE}
               alt={businessName}
               fill
               priority
-              className="object-cover object-top md:rounded-3xl md:object-center"
+              quality={95}
+              className="object-cover object-center md:rounded-3xl"
               sizes="(min-width: 768px) 50vw, 100vw"
             />
-            <div className="hero-overlay-luxe absolute inset-0 md:hero-overlay-luxe--card md:rounded-3xl" />
+            <div className="hero-overlay-luxe hero-overlay-luxe--card absolute inset-0 md:rounded-3xl" aria-hidden />
           </div>
 
           <div className="relative flex min-h-[calc(100dvh+env(safe-area-inset-top,0px))] flex-col md:order-1 md:min-h-0 md:justify-center md:px-0 md:pb-0 md:pt-0">

@@ -181,6 +181,7 @@ export default function BookPage() {
             alt={businessName}
             fill
             priority
+            quality={95}
             className="object-cover object-top md:rounded-b-3xl"
             sizes="100vw"
           />
