@@ -28,9 +28,9 @@ export default async function HomePage() {
   const address = settings.businessAddress ?? "";
 
   return (
-    <div className="bg-bg-app">
-      {/* Welcome Hero — mobile full-screen, desktop split */}
-      <section className="hero-mobile relative -mt-[env(safe-area-inset-top,0px)] min-h-[calc(100dvh+env(safe-area-inset-top,0px))] overflow-hidden md:mt-0 md:min-h-0 md:overflow-visible md:py-8">
+    <>
+      {/* Welcome Hero — full bleed, no cream wrapper above image */}
+      <section className="hero-mobile relative -mt-[env(safe-area-inset-top,0px)] min-h-[100svh] min-h-[100dvh] pt-[env(safe-area-inset-top,0px)] md:mt-0 md:min-h-0 md:overflow-visible md:py-10 md:pt-0">
         <div className="hero-mobile__media md:hidden">
           <Image
             src={HERO_IMAGE}
@@ -44,8 +44,8 @@ export default async function HomePage() {
           <div className="hero-overlay-luxe absolute inset-0" aria-hidden />
         </div>
 
-        <div className="relative z-10 flex min-h-[calc(100dvh+env(safe-area-inset-top,0px))] flex-col md:min-h-0 md:site-container md:grid md:grid-cols-2 md:items-center md:gap-12">
-          <div className="hero-image-frame hidden md:relative md:order-2 md:block md:h-[36rem] md:overflow-hidden md:rounded-3xl md:shadow-lg">
+        <div className="hero-desktop relative z-10 flex min-h-[calc(100svh-env(safe-area-inset-top,0px))] min-h-[calc(100dvh-env(safe-area-inset-top,0px))] flex-col md:min-h-0">
+          <div className="hero-image-frame order-2 hidden md:relative md:block md:overflow-hidden md:rounded-3xl md:shadow-lg">
             <Image
               src={HERO_IMAGE}
               alt={businessName}
@@ -53,22 +53,29 @@ export default async function HomePage() {
               priority
               quality={95}
               className="object-cover md:rounded-3xl"
-              sizes="(min-width: 768px) 50vw, 100vw"
+              sizes="(min-width: 768px) 320px, 100vw"
             />
             <div className="hero-overlay-luxe hero-overlay-luxe--card absolute inset-0 md:rounded-3xl" aria-hidden />
           </div>
 
-          <div className="relative flex min-h-[calc(100dvh+env(safe-area-inset-top,0px))] flex-col md:order-1 md:min-h-0 md:justify-center md:px-0 md:pb-0 md:pt-0">
-            <div className="hero-top-bar site-container md:p-0 md:pt-0">
+          <div className="hero-content-col relative order-1 flex min-h-[calc(100svh-env(safe-area-inset-top,0px))] min-h-[calc(100dvh-env(safe-area-inset-top,0px))] flex-col md:min-h-0">
+            <p className="hero-tagline site-container hidden md:block md:p-0">
+              סגנון מדויק, תור בקליק — המספרה שלך מחכה.
+            </p>
+
+            <div className="hero-top-bar site-container md:hidden md:p-0">
               <div className="brand-lockup">
-                <span className="brand-lockup-name md:text-4xl">Aviel Naim</span>
+                <span className="brand-lockup-name">Aviel Naim</span>
               </div>
-              <p className="mt-4 hidden max-w-sm text-text-secondary md:block">
-                בחר שירות, תאריך ושעה — בקלות
-              </p>
             </div>
 
-            <div className="hero-bottom-bar site-container md:mt-8 md:p-0 md:pb-0">
+            <div className="hero-bottom-bar site-container md:mt-0 md:p-0 md:pb-0">
+              <div className="hidden md:mb-6 md:block">
+                <span className="brand-lockup-name text-4xl">Aviel Naim</span>
+                <p className="mt-3 max-w-sm text-base text-text-secondary">
+                  בחר שירות, תאריך ושעה — בקלות
+                </p>
+              </div>
               <Link href="/book" className="block md:inline-block">
                 <Button className="min-h-14 w-full text-base md:min-w-48 md:w-auto">
                   <Scissors className="h-5 w-5" />
@@ -80,6 +87,7 @@ export default async function HomePage() {
         </div>
       </section>
 
+      <div className="bg-bg-app">
       {/* Dashboard */}
       <div className="site-container space-y-8 py-8">
         <div>
@@ -203,6 +211,7 @@ export default async function HomePage() {
         </section>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
