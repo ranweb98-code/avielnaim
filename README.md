@@ -1,4 +1,4 @@
-# Barber Noir — PWA לקביעת תורים
+# Aviel Naim — PWA לקביעת תורים
 
 דמו מלא ועובד למערכת קביעת תורים למספרה/ספר, בעברית RTL, mobile-first PWA.
 

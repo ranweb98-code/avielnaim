@@ -72,7 +72,7 @@ async function main() {
   }
 
   const settings = [
-    { key: "businessName", value: "Barber Noir" },
+    { key: "businessName", value: "Aviel Naim" },
     { key: "businessPhone", value: "050-1234567" },
     { key: "businessAddress", value: "רothschild 45, Tel Aviv" },
     { key: "ownerEmail", value: "owner@example.com" },

@@ -1,3 +1,5 @@
+export const BUSINESS_NAME = "Aviel Naim";
+
 export const DAY_NAMES = [
   "ראשון",
   "שני",

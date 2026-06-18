@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Pencil, Plus, Trash2, X } from "lucide-react";
-import { AdminPanelHeader } from "@/components/AdminPanelHeader";
 import { Button } from "@/components/Button";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { GlassCard } from "@/components/GlassCard";
 import { Input } from "@/components/Input";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
-import { DAY_NAMES } from "@/lib/utils";
+import { PageHero } from "@/components/PageHero";
+import { DAY_NAMES, BUSINESS_NAME } from "@/lib/utils";
 
 type WorkingHour = {
   dayOfWeek: number;
@@ -232,12 +232,18 @@ export default function AdminSettingsPage() {
   if (loading) return <LoadingSpinner />;
 
   return (
-    <div>
-      <AdminPanelHeader />
-      <div className="site-container max-w-5xl space-y-8 pb-12">
+    <>
+      <PageHero
+        showBack
+        backHref="/admin"
+        bottomContent={
+          <h1 className="text-2xl font-bold text-white">הגדרות</h1>
+        }
+      />
+      <div className="site-container max-w-5xl space-y-8 pb-12 pt-6">
         <Link
           href="/admin"
-          className="inline-flex items-center gap-1 text-sm text-cream/50 hover:text-cream"
+          className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary"
         >
           <ArrowRight className="h-4 w-4" />
           חזרה לתורים
@@ -255,7 +261,7 @@ export default function AdminSettingsPage() {
           <GlassCard className="space-y-3">
             <Input
               label="שם העסק"
-              value={settings.businessName ?? ""}
+              value={settings.businessName ?? BUSINESS_NAME}
               onChange={(e) =>
                 setSettings({ ...settings, businessName: e.target.value })
               }
@@ -298,7 +304,7 @@ export default function AdminSettingsPage() {
             {workingHours.map((wh, idx) => (
               <div
                 key={wh.dayOfWeek}
-                className="flex flex-wrap items-center gap-2 border-b border-cream/5 pb-3 last:border-0"
+                className="flex flex-wrap items-center gap-2 border-b border-border-subtle pb-3 last:border-0"
               >
                 <span className="w-16 text-sm">{DAY_NAMES[wh.dayOfWeek]}</span>
                 <label className="flex items-center gap-1 text-sm">
@@ -321,9 +327,9 @@ export default function AdminSettingsPage() {
                     updated[idx] = { ...wh, startTime: e.target.value };
                     setWorkingHours(updated);
                   }}
-                  className="rounded-lg border border-cream/10 bg-bg-secondary px-2 py-1 text-sm"
+                  className="rounded-lg border border-border-subtle bg-bg-card px-2 py-1 text-sm"
                 />
-                <span className="text-cream/40">–</span>
+                <span className="text-text-muted">–</span>
                 <input
                   type="time"
                   value={wh.endTime}
@@ -332,7 +338,7 @@ export default function AdminSettingsPage() {
                     updated[idx] = { ...wh, endTime: e.target.value };
                     setWorkingHours(updated);
                   }}
-                  className="rounded-lg border border-cream/10 bg-bg-secondary px-2 py-1 text-sm"
+                  className="rounded-lg border border-border-subtle bg-bg-card px-2 py-1 text-sm"
                 />
               </div>
             ))}
@@ -393,7 +399,7 @@ export default function AdminSettingsPage() {
                         }
                       />
                     </div>
-                    <label className="flex items-center gap-2 text-sm text-cream/70">
+                    <label className="flex items-center gap-2 text-sm text-text-secondary">
                       <input
                         type="checkbox"
                         checked={editService.active}
@@ -429,15 +435,15 @@ export default function AdminSettingsPage() {
                       <p className="font-medium">
                         {s.name}
                         {!s.active && (
-                          <span className="mr-2 text-xs text-cream/40">
+                          <span className="mr-2 text-xs text-text-muted">
                             (לא פעיל)
                           </span>
                         )}
                       </p>
                       {s.description && (
-                        <p className="text-sm text-cream/50">{s.description}</p>
+                        <p className="text-sm text-text-secondary">{s.description}</p>
                       )}
-                      <p className="text-sm text-cream/50">
+                      <p className="text-sm text-text-secondary">
                         {s.durationMin} דק&apos; · {s.price} ₪
                       </p>
                     </div>
@@ -504,12 +510,12 @@ export default function AdminSettingsPage() {
             {blockedDates.map((bd) => (
               <div
                 key={bd.id}
-                className="flex items-center justify-between border-b border-cream/5 pb-2 last:border-0"
+                className="flex items-center justify-between border-b border-border-subtle pb-2 last:border-0"
               >
                 <span>
                   {bd.date}
                   {bd.reason && (
-                    <span className="mr-2 text-sm text-cream/50">({bd.reason})</span>
+                    <span className="mr-2 text-sm text-text-secondary">({bd.reason})</span>
                   )}
                 </span>
                 <Button
@@ -562,7 +568,7 @@ export default function AdminSettingsPage() {
               <GlassCard key={img.id} className="flex items-center justify-between gap-2">
                 <div>
                   <p className="font-medium">{img.label}</p>
-                  <p className="truncate text-xs text-cream/40">{img.src}</p>
+                  <p className="truncate text-xs text-text-muted">{img.src}</p>
                   {img.tags && (
                     <p className="text-xs text-muted">{img.tags}</p>
                   )}
@@ -606,6 +612,6 @@ export default function AdminSettingsPage() {
           </div>
         </section>
       </div>
-    </div>
+    </>
   );
 }

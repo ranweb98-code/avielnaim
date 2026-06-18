@@ -44,7 +44,7 @@ export function ServiceList({
             <span
               className={cn(
                 "text-base font-semibold",
-                isSelected ? "text-gold-start" : "text-text-primary"
+                isSelected ? "text-accent-yellow" : "text-text-primary"
               )}
             >
               {formatPrice(service.price)}

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Cormorant_Garamond, Heebo } from "next/font/google";
+import { Heebo, Orbitron } from "next/font/google";
 import { BottomNav, Header } from "@/components/Header";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { SerwistRegister } from "@/components/SerwistRegister";
@@ -11,14 +11,14 @@ const heebo = Heebo({
   weight: ["400", "500", "600", "700"],
 });
 
-const display = Cormorant_Garamond({
-  variable: "--font-display",
+const brand = Orbitron({
+  variable: "--font-brand",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "Barber Noir | קביעת תורים",
+  title: "Aviel Naim | קביעת תורים",
   description: "מספרת יוקרה — קביעת תורים online",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#F9F6F1",
+  themeColor: "#000000",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -46,7 +46,7 @@ export default function RootLayout({
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
-      <body className={`${heebo.variable} ${display.variable} antialiased`}>
+      <body className={`${heebo.variable} ${brand.variable} antialiased`}>
         <Header />
         <main className="page-shell">{children}</main>
         <BottomNav />

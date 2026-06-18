@@ -1,7 +1,7 @@
 import { cn } from "@/lib/cn";
 
 const inputClass =
-  "min-h-11 w-full rounded-2xl border border-border-subtle bg-bg-card px-4 py-2.5 text-text-primary placeholder:text-text-muted outline-none transition-all duration-200 focus:border-gold-start/50 focus:ring-2 focus:ring-gold-start/20 shadow-sm";
+  "min-h-11 w-full rounded-2xl border border-border-subtle bg-bg-card px-4 py-2.5 text-text-primary placeholder:text-text-muted outline-none transition-all duration-200 focus:border-accent-yellow/50 focus:ring-2 focus:ring-accent-yellow/20";
 
 type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
   label?: string;
@@ -58,7 +58,7 @@ export function Textarea({
       <textarea
         id={inputId}
         className={cn(
-          "min-h-24 w-full rounded-2xl border border-border-subtle bg-bg-card px-4 py-2.5 text-text-primary placeholder:text-text-muted outline-none transition-all duration-200 focus:border-gold-start/50 focus:ring-2 focus:ring-gold-start/20 shadow-sm",
+          "min-h-24 w-full rounded-2xl border border-border-subtle bg-bg-card px-4 py-2.5 text-text-primary placeholder:text-text-muted outline-none transition-all duration-200 focus:border-accent-yellow/50 focus:ring-2 focus:ring-accent-yellow/20",
           error && "border-red-500/50",
           className
         )}

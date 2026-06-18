@@ -15,8 +15,8 @@ export function TimeSlotGrid({
 }: TimeSlotGridProps) {
   if (loading) {
     return (
-      <div className="grid grid-cols-3 gap-2 md:grid-cols-4 lg:grid-cols-5">
-        {Array.from({ length: 6 }).map((_, i) => (
+      <div className="time-scroll hide-scrollbar">
+        {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
             className="time-pill animate-pulse bg-bg-card-hover"
@@ -36,7 +36,7 @@ export function TimeSlotGrid({
   }
 
   return (
-    <div className="grid grid-cols-3 gap-2 md:grid-cols-4 lg:grid-cols-5">
+    <div className="time-scroll hide-scrollbar">
       {slots.map((slot) => {
         const isSelected = slot === selectedTime;
         return (

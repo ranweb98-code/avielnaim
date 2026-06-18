@@ -1,18 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Check, Star } from "lucide-react";
+import { Check, Star } from "lucide-react";
+import { CalendarPicker } from "@/components/CalendarPicker";
 import { Button } from "@/components/Button";
-import { DateScroller } from "@/components/DateScroller";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { Input, Textarea } from "@/components/Input";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { PageHero } from "@/components/PageHero";
 import { ServiceList } from "@/components/ServiceList";
 import { TimeSlotGrid } from "@/components/TimeSlotGrid";
-import { HERO_IMAGE } from "@/lib/assets";
 import { formatJerusalemDate } from "@/lib/timezone";
+import { BUSINESS_NAME } from "@/lib/utils";
 
 type Service = {
   id: number;
@@ -22,9 +22,15 @@ type Service = {
   price: number;
 };
 
+type WorkingHour = {
+  dayOfWeek: number;
+  isOpen: boolean;
+};
+
 export default function BookPage() {
   const [services, setServices] = useState<Service[]>([]);
-  const [businessName, setBusinessName] = useState("Barber Noir");
+  const [workingHours, setWorkingHours] = useState<WorkingHour[]>([]);
+  const [blockedDates, setBlockedDates] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -51,7 +57,8 @@ export default function BookPage() {
       .then((r) => r.json())
       .then((data) => {
         setServices(data.services ?? []);
-        setBusinessName(data.settings?.businessName ?? "Barber Noir");
+        setWorkingHours(data.workingHours ?? []);
+        setBlockedDates(data.blockedDates ?? []);
         if (data.services?.length > 0) {
           setServiceId(data.services[0].id);
         }
@@ -104,8 +111,6 @@ export default function BookPage() {
     setSubmitting(true);
     setError("");
 
-    const notesValue = styleNotes.trim() || undefined;
-
     try {
       const res = await fetch("/api/appointments", {
         method: "POST",
@@ -117,7 +122,7 @@ export default function BookPage() {
           customerName: name,
           customerPhone: phone,
           customerEmail: email,
-          notes: notesValue,
+          notes: styleNotes.trim() || undefined,
           inspoIds: [],
         }),
       });
@@ -142,75 +147,67 @@ export default function BookPage() {
 
   if (confirmed) {
     return (
-      <div className="site-container max-w-xl py-12 text-center">
-        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-bg-card">
-          <Check className="h-8 w-8 text-gold-start" />
+      <>
+        <PageHero
+          businessName={BUSINESS_NAME}
+          showBack
+          backHref="/"
+          bottomContent={
+            <div className="text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent-yellow">
+                <Check className="h-8 w-8 text-black" />
+              </div>
+              <h1 className="text-2xl font-bold text-white">
+                התור נקבע בהצלחה!
+              </h1>
+              <p className="mt-2 text-sm text-white/70">
+                שלחנו אימייל אישור ל-{email}
+              </p>
+            </div>
+          }
+        />
+        <div className="site-container max-w-xl py-8">
+          <div className="card-app space-y-2 p-4 text-sm">
+            <p>
+              <strong>שירות:</strong> {selectedService?.name}
+            </p>
+            <p>
+              <strong>תאריך:</strong> {date} · {time}
+            </p>
+            <p className="text-text-muted">התור ממתין לאישור הספר</p>
+          </div>
+          <Link href="/" className="mt-6 block">
+            <Button variant="secondary" className="w-full">
+              חזרה לדף הבית
+            </Button>
+          </Link>
         </div>
-        <h1 className="text-2xl font-bold text-text-primary">
-          התור נקבע בהצלחה!
-        </h1>
-        <p className="mt-3 text-text-secondary">
-          שלחנו אימייל אישור ל-{email}
-        </p>
-        <div className="card-app mt-6 space-y-2 p-4 text-sm text-right">
-          <p>
-            <strong>שירות:</strong> {selectedService?.name}
-          </p>
-          <p>
-            <strong>תאריך:</strong> {date} · {time}
-          </p>
-          <p className="text-text-muted">התור ממתין לאישור הספר</p>
-        </div>
-        <Link href="/" className="mt-8 block">
-          <Button variant="secondary" className="w-full">
-            חזרה לדף הבית
-          </Button>
-        </Link>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="bg-bg-app pb-8">
-      {/* Hero header */}
-      <div className="book-hero relative -mt-[env(safe-area-inset-top,0px)] h-[calc(16rem+env(safe-area-inset-top,0px))] overflow-hidden pt-[env(safe-area-inset-top,0px)] md:mt-0 md:h-[22rem] md:overflow-visible md:pt-0">
-        <div className="relative h-full md:mx-auto md:max-w-6xl md:px-8">
-          <div className="book-hero__media md:overflow-hidden md:rounded-b-3xl md:shadow-md">
-            <Image
-              src={HERO_IMAGE}
-              alt={businessName}
-              fill
-              priority
-              quality={95}
-              className="object-cover"
-              sizes="100vw"
-            />
-            <div
-              className="book-hero__overlay hero-overlay-luxe absolute inset-0 md:rounded-b-3xl"
-              aria-hidden
-            />
+    <>
+      <PageHero
+        businessName={BUSINESS_NAME}
+        showBack
+        backHref="/"
+        bottomContent={
+          <div>
+            <span className="badge-gold">ספר מקצועי</span>
+            <h1 className="brand-name brand-name--hero mt-3">
+              {BUSINESS_NAME}
+            </h1>
+            <div className="mt-2 flex items-center gap-1 text-sm text-white/80">
+              <Star className="h-4 w-4 fill-accent-yellow text-accent-yellow" />
+              <span className="font-medium text-white">4.9</span>
+              <span className="text-white/50">(205 ביקורות)</span>
+            </div>
           </div>
-        </div>
-        <div className="absolute inset-x-0 top-0 z-10 flex items-center px-5 pt-3 md:hidden">
-          <Link href="/" className="hero-back-btn" aria-label="חזרה">
-            <ArrowRight className="h-5 w-5" />
-          </Link>
-        </div>
-      </div>
+        }
+      />
 
-      <div className="site-container relative">
-        <div className="-mt-10 mb-6 md:-mt-8 md:mb-8">
-          <span className="badge-gold">ספר מקצועי</span>
-          <h1 className="mt-3 text-2xl font-bold text-text-primary md:text-3xl">
-            Aviel Naim
-          </h1>
-          <div className="mt-2 flex items-center gap-1 text-sm text-text-secondary">
-            <Star className="h-4 w-4 fill-gold-start text-gold-start" />
-            <span className="font-medium text-text-primary">4.9</span>
-            <span className="text-text-muted">(205 ביקורות)</span>
-          </div>
-        </div>
-
+      <div className="site-container pb-8 pt-6">
         {error && (
           <div className="mb-4">
             <ErrorMessage message={error} />
@@ -219,134 +216,129 @@ export default function BookPage() {
 
         <div className="md:grid md:grid-cols-2 md:items-start md:gap-10">
           <div className="space-y-8">
-        {/* Services */}
-        <section>
-          <h2 className="mb-3 text-lg font-semibold text-text-primary">
-            בחר שירות
-          </h2>
-          <ServiceList
-            services={services}
-            selectedId={serviceId}
-            onSelect={setServiceId}
-          />
-          {formErrors.service && (
-            <p className="mt-2 text-sm text-red-400">{formErrors.service}</p>
-          )}
-        </section>
+            <section>
+              <h2 className="mb-3 text-lg font-semibold text-text-primary">
+                בחר שירות
+              </h2>
+              <ServiceList
+                services={services}
+                selectedId={serviceId}
+                onSelect={setServiceId}
+              />
+              {formErrors.service && (
+                <p className="mt-2 text-sm text-red-400">{formErrors.service}</p>
+              )}
+            </section>
 
-        {/* Date scroller */}
-        <section>
-          <h2 className="mb-3 text-lg font-semibold text-text-primary">
-            זמין היום
-          </h2>
-          <DateScroller
-            selectedDate={date}
-            onSelect={setDate}
-            startDate={minDate}
-            daysCount={14}
-          />
-          {formErrors.date && (
-            <p className="mt-2 text-sm text-red-400">{formErrors.date}</p>
-          )}
-        </section>
+            <section>
+              <h2 className="mb-3 text-lg font-semibold text-text-primary">
+                קביעת תור
+              </h2>
+              <CalendarPicker
+                selectedDate={date}
+                onSelect={setDate}
+                workingHours={workingHours}
+                blockedDates={blockedDates}
+                minDate={minDate}
+              />
+              {formErrors.date && (
+                <p className="mt-2 text-sm text-red-400">{formErrors.date}</p>
+              )}
+            </section>
 
-        {/* Time slots */}
-        {date && serviceId && (
-          <section>
-            <h2 className="mb-3 text-lg font-semibold text-text-primary">
-              בחר שעה
-            </h2>
-            <TimeSlotGrid
-              slots={slots}
-              selectedTime={time}
-              onSelect={setTime}
-              loading={slotsLoading}
-            />
-            {formErrors.time && (
-              <p className="mt-2 text-sm text-red-400">{formErrors.time}</p>
+            {date && serviceId && (
+              <section>
+                <h2 className="mb-3 text-lg font-semibold text-text-primary">
+                  בחר שעה
+                </h2>
+                <TimeSlotGrid
+                  slots={slots}
+                  selectedTime={time}
+                  onSelect={setTime}
+                  loading={slotsLoading}
+                />
+                {formErrors.time && (
+                  <p className="mt-2 text-sm text-red-400">{formErrors.time}</p>
+                )}
+              </section>
             )}
-          </section>
-        )}
           </div>
 
           <div className="mt-8 space-y-8 md:mt-0 md:sticky md:top-24">
-        {/* Style notes */}
-        <section>
-          <h2 className="mb-1 text-lg font-semibold text-text-primary">
-            סגנון רצוי
-          </h2>
-          <p className="mb-3 text-sm text-text-secondary">
-            אופציונלי — תאר את הסגנון שאתה מחפש
-          </p>
-          <Textarea
-            value={styleNotes}
-            onChange={(e) => setStyleNotes(e.target.value)}
-            placeholder="למשל: פייד נמוך, undercut, זקן מסודר..."
-            rows={3}
-          />
-        </section>
+            <section>
+              <h2 className="mb-1 text-lg font-semibold text-text-primary">
+                סגנון רצוי
+              </h2>
+              <p className="mb-3 text-sm text-text-secondary">
+                אופציונלי — תאר את הסגנון שאתה מחפש
+              </p>
+              <Textarea
+                value={styleNotes}
+                onChange={(e) => setStyleNotes(e.target.value)}
+                placeholder="למשל: פייד נמוך, undercut, זקן מסודר..."
+                rows={3}
+              />
+            </section>
 
-        {/* Contact details */}
-        <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-text-primary">
-            פרטים אישיים
-          </h2>
-          <Input
-            label="שם מלא"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            error={formErrors.name}
-            autoComplete="name"
-          />
-          <Input
-            label="טלפון"
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            error={formErrors.phone}
-            autoComplete="tel"
-            dir="ltr"
-            className="text-left"
-          />
-          <Input
-            label="אימייל"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            error={formErrors.email}
-            autoComplete="email"
-            dir="ltr"
-            className="text-left"
-          />
-        </section>
+            <section className="space-y-4">
+              <h2 className="text-lg font-semibold text-text-primary">
+                פרטים אישיים
+              </h2>
+              <Input
+                label="שם מלא"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                error={formErrors.name}
+                autoComplete="name"
+              />
+              <Input
+                label="טלפון"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                error={formErrors.phone}
+                autoComplete="tel"
+                dir="ltr"
+                className="text-left"
+              />
+              <Input
+                label="אימייל"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                error={formErrors.email}
+                autoComplete="email"
+                dir="ltr"
+                className="text-left"
+              />
+            </section>
 
-        {/* Summary + CTA */}
-        {selectedService && date && time && (
-          <div className="card-app mb-4 space-y-1 p-4 text-sm text-text-secondary">
-            <p>
-              <strong className="text-text-primary">שירות:</strong>{" "}
-              {selectedService.name}
-            </p>
-            <p>
-              <strong className="text-text-primary">תאריך:</strong> {date}
-            </p>
-            <p>
-              <strong className="text-text-primary">שעה:</strong> {time}
-            </p>
-          </div>
-        )}
+            {selectedService && date && time && (
+              <div className="card-app space-y-1 p-4 text-sm text-text-secondary">
+                <p>
+                  <strong className="text-text-primary">שירות:</strong>{" "}
+                  {selectedService.name}
+                </p>
+                <p>
+                  <strong className="text-text-primary">תאריך:</strong> {date}
+                </p>
+                <p>
+                  <strong className="text-text-primary">שעה:</strong> {time}
+                </p>
+              </div>
+            )}
 
-        <Button
-          className="min-h-14 w-full text-base"
-          loading={submitting}
-          disabled={!serviceId || !date || !time}
-          onClick={submitBooking}
-        >
-          אשר תור
-        </Button>
+            <Button
+              className="min-h-14 w-full text-base"
+              loading={submitting}
+              disabled={!serviceId || !date || !time}
+              onClick={submitBooking}
+            >
+              המשך
+            </Button>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

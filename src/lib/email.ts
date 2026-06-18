@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { getSetting } from "@/lib/settings";
+import { BUSINESS_NAME } from "@/lib/utils";
 
 type EmailPayload = {
   to: string;
@@ -9,7 +10,7 @@ type EmailPayload = {
 
 async function sendEmail(payload: EmailPayload): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM ?? "Barber Noir <onboarding@resend.dev>";
+  const from = process.env.EMAIL_FROM ?? "Aviel Naim <onboarding@resend.dev>";
 
   if (!apiKey) {
     console.log("\n========== EMAIL PREVIEW ==========");
@@ -61,7 +62,7 @@ export async function sendOwnerNewAppointmentEmail(data: {
 }) {
   const ownerEmail =
     process.env.OWNER_EMAIL ?? (await getSetting("ownerEmail", "owner@example.com"));
-  const businessName = await getSetting("businessName", "Barber Noir");
+  const businessName = BUSINESS_NAME;
 
   const inspoHtml =
     data.inspoImages.length > 0
@@ -101,7 +102,7 @@ export async function sendCustomerConfirmationEmail(data: {
   time: string;
   status: "pending" | "confirmed" | "cancelled";
 }) {
-  const businessName = await getSetting("businessName", "Barber Noir");
+  const businessName = BUSINESS_NAME;
   const phone = await getSetting("businessPhone", "");
   const address = await getSetting("businessAddress", "");
 
@@ -136,7 +137,7 @@ export async function sendReminderEmail(data: {
   time: string;
   hoursBefore: number;
 }) {
-  const businessName = await getSetting("businessName", "Barber Noir");
+  const businessName = BUSINESS_NAME;
   const phone = await getSetting("businessPhone", "");
   const address = await getSetting("businessAddress", "");
 

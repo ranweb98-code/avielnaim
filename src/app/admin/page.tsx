@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Check, LogOut, X } from "lucide-react";
-import { AdminPanelHeader } from "@/components/AdminPanelHeader";
+import { Check, LogOut, Settings, X } from "lucide-react";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { GlassCard } from "@/components/GlassCard";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { PageHero } from "@/components/PageHero";
 import { cn } from "@/lib/cn";
 import { formatJerusalemDate } from "@/lib/timezone";
 import { parseInspoIds } from "@/lib/utils";
@@ -123,11 +123,26 @@ export default function AdminPage() {
   if (loading) return <LoadingSpinner />;
 
   return (
-    <div>
-      <AdminPanelHeader />
-      <div className="site-container max-w-5xl pb-6">
+    <>
+      <PageHero
+        showBack
+        backHref="/"
+        topContent={
+          <Link
+            href="/admin/settings"
+            className="flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm text-white/80 transition-colors hover:text-accent-yellow"
+          >
+            <Settings className="h-5 w-5" />
+            הגדרות
+          </Link>
+        }
+        bottomContent={
+          <h1 className="text-2xl font-bold text-white">ניהול תורים</h1>
+        }
+      />
+      <div className="site-container max-w-5xl pb-6 pt-6">
       <div className="mb-4 flex items-center justify-between">
-        <Link href="/" className="text-sm text-cream/50 hover:text-cream">
+        <Link href="/" className="text-sm text-text-secondary hover:text-text-primary">
           ← חזרה לאתר
         </Link>
         <Button variant="ghost" onClick={logout} className="text-sm">
@@ -151,8 +166,8 @@ export default function AdminPage() {
             className={cn(
               "min-h-11 shrink-0 rounded-xl px-3 text-sm transition-all duration-200",
               tab === t.key
-                ? "bg-gold-start/15 text-gold-end font-medium"
-                : "bg-stone-900/5 text-text-secondary hover:bg-stone-900/8"
+                ? "bg-accent-yellow/15 text-accent-yellow font-medium"
+                : "bg-bg-card text-text-secondary hover:bg-bg-card-hover"
             )}
           >
             {t.label}
@@ -184,21 +199,21 @@ export default function AdminPage() {
               <GlassCard key={appt.id} className="space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <h3 className="font-medium text-cream">{appt.customerName}</h3>
-                    <p className="text-sm text-accent-gold">{appt.serviceName}</p>
+                    <h3 className="font-medium text-text-primary">{appt.customerName}</h3>
+                    <p className="text-sm text-accent-yellow">{appt.serviceName}</p>
                   </div>
-                  <span className="text-sm text-cream/60">
+                  <span className="text-sm text-text-secondary">
                     {appt.date} · {appt.time}
                   </span>
                 </div>
-                <div className="space-y-1 text-sm text-cream/70">
+                <div className="space-y-1 text-sm text-text-secondary">
                   <p dir="ltr" className="text-right">{appt.customerPhone}</p>
                   <p dir="ltr" className="text-right">{appt.customerEmail}</p>
                   {appt.notes && <p>הערות: {appt.notes}</p>}
                 </div>
                 {inspoImages.length > 0 && (
                   <div>
-                    <p className="mb-2 text-xs text-cream/50">תמונות השראה:</p>
+                    <p className="mb-2 text-xs text-text-muted">תמונות השראה:</p>
                     <div className="flex gap-2 overflow-x-auto">
                       {inspoImages.map((img) => (
                         <div
@@ -253,6 +268,6 @@ export default function AdminPage() {
         </div>
       )}
       </div>
-    </div>
+    </>
   );
 }

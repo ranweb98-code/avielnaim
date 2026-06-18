@@ -1,13 +1,13 @@
 {
-  "name": "Barber Noir — קביעת תורים",
-  "short_name": "Barber Noir",
+  "name": "Aviel Naim — קביעת תורים",
+  "short_name": "Aviel Naim",
   "description": "מספרת יוקרה — קביעת תורים online",
   "lang": "he",
   "dir": "rtl",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F9F6F1",
-  "theme_color": "#F9F6F1",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "orientation": "portrait-primary",
   "icons": [
     {
