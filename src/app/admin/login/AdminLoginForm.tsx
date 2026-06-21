@@ -55,7 +55,9 @@ export function AdminLoginForm() {
             </div>
             <h1 className="text-2xl font-bold text-white">כניסת מנהל</h1>
             <p className="mt-2 text-sm text-white/60">
-              <span className="brand-name text-[0.65rem] tracking-[0.2em]">{BUSINESS_NAME}</span>
+              <span className="brand-name brand-name--card inline-block">
+                {BUSINESS_NAME}
+              </span>
               {" "}— פאנל ניהול
             </p>
           </div>

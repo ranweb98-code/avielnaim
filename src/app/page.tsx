@@ -97,17 +97,14 @@ export default async function HomePage() {
         </section>
 
         <div className="md:grid md:grid-cols-2 md:gap-10">
-          <section>
+          <section className="info-section">
             <div className="section-heading">
               <Clock className="section-heading__icon" />
               <h3 className="section-heading__title">שעות פעילות</h3>
             </div>
-            <div className="card-app space-y-2 p-4">
+            <div className="info-card card-app">
               {workingHours.map((wh) => (
-                <div
-                  key={wh.dayOfWeek}
-                  className="flex justify-between border-b border-border-subtle py-2 last:border-0"
-                >
+                <div key={wh.dayOfWeek} className="info-row info-row--between">
                   <span className="text-text-secondary">
                     {DAY_NAMES[wh.dayOfWeek]}
                   </span>
@@ -123,26 +120,30 @@ export default async function HomePage() {
             </div>
           </section>
 
-          <section className="pb-8 md:pb-0">
+          <section className="info-section pb-8 md:pb-0">
             <div className="section-heading">
               <MapPin className="section-heading__icon" />
               <h3 className="section-heading__title">יצירת קשר</h3>
             </div>
-            <div className="card-app space-y-4 p-4">
+            <div className="info-card card-app">
               {phone && (
                 <a
                   href={`tel:${phone.replace(/-/g, "")}`}
-                  className="flex items-center gap-3 text-text-secondary transition-colors hover:text-accent-yellow"
+                  className="info-row info-row--link"
                 >
-                  <Phone className="h-5 w-5 text-accent-yellow" />
-                  {phone}
+                  <Phone className="info-row__icon" aria-hidden />
+                  <span dir="ltr" className="info-row__text">
+                    {phone}
+                  </span>
                 </a>
               )}
               {address && (
-                <p className="flex items-start gap-3 text-text-secondary">
-                  <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-accent-yellow" />
-                  {address}
-                </p>
+                <div className="info-row">
+                  <MapPin className="info-row__icon" aria-hidden />
+                  <span dir="ltr" className="info-row__text">
+                    {address}
+                  </span>
+                </div>
               )}
             </div>
           </section>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Calendar, Home } from "lucide-react";
@@ -77,6 +78,19 @@ type NavLink = {
 
 export function BottomNav() {
   const pathname = usePathname();
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const SCROLL_THRESHOLD = 120;
+
+    function onScroll() {
+      setVisible(window.scrollY > SCROLL_THRESHOLD);
+    }
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   if (pathname.startsWith("/admin") || pathname === "/offline") {
     return null;
@@ -89,8 +103,14 @@ export function BottomNav() {
 
   return (
     <nav
-      className="bottom-nav-floating fixed inset-x-4 bottom-4 z-40 mx-auto max-w-sm pb-safe md:hidden"
+      className={cn(
+        "bottom-nav-floating fixed inset-x-4 bottom-4 z-40 mx-auto max-w-sm pb-safe transition-all duration-300 ease-out md:hidden",
+        visible
+          ? "translate-y-0 opacity-100"
+          : "pointer-events-none translate-y-8 opacity-0"
+      )}
       aria-label="ניווט ראשי"
+      aria-hidden={!visible}
     >
       <div className="flex items-center justify-around px-3 py-2">
         {links.map(({ href, label, icon: Icon }) => {

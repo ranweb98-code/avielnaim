@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Heebo, Orbitron } from "next/font/google";
+import { Heebo, Kaushan_Script } from "next/font/google";
 import { BottomNav, Header } from "@/components/Header";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { SerwistRegister } from "@/components/SerwistRegister";
@@ -11,10 +11,10 @@ const heebo = Heebo({
   weight: ["400", "500", "600", "700"],
 });
 
-const brand = Orbitron({
+const brand = Kaushan_Script({
   variable: "--font-brand",
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["400"],
 });
 
 export const metadata: Metadata = {
