@@ -236,21 +236,23 @@ export default function BookPage() {
           }
         />
         <div className="site-container max-w-xl py-12 text-center">
-          <p className="text-lg text-text-primary">
-            קביעת תורים אונליין אינה זמינה כרגע
-          </p>
-          <p className="mt-2 text-sm text-text-secondary">
-            אנא צור קשר עם הספר לקביעת תור
-          </p>
-          {businessPhone && (
-            <a
-              href={`tel:${businessPhone.replace(/-/g, "")}`}
-              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-accent-yellow px-6 py-3 font-medium text-black"
-            >
-              <Phone className="h-5 w-5" />
-              {businessPhone}
-            </a>
-          )}
+          <div className="card-app space-y-4 p-6">
+            <p className="text-lg font-medium text-text-primary">
+              כרגע לא ניתן לקבוע תור אונליין
+            </p>
+            <p className="text-sm text-text-secondary">
+              אם ברצונך לקבוע תור, יש להתקשר לבעל העסק
+            </p>
+            {businessPhone && (
+              <a
+                href={`tel:${businessPhone.replace(/-/g, "")}`}
+                className="inline-flex items-center gap-2 rounded-xl bg-accent-yellow px-6 py-3 font-medium text-black"
+              >
+                <Phone className="h-5 w-5" />
+                {businessPhone}
+              </a>
+            )}
+          </div>
           <Link href="/" className="mt-4 block">
             <Button variant="secondary" className="w-full">
               חזרה לדף הבית

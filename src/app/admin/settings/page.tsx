@@ -346,7 +346,8 @@ export default function AdminSettingsPage() {
                   קביעה על ידי המנהל בלבד
                 </p>
                 <p className="text-sm text-text-secondary">
-                  רק המנהל יכול ליצור תורים עבור לקוחות
+                  לקוחות נכנסים לדף קביעת תור ורואים הודעה להתקשר — רק המנהל
+                  יוצר תורים
                 </p>
               </div>
             </label>
