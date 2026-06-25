@@ -58,9 +58,9 @@ npm run dev
    - `AUTH_SECRET` — מחרוזת אקראית ארוכה
    - `ADMIN_PASSWORD` — סיסמת פאנל
    - `CRON_SECRET` — לאימות cron
-   - `NEXT_PUBLIC_BASE_URL` — כתובת האתר (למשל `https://your-app.vercel.app`)
+   - `NEXT_PUBLIC_BASE_URL` — כתובת האתר (למשל `https://avielnaim.vercel.app`)
    - `ENABLE_CRON` — `true`
-   - `OWNER_EMAIL`, `EMAIL_FROM` — לאימיילים (אופציונלי)
+   - `OWNER_EMAIL`, `EMAIL_FROM` — לאימיילים (`Aviel Naim <...>`)
 3. אחרי Neon: `npm run db:push && npm run db:seed` (מקומית עם `.env.local` מ-`vercel env pull`)
 4. Deploy — cron מוגדר ב-`vercel.json` (פעם ביום ב-Hobby)
 5. כל חישובי זמן ב-Asia/Jerusalem

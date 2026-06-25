@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { createCancelToken, getCancelUrl } from "@/lib/cancel-token";
 import { getSetting } from "@/lib/settings";
 import { BUSINESS_NAME } from "@/lib/utils";
 
@@ -8,9 +9,16 @@ type EmailPayload = {
   html: string;
 };
 
+async function getOwnerEmail(): Promise<string> {
+  const email =
+    process.env.OWNER_EMAIL ?? (await getSetting("ownerEmail", ""));
+  return email.trim();
+}
+
 async function sendEmail(payload: EmailPayload): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM ?? "Aviel Naim <onboarding@resend.dev>";
+  const from =
+    process.env.EMAIL_FROM ?? "Aviel Naim <onboarding@resend.dev>";
 
   if (!apiKey) {
     console.log("\n========== EMAIL PREVIEW ==========");
@@ -50,46 +58,106 @@ function emailLayout(content: string): string {
 </html>`;
 }
 
+function cancelButtonHtml(cancelUrl: string): string {
+  return `<p style="margin-top:24px;">
+    <a href="${cancelUrl}" style="display:inline-block;padding:12px 24px;background:#ef4444;color:#ffffff;border-radius:8px;text-decoration:none;font-weight:600;">
+      Cancel Appointment
+    </a>
+  </p>`;
+}
+
+async function businessDetailsHtml(): Promise<string> {
+  const businessName = BUSINESS_NAME;
+  const phone = await getSetting("businessPhone", "");
+  const address = await getSetting("businessAddress", "");
+  return `
+    <hr style="border-color:#333;margin:16px 0;">
+    <p><strong>פרטי העסק:</strong></p>
+    <p><strong>${businessName}</strong></p>
+    ${phone ? `<p><strong>טלפון:</strong> ${phone}</p>` : ""}
+    ${address ? `<p><strong>כתובת:</strong> ${address}</p>` : ""}
+  `;
+}
+
+/** Scenario 1 — owner notification when customer books */
 export async function sendOwnerNewAppointmentEmail(data: {
   customerName: string;
   customerPhone: string;
-  customerEmail: string;
-  serviceName: string;
   date: string;
   time: string;
-  notes?: string | null;
-  inspoImages: { label: string; src: string }[];
 }) {
-  const ownerEmail =
-    process.env.OWNER_EMAIL ?? (await getSetting("ownerEmail", "owner@example.com"));
-  const businessName = BUSINESS_NAME;
-
-  const inspoHtml =
-    data.inspoImages.length > 0
-      ? `<p><strong>תמונות השראה:</strong></p><ul>${data.inspoImages
-          .map(
-            (img) =>
-              `<li><a href="${img.src}" style="color:#345570">${img.label}</a></li>`
-          )
-          .join("")}</ul>`
-      : "<p>לא נבחרו תמונות השראה</p>";
+  const ownerEmail = await getOwnerEmail();
+  if (!ownerEmail) return true;
 
   const html = emailLayout(`
-    <h2 style="color:#345570; margin-top:0;">תור חדש נקבע — ${businessName}</h2>
-    <p><strong>שירות:</strong> ${data.serviceName}</p>
+    <h2 style="color:#345570; margin-top:0;">נקבע תור חדש</h2>
+    <p><strong>שם הלקוח:</strong> ${data.customerName}</p>
+    <p><strong>טלפון:</strong> ${data.customerPhone}</p>
     <p><strong>תאריך:</strong> ${data.date}</p>
     <p><strong>שעה:</strong> ${data.time}</p>
-    <hr style="border-color:#333;">
-    <p><strong>שם:</strong> ${data.customerName}</p>
-    <p><strong>טלפון:</strong> ${data.customerPhone}</p>
-    <p><strong>אימייל:</strong> ${data.customerEmail || "לא צוין"}</p>
-    ${data.notes ? `<p><strong>הערות:</strong> ${data.notes}</p>` : ""}
-    ${inspoHtml}
   `);
 
   return sendEmail({
     to: ownerEmail,
-    subject: `תור חדש — ${data.customerName} | ${businessName}`,
+    subject: `נקבע תור חדש — ${data.customerName}`,
+    html,
+  });
+}
+
+/** Scenario 1 — customer confirmation when self-booking */
+export async function sendCustomerSelfBookingEmail(data: {
+  appointmentId: number;
+  customerEmail: string;
+  customerName: string;
+  date: string;
+  time: string;
+}) {
+  if (!data.customerEmail.trim()) return true;
+
+  const token = await createCancelToken(data.appointmentId);
+  const cancelUrl = getCancelUrl(token);
+  const details = await businessDetailsHtml();
+
+  const html = emailLayout(`
+    <h2 style="color:#345570; margin-top:0;">התור שלך נקבע בהצלחה</h2>
+    <p>שלום ${data.customerName},</p>
+    <p><strong>תאריך:</strong> ${data.date}</p>
+    <p><strong>שעה:</strong> ${data.time}</p>
+    ${details}
+    ${cancelButtonHtml(cancelUrl)}
+  `);
+
+  return sendEmail({
+    to: data.customerEmail,
+    subject: `התור שלך נקבע בהצלחה — ${BUSINESS_NAME}`,
+    html,
+  });
+}
+
+/** Scenario 2 — customer notification when admin creates appointment */
+export async function sendCustomerAdminBookingEmail(data: {
+  appointmentId: number;
+  customerEmail: string;
+  customerName: string;
+  date: string;
+  time: string;
+}) {
+  if (!data.customerEmail.trim()) return true;
+
+  const token = await createCancelToken(data.appointmentId);
+  const cancelUrl = getCancelUrl(token);
+
+  const html = emailLayout(`
+    <h2 style="color:#345570; margin-top:0;">נקבע עבורך תור</h2>
+    <p>שלום ${data.customerName},</p>
+    <p><strong>תאריך:</strong> ${data.date}</p>
+    <p><strong>שעה:</strong> ${data.time}</p>
+    ${cancelButtonHtml(cancelUrl)}
+  `);
+
+  return sendEmail({
+    to: data.customerEmail,
+    subject: `נקבע עבורך תור — ${BUSINESS_NAME}`,
     html,
   });
 }
@@ -102,7 +170,8 @@ export async function sendCustomerConfirmationEmail(data: {
   time: string;
   status: "pending" | "confirmed" | "cancelled";
 }) {
-  if (!data.customerEmail) return true;
+  if (!data.customerEmail.trim()) return true;
+
   const businessName = BUSINESS_NAME;
   const phone = await getSetting("businessPhone", "");
   const address = await getSetting("businessAddress", "");
@@ -120,12 +189,11 @@ export async function sendCustomerConfirmationEmail(data: {
     <p><strong>שעה:</strong> ${data.time}</p>
     ${phone ? `<p><strong>טלפון:</strong> ${phone}</p>` : ""}
     ${address ? `<p><strong>כתובת:</strong> ${address}</p>` : ""}
-    <p style="color:#999; font-size:14px;">נשלחת תזכורת לפני התור.</p>
   `);
 
   return sendEmail({
     to: data.customerEmail,
-    subject: `אישור תור — ${businessName}`,
+    subject: `עדכון תור — ${businessName}`,
     html,
   });
 }
@@ -138,7 +206,8 @@ export async function sendReminderEmail(data: {
   time: string;
   hoursBefore: number;
 }) {
-  if (!data.customerEmail) return true;
+  if (!data.customerEmail.trim()) return true;
+
   const businessName = BUSINESS_NAME;
   const phone = await getSetting("businessPhone", "");
   const address = await getSetting("businessAddress", "");
@@ -157,7 +226,7 @@ export async function sendReminderEmail(data: {
 
   return sendEmail({
     to: data.customerEmail,
-    subject: `תזכורת: התור שלך מחר — ${businessName}`,
+    subject: `תזכורת: התור שלך — ${businessName}`,
     html,
   });
 }

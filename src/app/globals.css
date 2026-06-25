@@ -219,6 +219,12 @@ body {
   }
 }
 
+@media (min-width: 768px) {
+  .page-hero__top .brand-lockup {
+    display: none;
+  }
+}
+
 [data-theme="light"] .page-hero__content h1,
 [data-theme="light"] .page-hero__content h2 {
   color: var(--text-primary);

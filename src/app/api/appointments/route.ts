@@ -3,13 +3,13 @@ import { isAuthenticated } from "@/lib/auth";
 import { isSlotAvailable } from "@/lib/availability";
 import { deleteOldAppointments } from "@/lib/cleanup";
 import {
-  sendCustomerConfirmationEmail,
+  sendCustomerSelfBookingEmail,
   sendOwnerNewAppointmentEmail,
 } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 import { appointmentCreateSchema } from "@/lib/schemas";
 import { getSetting } from "@/lib/settings";
-import { formatInspoIds, parseInspoIds } from "@/lib/utils";
+import { formatInspoIds } from "@/lib/utils";
 
 export async function POST(request: NextRequest) {
   try {
@@ -66,39 +66,23 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const inspoIds = parseInspoIds(appointment.inspoIds);
-    const inspoImages =
-      inspoIds.length > 0
-        ? await prisma.inspoImage.findMany({
-            where: { id: { in: inspoIds } },
-          })
-        : [];
-
     const emailTasks: Promise<unknown>[] = [
       sendOwnerNewAppointmentEmail({
         customerName: appointment.customerName,
         customerPhone: appointment.customerPhone,
-        customerEmail: appointment.customerEmail,
-        serviceName: appointment.serviceName,
         date: appointment.date,
         time: appointment.time,
-        notes: appointment.notes,
-        inspoImages: inspoImages.map((img) => ({
-          label: img.label,
-          src: img.src,
-        })),
       }),
     ];
 
     if (appointment.customerEmail) {
       emailTasks.push(
-        sendCustomerConfirmationEmail({
+        sendCustomerSelfBookingEmail({
+          appointmentId: appointment.id,
           customerEmail: appointment.customerEmail,
           customerName: appointment.customerName,
-          serviceName: appointment.serviceName,
           date: appointment.date,
           time: appointment.time,
-          status: "pending",
         })
       );
     }

@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isSlotAvailable } from "@/lib/availability";
-import {
-  sendCustomerConfirmationEmail,
-  sendOwnerNewAppointmentEmail,
-} from "@/lib/email";
+import { sendCustomerAdminBookingEmail } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 import { appointmentCreateSchema } from "@/lib/schemas";
 import { formatInspoIds } from "@/lib/utils";
@@ -67,33 +64,15 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const emailTasks: Promise<unknown>[] = [
-      sendOwnerNewAppointmentEmail({
-        customerName: appointment.customerName,
-        customerPhone: appointment.customerPhone,
+    if (appointment.customerEmail) {
+      await sendCustomerAdminBookingEmail({
+        appointmentId: appointment.id,
         customerEmail: appointment.customerEmail,
-        serviceName: appointment.serviceName,
+        customerName: appointment.customerName,
         date: appointment.date,
         time: appointment.time,
-        notes: appointment.notes,
-        inspoImages: [],
-      }),
-    ];
-
-    if (appointment.customerEmail) {
-      emailTasks.push(
-        sendCustomerConfirmationEmail({
-          customerEmail: appointment.customerEmail,
-          customerName: appointment.customerName,
-          serviceName: appointment.serviceName,
-          date: appointment.date,
-          time: appointment.time,
-          status: "confirmed",
-        })
-      );
+      });
     }
-
-    await Promise.all(emailTasks);
 
     return NextResponse.json({ appointment }, { status: 201 });
   } catch (error) {
