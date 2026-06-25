@@ -3,14 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Calendar, Home } from "lucide-react";
+import { Calendar, Home, Phone } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { BUSINESS_NAME } from "@/lib/utils";
-
-const DESKTOP_LINKS = [
-  { href: "/", label: "בית" },
-  { href: "/book", label: "קביעת תור" },
-] as const;
 
 export function Header() {
   const pathname = usePathname();
@@ -19,6 +14,24 @@ export function Header() {
   const isAdmin = pathname.startsWith("/admin");
   const isOffline = pathname === "/offline";
   const hideOnMobile = isHome || isBook || isAdmin || isOffline;
+
+  const [bookingMode, setBookingMode] = useState("self");
+  const [businessPhone, setBusinessPhone] = useState("");
+
+  useEffect(() => {
+    fetch("/api/public")
+      .then((r) => r.json())
+      .then((data) => {
+        setBookingMode(data.settings?.bookingMode ?? "self");
+        setBusinessPhone(data.settings?.businessPhone ?? "");
+      })
+      .catch(() => {});
+  }, []);
+
+  const selfBooking = bookingMode !== "admin";
+  const phoneHref = businessPhone
+    ? `tel:${businessPhone.replace(/-/g, "")}`
+    : "/";
 
   return (
     <header
@@ -36,34 +49,48 @@ export function Header() {
           className="hidden items-center gap-1 md:flex"
           aria-label="ניווט ראשי"
         >
-          {DESKTOP_LINKS.map(({ href, label }) => {
-            const active =
-              href === "/"
-                ? pathname === "/"
-                : pathname === href || pathname.startsWith(`${href}/`);
-
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  "rounded-xl px-4 py-2 text-sm font-medium transition-colors",
-                  active
-                    ? "bg-accent-yellow/15 text-accent-yellow"
-                    : "text-text-secondary hover:bg-white/5 hover:text-text-primary"
-                )}
-              >
-                {label}
-              </Link>
-            );
-          })}
+          <Link
+            href="/"
+            className={cn(
+              "rounded-xl px-4 py-2 text-sm font-medium transition-colors",
+              pathname === "/"
+                ? "bg-accent-yellow/15 text-accent-yellow"
+                : "text-text-secondary hover:bg-white/5 hover:text-text-primary"
+            )}
+          >
+            בית
+          </Link>
+          {selfBooking && (
+            <Link
+              href="/book"
+              className={cn(
+                "rounded-xl px-4 py-2 text-sm font-medium transition-colors",
+                isBook
+                  ? "bg-accent-yellow/15 text-accent-yellow"
+                  : "text-text-secondary hover:bg-white/5 hover:text-text-primary"
+              )}
+            >
+              קביעת תור
+            </Link>
+          )}
         </nav>
 
-        {!isBook && (
-          <Link href="/book" className="btn-yellow shrink-0 px-4 py-2 text-sm">
-            קביעת תור
-          </Link>
-        )}
+        {!isBook &&
+          (selfBooking ? (
+            <Link href="/book" className="btn-yellow shrink-0 px-4 py-2 text-sm">
+              קבע תור
+            </Link>
+          ) : (
+            businessPhone && (
+              <a
+                href={phoneHref}
+                className="btn-yellow shrink-0 inline-flex items-center gap-1 px-4 py-2 text-sm"
+              >
+                <Phone className="h-4 w-4" />
+                התקשר
+              </a>
+            )
+          ))}
         {isBook && <div className="hidden w-[89px] md:block" aria-hidden />}
       </div>
     </header>
@@ -79,6 +106,8 @@ type NavLink = {
 export function BottomNav() {
   const pathname = usePathname();
   const [visible, setVisible] = useState(false);
+  const [bookingMode, setBookingMode] = useState("self");
+  const [businessPhone, setBusinessPhone] = useState("");
 
   useEffect(() => {
     const SCROLL_THRESHOLD = 120;
@@ -92,14 +121,31 @@ export function BottomNav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    fetch("/api/public")
+      .then((r) => r.json())
+      .then((data) => {
+        setBookingMode(data.settings?.bookingMode ?? "self");
+        setBusinessPhone(data.settings?.businessPhone ?? "");
+      })
+      .catch(() => {});
+  }, []);
+
   if (pathname.startsWith("/admin") || pathname === "/offline") {
     return null;
   }
 
-  const links: NavLink[] = [
-    { href: "/", label: "בית", icon: Home },
-    { href: "/book", label: "תור", icon: Calendar },
-  ];
+  const selfBooking = bookingMode !== "admin";
+  const phoneHref = businessPhone
+    ? `tel:${businessPhone.replace(/-/g, "")}`
+    : "/";
+
+  const links: NavLink[] = selfBooking
+    ? [
+        { href: "/", label: "בית", icon: Home },
+        { href: "/book", label: "תור", icon: Calendar },
+      ]
+    : [{ href: "/", label: "בית", icon: Home }];
 
   return (
     <nav
@@ -136,6 +182,15 @@ export function BottomNav() {
             </Link>
           );
         })}
+        {!selfBooking && businessPhone && (
+          <a
+            href={phoneHref}
+            aria-label="התקשר"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-2xl px-4 py-2 text-text-secondary transition-all duration-200 hover:bg-white/5 hover:text-text-primary"
+          >
+            <Phone className="h-5 w-5" aria-hidden />
+          </a>
+        )}
       </div>
     </nav>
   );

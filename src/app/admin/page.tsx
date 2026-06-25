@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Check, LogOut, Settings, X } from "lucide-react";
+import { Check, LogOut, Plus, Settings, X } from "lucide-react";
+import { AdminCreateAppointmentModal } from "@/components/AdminCreateAppointmentModal";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorMessage } from "@/components/ErrorMessage";
@@ -30,6 +31,7 @@ type Appointment = {
 type InspoImage = { id: number; src: string; label: string };
 
 const TABS = [
+  { key: "all", label: "הכל" },
   { key: "today", label: "היום" },
   { key: "pending", label: "ממתינים" },
   { key: "confirmed", label: "מאושרים" },
@@ -39,10 +41,11 @@ const TABS = [
 export default function AdminPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [inspoMap, setInspoMap] = useState<Record<number, InspoImage>>({});
-  const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("today");
+  const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [updating, setUpdating] = useState<number | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -110,6 +113,9 @@ export default function AdminPage() {
 
   const filtered = appointments
     .filter((a) => {
+      if (tab === "all") {
+        return true;
+      }
       if (tab === "today") {
         return a.date === todayJerusalem && a.status !== "cancelled";
       }
@@ -182,7 +188,9 @@ export default function AdminPage() {
         <EmptyState
           title="אין תורים"
           description={
-            tab === "today"
+            tab === "all"
+              ? "אין תורים במערכת"
+              : tab === "today"
               ? `אין תורים פעילים להיום (${todayJerusalem})`
               : `אין תורים בסטטוס "${TABS.find((t) => t.key === tab)?.label}"`
           }
@@ -208,7 +216,9 @@ export default function AdminPage() {
                 </div>
                 <div className="space-y-1 text-sm text-text-secondary">
                   <p dir="ltr" className="text-right">{appt.customerPhone}</p>
-                  <p dir="ltr" className="text-right">{appt.customerEmail}</p>
+                  {appt.customerEmail && (
+                    <p dir="ltr" className="text-right">{appt.customerEmail}</p>
+                  )}
                   {appt.notes && <p>הערות: {appt.notes}</p>}
                 </div>
                 {inspoImages.length > 0 && (
@@ -268,6 +278,21 @@ export default function AdminPage() {
         </div>
       )}
       </div>
+
+      <button
+        type="button"
+        className="admin-fab"
+        onClick={() => setShowCreateModal(true)}
+        aria-label="תור חדש"
+      >
+        <Plus className="h-6 w-6" />
+      </button>
+
+      <AdminCreateAppointmentModal
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onCreated={load}
+      />
     </>
   );
 }

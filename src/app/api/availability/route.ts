@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAvailableSlots } from "@/lib/availability";
+import { getDaySchedule } from "@/lib/availability";
+import { isAuthenticated } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { availabilityQuerySchema } from "@/lib/schemas";
 
@@ -27,7 +28,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "שירות לא נמצא" }, { status: 404 });
   }
 
-  const slots = await getAvailableSlots(date, serviceId);
+  const authed = await isAuthenticated();
+  const schedule = await getDaySchedule(date, serviceId, {
+    includeOccupiedLabels: authed,
+  });
 
-  return NextResponse.json({ slots, date, serviceId });
+  return NextResponse.json({
+    ...schedule,
+    date,
+    serviceId,
+  });
 }

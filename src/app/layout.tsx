@@ -3,6 +3,7 @@ import { Heebo, Kaushan_Script } from "next/font/google";
 import { BottomNav, Header } from "@/components/Header";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { SerwistRegister } from "@/components/SerwistRegister";
+import { getSetting } from "@/lib/settings";
 import "./globals.css";
 
 const heebo = Heebo({
@@ -28,21 +29,26 @@ export const metadata: Metadata = {
   },
 };
 
-export const viewport: Viewport = {
-  themeColor: "#000000",
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  viewportFit: "cover",
-};
+export async function generateViewport(): Promise<Viewport> {
+  const theme = await getSetting("theme", "dark");
+  return {
+    themeColor: theme === "light" ? "#ffffff" : "#000000",
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    viewportFit: "cover",
+  };
+}
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const theme = await getSetting("theme", "dark");
+
   return (
-    <html lang="he" dir="rtl">
+    <html lang="he" dir="rtl" data-theme={theme}>
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>

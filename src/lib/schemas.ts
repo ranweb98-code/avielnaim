@@ -9,7 +9,14 @@ export const appointmentCreateSchema = z.object({
     .string()
     .min(9, "מספר טלפון לא תקין")
     .regex(/^[\d\-+()\s]+$/, "מספר טלפון לא תקין"),
-  customerEmail: z.string().email("כתובת אימייל לא תקינה"),
+  customerEmail: z
+    .string()
+    .optional()
+    .transform((v) => v?.trim() ?? "")
+    .refine(
+      (v) => v === "" || z.string().email().safeParse(v).success,
+      "כתובת אימייל לא תקינה"
+    ),
   notes: z.string().optional(),
   inspoIds: z.array(z.number().int()).optional().default([]),
 });

@@ -2,15 +2,16 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Check, Star } from "lucide-react";
-import { CalendarPicker } from "@/components/CalendarPicker";
+import { Check, Phone, Star } from "lucide-react";
+import { DayScheduleGrid } from "@/components/DayScheduleGrid";
 import { Button } from "@/components/Button";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { Input, Textarea } from "@/components/Input";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { PageHero } from "@/components/PageHero";
 import { ServiceList } from "@/components/ServiceList";
-import { TimeSlotGrid } from "@/components/TimeSlotGrid";
+import { WeekDayStrip } from "@/components/WeekDayStrip";
+import type { OccupiedBlock } from "@/lib/availability";
 import { formatJerusalemDate } from "@/lib/timezone";
 import { BUSINESS_NAME } from "@/lib/utils";
 
@@ -27,17 +28,33 @@ type WorkingHour = {
   isOpen: boolean;
 };
 
+type ScheduleData = {
+  slots: string[];
+  occupied: OccupiedBlock[];
+  workingHours: { startTime: string; endTime: string } | null;
+  slotInterval: number;
+  isClosed: boolean;
+};
+
 export default function BookPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [workingHours, setWorkingHours] = useState<WorkingHour[]>([]);
   const [blockedDates, setBlockedDates] = useState<string[]>([]);
+  const [bookingMode, setBookingMode] = useState("self");
+  const [businessPhone, setBusinessPhone] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const [serviceId, setServiceId] = useState<number | null>(null);
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
-  const [slots, setSlots] = useState<string[]>([]);
+  const [schedule, setSchedule] = useState<ScheduleData>({
+    slots: [],
+    occupied: [],
+    workingHours: null,
+    slotInterval: 30,
+    isClosed: true,
+  });
   const [slotsLoading, setSlotsLoading] = useState(false);
 
   const [styleNotes, setStyleNotes] = useState("");
@@ -59,6 +76,8 @@ export default function BookPage() {
         setServices(data.services ?? []);
         setWorkingHours(data.workingHours ?? []);
         setBlockedDates(data.blockedDates ?? []);
+        setBookingMode(data.settings?.bookingMode ?? "self");
+        setBusinessPhone(data.settings?.businessPhone ?? "");
         if (data.services?.length > 0) {
           setServiceId(data.services[0].id);
         }
@@ -68,15 +87,27 @@ export default function BookPage() {
       .finally(() => setLoading(false));
   }, [minDate]);
 
-  const fetchSlots = useCallback(async (d: string, sId: number) => {
+  const fetchSchedule = useCallback(async (d: string, sId: number) => {
     setSlotsLoading(true);
-    setSlots([]);
+    setSchedule({
+      slots: [],
+      occupied: [],
+      workingHours: null,
+      slotInterval: 30,
+      isClosed: true,
+    });
     try {
       const res = await fetch(
         `/api/availability?date=${d}&serviceId=${sId}`
       );
       const data = await res.json();
-      setSlots(data.slots ?? []);
+      setSchedule({
+        slots: data.slots ?? [],
+        occupied: data.occupied ?? [],
+        workingHours: data.workingHours ?? null,
+        slotInterval: data.slotInterval ?? 30,
+        isClosed: data.isClosed ?? false,
+      });
     } catch {
       setError("שגיאה בטעינת שעות פנויות");
     } finally {
@@ -86,10 +117,10 @@ export default function BookPage() {
 
   useEffect(() => {
     if (date && serviceId) {
-      fetchSlots(date, serviceId);
+      fetchSchedule(date, serviceId);
       setTime("");
     }
-  }, [date, serviceId, fetchSlots]);
+  }, [date, serviceId, fetchSchedule]);
 
   function validateForm() {
     const errors: Record<string, string> = {};
@@ -98,8 +129,9 @@ export default function BookPage() {
     if (!time) errors.time = "יש לבחור שעה";
     if (name.length < 2) errors.name = "שם חייב להכיל לפחות 2 תווים";
     if (phone.length < 9) errors.phone = "מספר טלפון לא תקין";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       errors.email = "כתובת אימייל לא תקינה";
+    }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   }
@@ -121,7 +153,7 @@ export default function BookPage() {
           time,
           customerName: name,
           customerPhone: phone,
-          customerEmail: email,
+          customerEmail: email.trim() || undefined,
           notes: styleNotes.trim() || undefined,
           inspoIds: [],
         }),
@@ -160,9 +192,15 @@ export default function BookPage() {
               <h1 className="text-2xl font-bold text-white">
                 התור נקבע בהצלחה!
               </h1>
-              <p className="mt-2 text-sm text-white/70">
-                שלחנו אימייל אישור ל-{email}
-              </p>
+              {email.trim() ? (
+                <p className="mt-2 text-sm text-white/70">
+                  שלחנו אימייל אישור ל-{email.trim()}
+                </p>
+              ) : (
+                <p className="mt-2 text-sm text-white/70">
+                  התור נקלט וממתין לאישור הספר
+                </p>
+              )}
             </div>
           }
         />
@@ -177,6 +215,43 @@ export default function BookPage() {
             <p className="text-text-muted">התור ממתין לאישור הספר</p>
           </div>
           <Link href="/" className="mt-6 block">
+            <Button variant="secondary" className="w-full">
+              חזרה לדף הבית
+            </Button>
+          </Link>
+        </div>
+      </>
+    );
+  }
+
+  if (bookingMode === "admin") {
+    return (
+      <>
+        <PageHero
+          businessName={BUSINESS_NAME}
+          showBack
+          backHref="/"
+          bottomContent={
+            <h1 className="text-2xl font-bold text-white">קביעת תור</h1>
+          }
+        />
+        <div className="site-container max-w-xl py-12 text-center">
+          <p className="text-lg text-text-primary">
+            קביעת תורים אונליין אינה זמינה כרגע
+          </p>
+          <p className="mt-2 text-sm text-text-secondary">
+            אנא צור קשר עם הספר לקביעת תור
+          </p>
+          {businessPhone && (
+            <a
+              href={`tel:${businessPhone.replace(/-/g, "")}`}
+              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-accent-yellow px-6 py-3 font-medium text-black"
+            >
+              <Phone className="h-5 w-5" />
+              {businessPhone}
+            </a>
+          )}
+          <Link href="/" className="mt-4 block">
             <Button variant="secondary" className="w-full">
               חזרה לדף הבית
             </Button>
@@ -215,7 +290,7 @@ export default function BookPage() {
         )}
 
         <div className="md:grid md:grid-cols-2 md:items-start md:gap-10">
-          <div className="space-y-8">
+          <div className="space-y-6">
             <section>
               <h2 className="mb-3 text-lg font-semibold text-text-primary">
                 בחר שירות
@@ -234,7 +309,7 @@ export default function BookPage() {
               <h2 className="mb-3 text-lg font-semibold text-text-primary">
                 קביעת תור
               </h2>
-              <CalendarPicker
+              <WeekDayStrip
                 selectedDate={date}
                 onSelect={setDate}
                 workingHours={workingHours}
@@ -248,13 +323,14 @@ export default function BookPage() {
 
             {date && serviceId && (
               <section>
-                <h2 className="mb-3 text-lg font-semibold text-text-primary">
-                  בחר שעה
-                </h2>
-                <TimeSlotGrid
-                  slots={slots}
+                <DayScheduleGrid
+                  date={date}
                   selectedTime={time}
                   onSelect={setTime}
+                  occupied={schedule.occupied}
+                  workingHours={schedule.workingHours}
+                  serviceDurationMin={selectedService?.durationMin ?? 30}
+                  isClosed={schedule.isClosed}
                   loading={slotsLoading}
                 />
                 {formErrors.time && (
@@ -302,7 +378,7 @@ export default function BookPage() {
                 className="text-left"
               />
               <Input
-                label="אימייל"
+                label="אימייל (אופציונלי)"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}

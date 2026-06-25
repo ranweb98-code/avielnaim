@@ -82,7 +82,7 @@ export async function sendOwnerNewAppointmentEmail(data: {
     <hr style="border-color:#333;">
     <p><strong>שם:</strong> ${data.customerName}</p>
     <p><strong>טלפון:</strong> ${data.customerPhone}</p>
-    <p><strong>אימייל:</strong> ${data.customerEmail}</p>
+    <p><strong>אימייל:</strong> ${data.customerEmail || "לא צוין"}</p>
     ${data.notes ? `<p><strong>הערות:</strong> ${data.notes}</p>` : ""}
     ${inspoHtml}
   `);
@@ -102,6 +102,7 @@ export async function sendCustomerConfirmationEmail(data: {
   time: string;
   status: "pending" | "confirmed" | "cancelled";
 }) {
+  if (!data.customerEmail) return true;
   const businessName = BUSINESS_NAME;
   const phone = await getSetting("businessPhone", "");
   const address = await getSetting("businessAddress", "");
@@ -137,6 +138,7 @@ export async function sendReminderEmail(data: {
   time: string;
   hoursBefore: number;
 }) {
+  if (!data.customerEmail) return true;
   const businessName = BUSINESS_NAME;
   const phone = await getSetting("businessPhone", "");
   const address = await getSetting("businessAddress", "");

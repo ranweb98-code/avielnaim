@@ -20,18 +20,32 @@ export default async function HomePage() {
 
   const phone = settings.businessPhone ?? "";
   const address = settings.businessAddress ?? "";
+  const bookingMode = settings.bookingMode ?? "self";
+  const selfBooking = bookingMode !== "admin";
+  const phoneHref = phone ? `tel:${phone.replace(/-/g, "")}` : "/";
 
   return (
     <>
       <PageHero
         businessName={BUSINESS_NAME}
         bottomContent={
-          <Link href="/book" className="block">
-            <Button className="min-h-14 w-full text-base">
-              <Scissors className="h-5 w-5" />
-              התחל
-            </Button>
-          </Link>
+          selfBooking ? (
+            <Link href="/book" className="block">
+              <Button className="min-h-14 w-full text-base">
+                <Scissors className="h-5 w-5" />
+                קבע תור
+              </Button>
+            </Link>
+          ) : (
+            phone && (
+              <a href={phoneHref} className="block">
+                <Button className="min-h-14 w-full text-base">
+                  <Phone className="h-5 w-5" />
+                  התקשר לקביעת תור
+                </Button>
+              </a>
+            )
+          )
         }
       />
 
@@ -54,9 +68,20 @@ export default async function HomePage() {
               <span className="text-text-muted">· מספרה פרימיום</span>
             </div>
           </div>
-          <Link href="/book">
-            <Button className="shrink-0 px-4 text-sm">קבע תור</Button>
-          </Link>
+          {selfBooking ? (
+            <Link href="/book">
+              <Button className="shrink-0 px-4 text-sm">קבע תור</Button>
+            </Link>
+          ) : (
+            phone && (
+              <a href={phoneHref}>
+                <Button className="shrink-0 px-4 text-sm">
+                  <Phone className="h-4 w-4" />
+                  התקשר
+                </Button>
+              </a>
+            )
+          )}
         </div>
 
         <section>
@@ -89,11 +114,13 @@ export default async function HomePage() {
               </div>
             ))}
           </div>
-          <Link href="/book" className="mt-6 block md:hidden">
-            <Button variant="secondary" className="w-full">
-              קביעת תור
-            </Button>
-          </Link>
+          {selfBooking && (
+            <Link href="/book" className="mt-6 block md:hidden">
+              <Button variant="secondary" className="w-full">
+                קביעת תור
+              </Button>
+            </Link>
+          )}
         </section>
 
         <div className="md:grid md:grid-cols-2 md:gap-10">

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { addHours } from "date-fns";
+import { deleteOldAppointments } from "@/lib/cleanup";
 import { sendReminderEmail } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 import { getSetting } from "@/lib/settings";
@@ -25,6 +26,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "לא מורשה" }, { status: 401 });
   }
 
+  const deletedOld = await deleteOldAppointments();
+
   const reminderHours = parseInt(
     process.env.REMINDER_HOURS_BEFORE ??
       (await getSetting("reminderHours", "24")),
@@ -45,6 +48,8 @@ export async function GET(request: NextRequest) {
   let sent = 0;
 
   for (const appt of appointments) {
+    if (!appt.customerEmail) continue;
+
     const apptDateTime = parseJerusalemDateTime(appt.date, appt.time);
 
     if (apptDateTime >= windowStart && apptDateTime <= windowEnd) {
@@ -66,5 +71,5 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ sent, checked: appointments.length });
+  return NextResponse.json({ sent, checked: appointments.length, deletedOld });
 }

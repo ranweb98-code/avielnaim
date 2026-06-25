@@ -78,6 +78,8 @@ async function main() {
     { key: "ownerEmail", value: "owner@example.com" },
     { key: "slotInterval", value: "30" },
     { key: "reminderHours", value: "24" },
+    { key: "bookingMode", value: "self" },
+    { key: "theme", value: "dark" },
   ];
 
   for (const setting of settings) {

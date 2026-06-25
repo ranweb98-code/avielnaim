@@ -1,26 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isAuthenticated } from "@/lib/auth";
 import { isSlotAvailable } from "@/lib/availability";
-import { deleteOldAppointments } from "@/lib/cleanup";
 import {
   sendCustomerConfirmationEmail,
   sendOwnerNewAppointmentEmail,
 } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 import { appointmentCreateSchema } from "@/lib/schemas";
-import { getSetting } from "@/lib/settings";
-import { formatInspoIds, parseInspoIds } from "@/lib/utils";
+import { formatInspoIds } from "@/lib/utils";
+import { isAuthenticated } from "@/lib/auth";
+
+async function requireAdmin() {
+  const authed = await isAuthenticated();
+  if (!authed) {
+    return NextResponse.json({ error: "לא מורשה" }, { status: 401 });
+  }
+  return null;
+}
 
 export async function POST(request: NextRequest) {
-  try {
-    const bookingMode = await getSetting("bookingMode", "self");
-    if (bookingMode === "admin") {
-      return NextResponse.json(
-        { error: "קביעת תורים זמינה רק דרך המנהל" },
-        { status: 403 }
-      );
-    }
+  const authError = await requireAdmin();
+  if (authError) return authError;
 
+  try {
     const body = await request.json();
     const parsed = appointmentCreateSchema.safeParse(body);
 
@@ -62,17 +63,9 @@ export async function POST(request: NextRequest) {
         customerEmail: data.customerEmail,
         notes: data.notes ?? null,
         inspoIds: formatInspoIds(data.inspoIds ?? []),
-        status: "pending",
+        status: "confirmed",
       },
     });
-
-    const inspoIds = parseInspoIds(appointment.inspoIds);
-    const inspoImages =
-      inspoIds.length > 0
-        ? await prisma.inspoImage.findMany({
-            where: { id: { in: inspoIds } },
-          })
-        : [];
 
     const emailTasks: Promise<unknown>[] = [
       sendOwnerNewAppointmentEmail({
@@ -83,10 +76,7 @@ export async function POST(request: NextRequest) {
         date: appointment.date,
         time: appointment.time,
         notes: appointment.notes,
-        inspoImages: inspoImages.map((img) => ({
-          label: img.label,
-          src: img.src,
-        })),
+        inspoImages: [],
       }),
     ];
 
@@ -98,7 +88,7 @@ export async function POST(request: NextRequest) {
           serviceName: appointment.serviceName,
           date: appointment.date,
           time: appointment.time,
-          status: "pending",
+          status: "confirmed",
         })
       );
     }
@@ -107,24 +97,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ appointment }, { status: 201 });
   } catch (error) {
-    console.error("Create appointment error:", error);
+    console.error("Admin create appointment error:", error);
     return NextResponse.json(
       { error: "שגיאה ביצירת התור" },
       { status: 500 }
     );
   }
-}
-
-export async function GET() {
-  const authed = await isAuthenticated();
-  if (!authed) {
-    return NextResponse.json({ error: "לא מורשה" }, { status: 401 });
-  }
-
-  await deleteOldAppointments();
-
-  const appointments = await prisma.appointment.findMany({
-    orderBy: [{ date: "asc" }, { time: "asc" }],
-  });
-  return NextResponse.json({ appointments });
 }

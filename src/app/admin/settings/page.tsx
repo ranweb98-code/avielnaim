@@ -123,6 +123,13 @@ export default function AdminSettingsPage() {
       }
       setSuccess("נשמר בהצלחה");
       await load();
+      if (
+        partial.settings &&
+        typeof partial.settings === "object" &&
+        "theme" in partial.settings
+      ) {
+        window.location.reload();
+      }
     } catch {
       setError("שגיאה בשמירה");
     } finally {
@@ -294,6 +301,116 @@ export default function AdminSettingsPage() {
               onClick={() => saveSettings({ settings })}
             >
               שמור פרטי עסק
+            </Button>
+          </GlassCard>
+        </section>
+
+        <section>
+          <h2 className="mb-4 font-serif text-xl">מצב קביעת תורים</h2>
+          <GlassCard className="space-y-2">
+            <label
+              className={`settings-option ${(settings.bookingMode ?? "self") === "self" ? "settings-option--active" : ""}`}
+            >
+              <input
+                type="radio"
+                name="bookingMode"
+                className="settings-option__radio"
+                checked={(settings.bookingMode ?? "self") === "self"}
+                onChange={() =>
+                  setSettings({ ...settings, bookingMode: "self" })
+                }
+              />
+              <div>
+                <p className="font-medium text-text-primary">
+                  קביעה עצמית על ידי הלקוח
+                </p>
+                <p className="text-sm text-text-secondary">
+                  לקוחות יכולים לקבוע תורים דרך האתר
+                </p>
+              </div>
+            </label>
+            <label
+              className={`settings-option ${(settings.bookingMode ?? "self") === "admin" ? "settings-option--active" : ""}`}
+            >
+              <input
+                type="radio"
+                name="bookingMode"
+                className="settings-option__radio"
+                checked={settings.bookingMode === "admin"}
+                onChange={() =>
+                  setSettings({ ...settings, bookingMode: "admin" })
+                }
+              />
+              <div>
+                <p className="font-medium text-text-primary">
+                  קביעה על ידי המנהל בלבד
+                </p>
+                <p className="text-sm text-text-secondary">
+                  רק המנהל יכול ליצור תורים עבור לקוחות
+                </p>
+              </div>
+            </label>
+            <Button
+              loading={saving}
+              onClick={() =>
+                saveSettings({
+                  settings: {
+                    bookingMode: settings.bookingMode ?? "self",
+                  },
+                })
+              }
+            >
+              שמור מצב קביעה
+            </Button>
+          </GlassCard>
+        </section>
+
+        <section>
+          <h2 className="mb-4 font-serif text-xl">ערכת עיצוב</h2>
+          <GlassCard className="space-y-2">
+            <label
+              className={`settings-option ${(settings.theme ?? "dark") === "light" ? "settings-option--active" : ""}`}
+            >
+              <input
+                type="radio"
+                name="theme"
+                className="settings-option__radio"
+                checked={settings.theme === "light"}
+                onChange={() => setSettings({ ...settings, theme: "light" })}
+              />
+              <div>
+                <p className="font-medium text-text-primary">מצב בהיר</p>
+                <p className="text-sm text-text-secondary">
+                  רקע לבן ועיצוב נקי
+                </p>
+              </div>
+            </label>
+            <label
+              className={`settings-option ${(settings.theme ?? "dark") === "dark" ? "settings-option--active" : ""}`}
+            >
+              <input
+                type="radio"
+                name="theme"
+                className="settings-option__radio"
+                checked={(settings.theme ?? "dark") === "dark"}
+                onChange={() => setSettings({ ...settings, theme: "dark" })}
+              />
+              <div>
+                <p className="font-medium text-text-primary">מצב כהה</p>
+                <p className="text-sm text-text-secondary">
+                  רקע שחור עם גוון זהב
+                </p>
+              </div>
+            </label>
+            <Button
+              loading={saving}
+              onClick={() =>
+                saveSettings({
+                  settings: { theme: settings.theme ?? "dark" },
+                })
+              }
+            >
+              שמור ערכת עיצוב
             </Button>
           </GlassCard>
         </section>
