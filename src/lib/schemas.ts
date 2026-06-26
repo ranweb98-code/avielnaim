@@ -51,6 +51,15 @@ export const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "יש להזין את הסיסמה הנוכחית"),
+  newPassword: z.string().min(6, "הסיסמה החדשה חייבת להכיל לפחות 6 תווים"),
+  confirmPassword: z.string().min(1, "יש לאשר את הסיסמה החדשה"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "הסיסמאות החדשות אינן תואמות",
+  path: ["confirmPassword"],
+});
+
 export const settingsPatchSchema = z.object({
   settings: z.record(z.string(), z.string()).optional(),
   workingHours: z

@@ -731,50 +731,10 @@ input[type="date"] {
 .date-picker-bar__backdrop {
   position: fixed;
   inset: 0;
-  z-index: 80;
+  z-index: 200;
   border: none;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.5);
   cursor: pointer;
-}
-
-.date-picker-bar__popover--overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 81;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.75rem;
-  pointer-events: none;
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  overflow: visible;
-  max-height: none;
-  width: auto;
-  left: auto;
-  top: auto;
-  transform: none;
-}
-
-.date-picker-bar__popover--overlay .calendar-picker {
-  pointer-events: auto;
-  width: min(22rem, calc(100vw - 1.5rem));
-  border: 1px solid var(--border-subtle);
-  border-radius: 1rem;
-  padding: 1rem;
-  background: var(--bg-card);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.25);
-}
-
-.date-picker-bar__popover--overlay .calendar-grid {
-  gap: 0.25rem;
-}
-
-.date-picker-bar__popover--overlay .calendar-day {
-  aspect-ratio: 1;
-  min-width: 0;
-  font-size: 0.8125rem;
 }
 
 .admin-date-nav {
@@ -1222,6 +1182,49 @@ input[type="date"] {
   background: var(--bg-card);
   padding: 0.75rem;
   box-shadow: var(--shadow-soft);
+}
+
+.date-picker-bar__modal {
+  position: fixed;
+  inset: 0;
+  z-index: 201;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding:
+    max(1rem, env(safe-area-inset-top))
+    max(1rem, env(safe-area-inset-right))
+    max(1rem, env(safe-area-inset-bottom))
+    max(1rem, env(safe-area-inset-left));
+  pointer-events: none;
+}
+
+.date-picker-bar__modal-panel {
+  pointer-events: auto;
+  width: min(22rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+  border-radius: 1rem;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+}
+
+.date-picker-bar__modal-panel .calendar-picker {
+  border: none;
+  border-radius: 1rem;
+  padding: 1rem;
+  background: transparent;
+}
+
+.date-picker-bar__modal-panel .calendar-grid {
+  gap: 0.25rem;
+}
+
+.date-picker-bar__modal-panel .calendar-day {
+  aspect-ratio: 1;
+  min-width: 0;
+  font-size: 0.875rem;
 }
 
 .date-picker-bar__today-btn {

@@ -5,6 +5,7 @@ import {
   clearSessionCookie,
   sessionCookieOptions,
 } from "@/lib/auth";
+import { verifyAdminPassword } from "@/lib/admin-password";
 import { loginSchema } from "@/lib/schemas";
 
 export async function POST(request: NextRequest) {
@@ -16,9 +17,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "סיסמה נדרשת" }, { status: 400 });
     }
 
-    const adminPassword = process.env.ADMIN_PASSWORD ?? "barber2024";
+    const valid = await verifyAdminPassword(parsed.data.password);
 
-    if (parsed.data.password !== adminPassword) {
+    if (!valid) {
       return NextResponse.json({ error: "סיסמה שגויה" }, { status: 401 });
     }
 

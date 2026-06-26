@@ -187,21 +187,23 @@ export function DatePickerBar({
             />
             <div
               ref={overlayRef}
-              className="date-picker-bar__popover date-picker-bar__popover--overlay"
+              className="date-picker-bar__modal"
               role="dialog"
               aria-label="בחירת תאריך"
             >
-              <CalendarPicker
-                selectedDate={selectedDate}
-                onSelect={(date) => {
-                  onSelect(date);
-                  setOpen(false);
-                }}
-                workingHours={workingHours}
-                blockedDates={blockedDates}
-                minDate={effectiveMinDate}
-                availabilityMode={restrictAvailability ? "strict" : "none"}
-              />
+              <div className="date-picker-bar__modal-panel">
+                <CalendarPicker
+                  selectedDate={selectedDate}
+                  onSelect={(date) => {
+                    onSelect(date);
+                    setOpen(false);
+                  }}
+                  workingHours={workingHours}
+                  blockedDates={blockedDates}
+                  minDate={effectiveMinDate}
+                  availabilityMode={restrictAvailability ? "strict" : "none"}
+                />
+              </div>
             </div>
           </>,
           document.body

@@ -72,6 +72,10 @@ export default function AdminSettingsPage() {
     price: "80",
     active: true,
   });
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -106,6 +110,36 @@ export default function AdminSettingsPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  async function changePassword() {
+    setChangingPassword(true);
+    setError("");
+    setSuccess("");
+    try {
+      const res = await fetch("/api/admin/password", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+          confirmPassword,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "שגיאה בעדכון הסיסמה");
+        return;
+      }
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setSuccess("הסיסמה עודכנה בהצלחה");
+    } catch {
+      setError("שגיאה בעדכון הסיסמה");
+    } finally {
+      setChangingPassword(false);
+    }
+  }
 
   async function saveSettings(partial: Record<string, unknown>) {
     setSaving(true);
@@ -262,6 +296,40 @@ export default function AdminSettingsPage() {
             {success}
           </p>
         )}
+
+        <section>
+          <h2 className="mb-4 font-serif text-xl">סיסמת מנהל</h2>
+          <GlassCard className="space-y-3">
+            <Input
+              label="סיסמה נוכחית"
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              autoComplete="current-password"
+            />
+            <Input
+              label="סיסמה חדשה"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              autoComplete="new-password"
+            />
+            <Input
+              label="אימות סיסמה חדשה"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              autoComplete="new-password"
+            />
+            <Button
+              loading={changingPassword}
+              onClick={changePassword}
+              disabled={!currentPassword || !newPassword || !confirmPassword}
+            >
+              עדכן סיסמה
+            </Button>
+          </GlassCard>
+        </section>
 
         <section>
           <h2 className="mb-4 font-serif text-xl">פרטי עסק</h2>
