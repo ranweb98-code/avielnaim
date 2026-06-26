@@ -99,15 +99,15 @@ export function BottomNav() {
   return (
     <nav
       className={cn(
-        "bottom-nav-floating fixed inset-x-4 bottom-4 z-40 mx-auto max-w-sm pb-safe transition-all duration-300 ease-out md:hidden",
+        "bottom-nav-floating fixed left-1/2 z-40 transition-all duration-300 ease-out md:hidden",
         visible
-          ? "translate-y-0 opacity-100"
-          : "pointer-events-none translate-y-8 opacity-0"
+          ? "-translate-x-1/2 translate-y-0 opacity-100"
+          : "pointer-events-none -translate-x-1/2 translate-y-8 opacity-0"
       )}
       aria-label="ניווט ראשי"
       aria-hidden={!visible}
     >
-      <div className="flex items-center justify-around px-3 py-2">
+      <div className="flex items-center justify-center gap-1 px-2 py-1.5">
         {links.map(({ href, label, icon: Icon }) => {
           const active =
             href === "/"

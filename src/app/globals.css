@@ -586,12 +586,21 @@ a.info-row--link:hover {
 }
 
 .bottom-nav-floating {
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  width: fit-content;
+  max-width: calc(100% - 2rem);
   background: color-mix(in srgb, var(--bg-card) 95%, transparent);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--border-subtle);
   border-radius: 9999px;
   box-shadow: var(--shadow-nav);
+}
+
+@media (display-mode: standalone) {
+  .bottom-nav-floating {
+    bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 .hide-scrollbar {
