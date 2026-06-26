@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { addDays, format } from "date-fns";
 import { he } from "date-fns/locale";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
@@ -43,6 +44,7 @@ export function DatePickerBar({
   const effectiveMinDate = allowPastDates ? "1970-01-01" : (minDate ?? today);
   const [open, setOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
 
   const selectedLabel = format(parseJerusalemDate(selectedDate), "EEEE, d MMMM yyyy", {
     locale: he,
@@ -51,12 +53,34 @@ export function DatePickerBar({
   const showTodayShortcut = selectedDate !== today;
 
   useEffect(() => {
+    if (!open || !compact) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open, compact]);
+
+  useEffect(() => {
     if (!open) return;
 
     function onPointerDown(event: MouseEvent) {
+      const target = event.target as Node;
+      if (compact) {
+        if (
+          overlayRef.current &&
+          !overlayRef.current.contains(target) &&
+          !popoverRef.current?.contains(target)
+        ) {
+          setOpen(false);
+        }
+        return;
+      }
+
       if (
         popoverRef.current &&
-        !popoverRef.current.contains(event.target as Node)
+        !popoverRef.current.contains(target)
       ) {
         setOpen(false);
       }
@@ -64,7 +88,7 @@ export function DatePickerBar({
 
     document.addEventListener("mousedown", onPointerDown);
     return () => document.removeEventListener("mousedown", onPointerDown);
-  }, [open]);
+  }, [open, compact]);
 
   function shiftDay(delta: number) {
     const next = formatJerusalemDate(
@@ -107,12 +131,9 @@ export function DatePickerBar({
             )}
           </button>
 
-          {open && (
+          {open && !compact && (
             <div
-              className={cn(
-                "date-picker-bar__popover",
-                compact && "date-picker-bar__popover--compact"
-              )}
+              className="date-picker-bar__popover"
               role="dialog"
               aria-label="בחירת תאריך"
             >
@@ -152,6 +173,39 @@ export function DatePickerBar({
           חזרה להיום
         </button>
       )}
+
+      {open &&
+        compact &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <>
+            <button
+              type="button"
+              className="date-picker-bar__backdrop"
+              aria-label="סגירת לוח שנה"
+              onClick={() => setOpen(false)}
+            />
+            <div
+              ref={overlayRef}
+              className="date-picker-bar__popover date-picker-bar__popover--overlay"
+              role="dialog"
+              aria-label="בחירת תאריך"
+            >
+              <CalendarPicker
+                selectedDate={selectedDate}
+                onSelect={(date) => {
+                  onSelect(date);
+                  setOpen(false);
+                }}
+                workingHours={workingHours}
+                blockedDates={blockedDates}
+                minDate={effectiveMinDate}
+                availabilityMode={restrictAvailability ? "strict" : "none"}
+              />
+            </div>
+          </>,
+          document.body
+        )}
     </div>
   );
 }

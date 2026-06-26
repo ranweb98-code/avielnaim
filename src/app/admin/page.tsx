@@ -17,6 +17,11 @@ import { GlassCard } from "@/components/GlassCard";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { WeekDayStrip } from "@/components/WeekDayStrip";
 import { cn } from "@/lib/cn";
+import {
+  deriveHoursFromAppointments,
+  findNextOpenDay,
+  isWorkingDay,
+} from "@/lib/day-availability";
 import { fetchWithCache, getCachedData } from "@/lib/fetch-cache";
 import {
   formatJerusalemDate,
@@ -54,19 +59,23 @@ const STATUS_CLASSES: Record<Appointment["status"], string> = {
 };
 
 const TABS = [
+  { key: "today", label: "היום" },
   { key: "all", label: "הכל" },
   { key: "pending", label: "ממתינים" },
   { key: "confirmed", label: "מאושרים" },
   { key: "cancelled", label: "בוטלו" },
 ] as const;
 
+type TabKey = (typeof TABS)[number]["key"];
+
 const PUBLIC_CACHE_KEY = "public-api";
 
 export default function AdminPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [workingHours, setWorkingHours] = useState<WorkingHour[]>([]);
+  const [blockedDates, setBlockedDates] = useState<string[]>([]);
   const [inspoMap, setInspoMap] = useState<Record<number, InspoImage>>({});
-  const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("all");
+  const [tab, setTab] = useState<TabKey>("today");
   const [selectedDate, setSelectedDate] = useState(formatJerusalemDate());
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -98,20 +107,27 @@ export default function AdminPage() {
       }
       setInspoMap(map);
 
-      const cachedPublic = getCachedData<{ workingHours: WorkingHour[] }>(
-        PUBLIC_CACHE_KEY
-      );
+      const cachedPublic = getCachedData<{
+        workingHours: WorkingHour[];
+        blockedDates: string[];
+      }>(PUBLIC_CACHE_KEY);
       if (cachedPublic?.workingHours) {
         setWorkingHours(cachedPublic.workingHours);
       }
+      if (cachedPublic?.blockedDates) {
+        setBlockedDates(cachedPublic.blockedDates);
+      }
 
-      fetchWithCache<{ workingHours: WorkingHour[] }>(
-        PUBLIC_CACHE_KEY,
-        "/api/public"
-      )
-        .then((data) => setWorkingHours(data.workingHours ?? []))
+      fetchWithCache<{
+        workingHours: WorkingHour[];
+        blockedDates: string[];
+      }>(PUBLIC_CACHE_KEY, "/api/public")
+        .then((data) => {
+          setWorkingHours(data.workingHours ?? []);
+          setBlockedDates(data.blockedDates ?? []);
+        })
         .catch(() => {
-          /* keep cached hours if any */
+          /* keep cached data if any */
         });
     } catch {
       setError("שגיאה בטעינת תורים");
@@ -124,26 +140,108 @@ export default function AdminPage() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    if (workingHours.length === 0) return;
+    if (isWorkingDay(selectedDate, workingHours, blockedDates)) return;
+    if (appointments.some((a) => a.date === selectedDate)) return;
+
+    const today = formatJerusalemDate();
+    const nextOpen = isWorkingDay(today, workingHours, blockedDates)
+      ? today
+      : findNextOpenDay(today, workingHours, blockedDates);
+    setSelectedDate(nextOpen);
+    setSelectedId(null);
+  }, [workingHours, blockedDates, selectedDate, appointments]);
+
+  const today = formatJerusalemDate();
+
+  const dayAppointments = useMemo(
+    () =>
+      appointments
+        .filter((a) => a.date === selectedDate)
+        .sort((a, b) => a.time.localeCompare(b.time)),
+    [appointments, selectedDate]
+  );
+
+  const todayAppointments = useMemo(
+    () =>
+      appointments
+        .filter((a) => a.date === today)
+        .sort((a, b) => a.time.localeCompare(b.time)),
+    [appointments, today]
+  );
+
+  const todayWorkingHours = useMemo(() => {
+    const dayOfWeek = getJerusalemDayOfWeek(today);
+    const wh = workingHours.find((w) => w.dayOfWeek === dayOfWeek);
+    if (wh?.isOpen) {
+      return { startTime: wh.startTime, endTime: wh.endTime };
+    }
+    return deriveHoursFromAppointments(todayAppointments);
+  }, [workingHours, today, todayAppointments]);
+
+  const allAppointments = useMemo(
+    () =>
+      [...appointments].sort((a, b) => {
+        const dateCompare = a.date.localeCompare(b.date);
+        if (dateCompare !== 0) return dateCompare;
+        return a.time.localeCompare(b.time);
+      }),
+    [appointments]
+  );
+
+  const allAppointmentsByDate = useMemo(() => {
+    const groups = new Map<string, Appointment[]>();
+    for (const appt of allAppointments) {
+      const list = groups.get(appt.date) ?? [];
+      list.push(appt);
+      groups.set(appt.date, list);
+    }
+    return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
+  }, [allAppointments]);
+
   const dayWorkingHours = useMemo(() => {
     const dayOfWeek = getJerusalemDayOfWeek(selectedDate);
     const wh = workingHours.find((w) => w.dayOfWeek === dayOfWeek);
-    if (!wh?.isOpen) return null;
-    return { startTime: wh.startTime, endTime: wh.endTime };
-  }, [workingHours, selectedDate]);
+    if (wh?.isOpen) {
+      return { startTime: wh.startTime, endTime: wh.endTime };
+    }
+    return deriveHoursFromAppointments(dayAppointments);
+  }, [workingHours, selectedDate, dayAppointments]);
 
-  const filtered = useMemo(
-    () =>
-      appointments
-        .filter((a) => {
-          if (a.date !== selectedDate) return false;
-          if (tab === "all") return true;
-          return a.status === tab;
-        })
-        .sort((a, b) => a.time.localeCompare(b.time)),
-    [appointments, selectedDate, tab]
-  );
+  const appointmentHighlightDates = useMemo(() => {
+    const dates = new Set<string>();
+    for (const appt of appointments) {
+      if (tab === "all" || tab === "today") {
+        dates.add(appt.date);
+      } else if (appt.status === tab) {
+        dates.add(appt.date);
+      }
+    }
+    return [...dates];
+  }, [appointments, tab]);
 
-  const selectedAppt = filtered.find((a) => a.id === selectedId) ?? null;
+  const hasAppointmentsOnOtherDays = useMemo(() => {
+    return appointments.some((a) => {
+      if (a.date === selectedDate) return false;
+      if (tab === "all" || tab === "today") return true;
+      return a.status === tab;
+    });
+  }, [appointments, selectedDate, tab]);
+
+  const filtered = useMemo(() => {
+    if (tab === "all") return allAppointments;
+    if (tab === "today") return todayAppointments;
+    return dayAppointments.filter((a) => a.status === tab);
+  }, [tab, allAppointments, todayAppointments, dayAppointments]);
+
+  const calendarDate = tab === "today" ? today : selectedDate;
+  const calendarAppointments = tab === "all" ? [] : filtered;
+  const calendarWorkingHours =
+    tab === "today" ? todayWorkingHours : dayWorkingHours;
+
+  const selectedAppt =
+    appointments.find((a) => a.id === selectedId) ?? null;
 
   async function updateStatus(id: number, status: Appointment["status"]) {
     setUpdating(id);
@@ -195,6 +293,22 @@ export default function AdminPage() {
     window.location.href = "/admin/login";
   }
 
+  async function handleCreated(created: {
+    date: string;
+    status: Appointment["status"];
+  }) {
+    setSelectedDate(created.date);
+    if (created.date === today) {
+      setTab("today");
+    } else if (created.status === "pending") {
+      setTab("pending");
+    } else {
+      setTab("all");
+    }
+    setSelectedId(null);
+    await load();
+  }
+
   if (loading) return <LoadingSpinner />;
 
   return (
@@ -220,20 +334,6 @@ export default function AdminPage() {
         </header>
 
         <div className="admin-date-nav site-container">
-          <WeekDayStrip
-            selectedDate={selectedDate}
-            onSelect={(date) => {
-              setSelectedDate(date);
-              setSelectedId(null);
-            }}
-            workingHours={workingHours}
-            blockedDates={[]}
-            allowPastDates
-            restrictAvailability={false}
-            anchorToSelected
-            daysToShow={10}
-            variant="calmark"
-          />
           <DatePickerBar
             selectedDate={selectedDate}
             onSelect={(date) => {
@@ -241,10 +341,25 @@ export default function AdminPage() {
               setSelectedId(null);
             }}
             workingHours={workingHours}
-            blockedDates={[]}
-            restrictAvailability={false}
+            blockedDates={blockedDates}
+            restrictAvailability
             allowPastDates
             compact
+          />
+          <WeekDayStrip
+            selectedDate={selectedDate}
+            onSelect={(date) => {
+              setSelectedDate(date);
+              setSelectedId(null);
+            }}
+            workingHours={workingHours}
+            blockedDates={blockedDates}
+            allowPastDates
+            restrictAvailability
+            anchorToSelected
+            daysToShow={10}
+            variant="calmark"
+            highlightDates={appointmentHighlightDates}
           />
         </div>
 
@@ -265,6 +380,9 @@ export default function AdminPage() {
                 onClick={() => {
                   setTab(t.key);
                   setSelectedId(null);
+                  if (t.key === "today") {
+                    setSelectedDate(today);
+                  }
                 }}
                 className={cn(
                   "min-h-9 shrink-0 rounded-full px-3 text-sm transition-all duration-200",
@@ -282,16 +400,92 @@ export default function AdminPage() {
             <EmptyState
               title="אין תורים"
               description={
-                tab === "all"
-                  ? `אין תורים ב-${selectedDate}`
-                  : `אין תורים בסטטוס "${TABS.find((t) => t.key === tab)?.label}"`
+                tab === "today"
+                  ? "אין תורים להיום"
+                  : tab === "all"
+                    ? "אין תורים במערכת"
+                    : hasAppointmentsOnOtherDays
+                      ? `אין תורים בסטטוס "${TABS.find((t) => t.key === tab)?.label}" ביום זה. יש תורים בימים אחרים — בחר תאריך בלוח`
+                      : `אין תורים בסטטוס "${TABS.find((t) => t.key === tab)?.label}"`
               }
             />
+          ) : tab === "all" ? (
+            <div className="admin-appt-list">
+              {allAppointmentsByDate.map(([date, appts]) => (
+                <section key={date} className="admin-appt-list__day">
+                  <h3 className="admin-appt-list__date">{date}</h3>
+                  <div className="admin-appt-list__items">
+                    {appts.map((appt) => (
+                      <div
+                        key={appt.id}
+                        className={cn(
+                          "admin-appt-list__item",
+                          selectedId === appt.id && "admin-appt-list__item--selected"
+                        )}
+                      >
+                        <button
+                          type="button"
+                          className="admin-appt-list__item-body"
+                          onClick={() => setSelectedId(appt.id)}
+                        >
+                          <div className="admin-appt-list__item-main">
+                            <span className="admin-appt-list__time">{appt.time}</span>
+                            <span className="admin-appt-list__name">{appt.customerName}</span>
+                            <span className="admin-appt-list__service">{appt.serviceName}</span>
+                          </div>
+                          <span
+                            className={cn(
+                              "rounded-full px-2 py-0.5 text-xs font-medium",
+                              STATUS_CLASSES[appt.status]
+                            )}
+                          >
+                            {STATUS_LABELS[appt.status]}
+                          </span>
+                        </button>
+                        <div className="admin-appt-list__actions">
+                          {appt.status === "pending" && (
+                            <button
+                              type="button"
+                              className="admin-appt-list__action admin-appt-list__action--confirm"
+                              disabled={updating === appt.id}
+                              onClick={() => updateStatus(appt.id, "confirmed")}
+                              aria-label="אישור תור"
+                            >
+                              <Check className="h-4 w-4" />
+                            </button>
+                          )}
+                          {(appt.status === "pending" || appt.status === "confirmed") && (
+                            <button
+                              type="button"
+                              className="admin-appt-list__action admin-appt-list__action--cancel"
+                              disabled={updating === appt.id}
+                              onClick={() => updateStatus(appt.id, "cancelled")}
+                              aria-label="ביטול תור"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="admin-appt-list__action admin-appt-list__action--delete"
+                            disabled={updating === appt.id}
+                            onClick={() => deleteAppointment(appt.id)}
+                            aria-label="מחק תור"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
           ) : (
             <AdminDayCalendar
-              date={selectedDate}
-              appointments={filtered}
-              workingHours={dayWorkingHours}
+              date={calendarDate}
+              appointments={calendarAppointments}
+              workingHours={calendarWorkingHours}
               selectedId={selectedId}
               onSelect={setSelectedId}
             />
@@ -315,7 +509,7 @@ export default function AdminPage() {
                     </span>
                   </div>
                   <p className="text-sm text-text-secondary">
-                    {selectedAppt.time} · {selectedAppt.serviceName}
+                    {selectedAppt.date} · {selectedAppt.time} · {selectedAppt.serviceName}
                   </p>
                 </div>
                 <button
@@ -366,18 +560,21 @@ export default function AdminPage() {
                   </div>
                 );
               })()}
-              {selectedAppt.status === "pending" && (
+              {selectedAppt.status !== "cancelled" && (
                 <div className="flex gap-2 pt-2">
-                  <Button
-                    className="flex-1"
-                    loading={updating === selectedAppt.id}
-                    onClick={() => updateStatus(selectedAppt.id, "confirmed")}
-                  >
-                    <Check className="h-4 w-4" />
-                    אישור
-                  </Button>
+                  {selectedAppt.status === "pending" && (
+                    <Button
+                      className="flex-1"
+                      loading={updating === selectedAppt.id}
+                      onClick={() => updateStatus(selectedAppt.id, "confirmed")}
+                    >
+                      <Check className="h-4 w-4" />
+                      אישור
+                    </Button>
+                  )}
                   <Button
                     variant="danger"
+                    className={selectedAppt.status === "pending" ? undefined : "w-full"}
                     loading={updating === selectedAppt.id}
                     onClick={() => updateStatus(selectedAppt.id, "cancelled")}
                   >
@@ -385,16 +582,6 @@ export default function AdminPage() {
                     ביטול
                   </Button>
                 </div>
-              )}
-              {selectedAppt.status === "confirmed" && (
-                <Button
-                  variant="danger"
-                  className="w-full"
-                  loading={updating === selectedAppt.id}
-                  onClick={() => updateStatus(selectedAppt.id, "cancelled")}
-                >
-                  בטל תור
-                </Button>
               )}
               <Button
                 variant="secondary"
@@ -422,7 +609,7 @@ export default function AdminPage() {
       <AdminCreateAppointmentModal
         open={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onCreated={load}
+        onCreated={handleCreated}
       />
     </>
   );

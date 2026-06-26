@@ -25,6 +25,7 @@ type WeekDayStripProps = {
   restrictAvailability?: boolean;
   anchorToSelected?: boolean;
   variant?: "default" | "calmark";
+  highlightDates?: string[];
 };
 
 const WEEKDAY_LETTERS = ["א", "ב", "ג", "ד", "ה", "ו", "ש"];
@@ -56,8 +57,10 @@ export function WeekDayStrip({
   restrictAvailability = true,
   anchorToSelected = false,
   variant = "default",
+  highlightDates = [],
 }: WeekDayStripProps) {
   const today = minDate ?? formatJerusalemDate();
+  const highlightSet = useMemo(() => new Set(highlightDates), [highlightDates]);
 
   const days = useMemo(() => {
     const start = anchorToSelected
@@ -84,6 +87,7 @@ export function WeekDayStrip({
           );
           const selected = dateStr === selectedDate;
           const isToday = dateStr === today;
+          const hasAppointments = highlightSet.has(dateStr);
           const dayNum = parseJerusalemDate(dateStr).getDate();
           const weekday = WEEKDAY_LETTERS[getJerusalemDayOfWeek(dateStr)];
 
@@ -96,6 +100,7 @@ export function WeekDayStrip({
               className={cn(
                 "week-day-strip__day",
                 disabled && "week-day-strip__day--disabled",
+                hasAppointments && "week-day-strip__day--has-appointments",
                 selected && "week-day-strip__day--selected",
                 variant === "calmark" && selected && "week-day-strip__day--calmark-selected",
                 isToday && !selected && "week-day-strip__day--today"

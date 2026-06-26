@@ -678,6 +678,33 @@ input[type="date"] {
   box-shadow: inset 0 0 0 1.5px #2f80ed55;
 }
 
+.week-day-strip--calmark .week-day-strip__day--disabled {
+  opacity: 0.35;
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.week-day-strip__day--has-appointments .week-day-strip__number {
+  position: relative;
+}
+
+.week-day-strip__day--has-appointments .week-day-strip__number::after {
+  content: "";
+  position: absolute;
+  bottom: -0.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0.25rem;
+  height: 0.25rem;
+  border-radius: 9999px;
+  background: #2f80ed;
+}
+
+.week-day-strip--calmark .week-day-strip__day--calmark-selected.week-day-strip__day--has-appointments
+  .week-day-strip__number::after {
+  background: #ffffff;
+}
+
 .date-picker-bar--compact {
   flex-shrink: 0;
 }
@@ -699,6 +726,55 @@ input[type="date"] {
   inset-inline-end: 0;
   inset-inline-start: auto;
   width: min(20rem, calc(100vw - 2rem));
+}
+
+.date-picker-bar__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  border: none;
+  background: rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}
+
+.date-picker-bar__popover--overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 81;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem;
+  pointer-events: none;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  overflow: visible;
+  max-height: none;
+  width: auto;
+  left: auto;
+  top: auto;
+  transform: none;
+}
+
+.date-picker-bar__popover--overlay .calendar-picker {
+  pointer-events: auto;
+  width: min(22rem, calc(100vw - 1.5rem));
+  border: 1px solid var(--border-subtle);
+  border-radius: 1rem;
+  padding: 1rem;
+  background: var(--bg-card);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.25);
+}
+
+.date-picker-bar__popover--overlay .calendar-grid {
+  gap: 0.25rem;
+}
+
+.date-picker-bar__popover--overlay .calendar-day {
+  aspect-ratio: 1;
+  min-width: 0;
+  font-size: 0.8125rem;
 }
 
 .admin-date-nav {
@@ -886,7 +962,144 @@ input[type="date"] {
 }
 
 .admin-appt-detail {
+  border: 1px solid var(--border-subtle);
   border-radius: 1.25rem;
+}
+
+.admin-appt-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.admin-appt-list__day {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.admin-appt-list__date {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.admin-appt-list__items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.admin-appt-list__item {
+  display: flex;
+  align-items: stretch;
+  gap: 0.375rem;
+  width: 100%;
+  border-radius: 0.75rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+  transition: background 0.15s ease;
+}
+
+.admin-appt-list__item:hover {
+  background: var(--bg-card-hover);
+}
+
+.admin-appt-list__item--selected {
+  border-color: var(--accent-yellow);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-yellow) 35%, transparent);
+}
+
+.admin-appt-list__item-body {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.75rem 0.875rem;
+  background: transparent;
+  border: none;
+  text-align: right;
+  color: inherit;
+}
+
+.admin-appt-list__actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.375rem 0.375rem 0;
+  flex-shrink: 0;
+}
+
+.admin-appt-list__action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  border: none;
+  background: transparent;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.admin-appt-list__action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin-appt-list__action--confirm {
+  color: #16a34a;
+}
+
+.admin-appt-list__action--confirm:hover:not(:disabled) {
+  background: rgba(22, 163, 74, 0.12);
+}
+
+.admin-appt-list__action--cancel {
+  color: #dc2626;
+}
+
+.admin-appt-list__action--cancel:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.12);
+}
+
+.admin-appt-list__action--delete {
+  color: var(--text-muted);
+}
+
+.admin-appt-list__action--delete:hover:not(:disabled) {
+  background: var(--bg-card-hover);
+  color: #dc2626;
+}
+
+.admin-appt-list__item-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem 0.75rem;
+  min-width: 0;
+}
+
+.admin-appt-list__time {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-appt-list__name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.admin-appt-list__service {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
 }
 
 .admin-fab--calmark {

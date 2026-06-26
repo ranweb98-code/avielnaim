@@ -11,7 +11,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "postinstall": "prisma generate",
     "icons": "node scripts/generate-icons.mjs",
-    "backfill:customers": "tsx scripts/backfill-customers.ts"
+    "backfill:customers": "tsx scripts/backfill-customers.ts",
+    "import:customers": "tsx scripts/import-customers-xlsx.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -50,6 +51,7 @@
     "sharp": "^0.35.1",
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "xlsx": "^0.18.5"
   }
 }

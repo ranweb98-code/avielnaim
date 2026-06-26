@@ -28,7 +28,7 @@ type WorkingHour = {
 type AdminCreateAppointmentModalProps = {
   open: boolean;
   onClose: () => void;
-  onCreated: () => void;
+  onCreated: (created: { date: string; status: "pending" | "confirmed" | "cancelled" }) => void;
 };
 
 export function AdminCreateAppointmentModal({
@@ -201,7 +201,10 @@ export function AdminCreateAppointmentModal({
         return;
       }
 
-      onCreated();
+      onCreated({
+        date: data.appointment?.date ?? date,
+        status: data.appointment?.status ?? "confirmed",
+      });
       onClose();
     } catch {
       setError("שגיאה ביצירת התור");
