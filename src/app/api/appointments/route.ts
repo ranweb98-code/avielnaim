@@ -68,8 +68,10 @@ export async function POST(request: NextRequest) {
 
     const emailTasks: Promise<unknown>[] = [
       sendOwnerNewAppointmentEmail({
+        appointmentId: appointment.id,
         customerName: appointment.customerName,
         customerPhone: appointment.customerPhone,
+        serviceName: appointment.serviceName,
         date: appointment.date,
         time: appointment.time,
       }),
@@ -87,7 +89,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await Promise.all(emailTasks);
+    const emailResults = await Promise.allSettled(emailTasks);
+    for (const result of emailResults) {
+      if (result.status === "rejected") {
+        console.error("Email task rejected:", result.reason);
+      }
+    }
 
     return NextResponse.json({ appointment }, { status: 201 });
   } catch (error) {

@@ -8,20 +8,26 @@ function getSecret() {
   return new TextEncoder().encode(secret);
 }
 
-export async function createCancelToken(appointmentId: number): Promise<string> {
-  return new SignJWT({ appointmentId, purpose: "cancel" })
+type TokenPurpose = "cancel" | "approve";
+
+async function createAppointmentToken(
+  appointmentId: number,
+  purpose: TokenPurpose
+): Promise<string> {
+  return new SignJWT({ appointmentId, purpose })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("30d")
     .sign(getSecret());
 }
 
-export async function verifyCancelToken(
-  token: string
+async function verifyAppointmentToken(
+  token: string,
+  purpose: TokenPurpose
 ): Promise<number | null> {
   try {
     const { payload } = await jwtVerify(token, getSecret());
-    if (payload.purpose !== "cancel") return null;
+    if (payload.purpose !== purpose) return null;
     const id = payload.appointmentId;
     if (typeof id !== "number") return null;
     return id;
@@ -30,9 +36,39 @@ export async function verifyCancelToken(
   }
 }
 
-export function getCancelUrl(token: string): string {
-  const base =
+function getAppBaseUrl(): string {
+  return (
     process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "") ??
-    "http://localhost:3000";
-  return `${base}/cancel?token=${encodeURIComponent(token)}`;
+    "http://localhost:3000"
+  );
+}
+
+export async function createCancelToken(appointmentId: number): Promise<string> {
+  return createAppointmentToken(appointmentId, "cancel");
+}
+
+export async function verifyCancelToken(
+  token: string
+): Promise<number | null> {
+  return verifyAppointmentToken(token, "cancel");
+}
+
+export function getCancelUrl(token: string): string {
+  return `${getAppBaseUrl()}/cancel?token=${encodeURIComponent(token)}`;
+}
+
+export async function createApproveToken(
+  appointmentId: number
+): Promise<string> {
+  return createAppointmentToken(appointmentId, "approve");
+}
+
+export async function verifyApproveToken(
+  token: string
+): Promise<number | null> {
+  return verifyAppointmentToken(token, "approve");
+}
+
+export function getApproveUrl(token: string): string {
+  return `${getAppBaseUrl()}/approve?token=${encodeURIComponent(token)}`;
 }

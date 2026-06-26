@@ -58,3 +58,36 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "שגיאה בעדכון התור" }, { status: 500 });
   }
 }
+
+export async function DELETE(_request: NextRequest, { params }: RouteParams) {
+  const authed = await isAuthenticated();
+  if (!authed) {
+    return NextResponse.json({ error: "לא מורשה" }, { status: 401 });
+  }
+
+  const { id } = await params;
+  const appointmentId = parseInt(id, 10);
+
+  if (Number.isNaN(appointmentId)) {
+    return NextResponse.json({ error: "מזהה לא תקין" }, { status: 400 });
+  }
+
+  try {
+    const existing = await prisma.appointment.findUnique({
+      where: { id: appointmentId },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: "תור לא נמצא" }, { status: 404 });
+    }
+
+    await prisma.appointment.delete({
+      where: { id: appointmentId },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Delete appointment error:", error);
+    return NextResponse.json({ error: "שגיאה במחיקת התור" }, { status: 500 });
+  }
+}

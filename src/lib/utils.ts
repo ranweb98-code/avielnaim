@@ -40,3 +40,15 @@ export function formatPrice(price: number): string {
 export function formatDuration(minutes: number): string {
   return `${minutes} דק'`;
 }
+
+/** Builds a wa.me link from a local IL phone number or international digits. */
+export function toWhatsAppUrl(phone: string, message?: string): string {
+  const digits = phone.replace(/\D/g, "");
+  let intl = digits;
+  if (intl.startsWith("0")) {
+    intl = `972${intl.slice(1)}`;
+  }
+  const base = `https://wa.me/${intl}`;
+  if (!message) return base;
+  return `${base}?text=${encodeURIComponent(message)}`;
+}

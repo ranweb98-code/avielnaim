@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Check, LogOut, Plus, Settings, X } from "lucide-react";
+import { Check, LogOut, Plus, Settings, Trash2, X } from "lucide-react";
 import { AdminCreateAppointmentModal } from "@/components/AdminCreateAppointmentModal";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
@@ -29,6 +29,18 @@ type Appointment = {
 };
 
 type InspoImage = { id: number; src: string; label: string };
+
+const STATUS_LABELS: Record<Appointment["status"], string> = {
+  pending: "ממתין לאישור",
+  confirmed: "מאושר",
+  cancelled: "בוטל",
+};
+
+const STATUS_CLASSES: Record<Appointment["status"], string> = {
+  pending: "bg-amber-500/15 text-amber-600",
+  confirmed: "bg-green-500/15 text-green-600",
+  cancelled: "bg-red-500/15 text-red-600",
+};
 
 const TABS = [
   { key: "all", label: "הכל" },
@@ -99,6 +111,27 @@ export default function AdminPage() {
       await load();
     } catch {
       setError("שגיאה בעדכון");
+    } finally {
+      setUpdating(null);
+    }
+  }
+
+  async function deleteAppointment(id: number) {
+    if (!window.confirm("למחוק את התור לצמיתות?")) return;
+
+    setUpdating(id);
+    try {
+      const res = await fetch(`/api/appointments/${id}`, { method: "DELETE" });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error ?? "שגיאה במחיקה");
+        return;
+      }
+
+      await load();
+    } catch {
+      setError("שגיאה במחיקה");
     } finally {
       setUpdating(null);
     }
@@ -207,7 +240,17 @@ export default function AdminPage() {
               <GlassCard key={appt.id} className="space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <h3 className="font-medium text-text-primary">{appt.customerName}</h3>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-medium text-text-primary">{appt.customerName}</h3>
+                      <span
+                        className={cn(
+                          "rounded-full px-2 py-0.5 text-xs font-medium",
+                          STATUS_CLASSES[appt.status]
+                        )}
+                      >
+                        {STATUS_LABELS[appt.status]}
+                      </span>
+                    </div>
                     <p className="text-sm text-accent-yellow">{appt.serviceName}</p>
                   </div>
                   <span className="text-sm text-text-secondary">
@@ -250,7 +293,7 @@ export default function AdminPage() {
                       onClick={() => updateStatus(appt.id, "confirmed")}
                     >
                       <Check className="h-4 w-4" />
-                      אשר
+                      אישור
                     </Button>
                     <Button
                       variant="danger"
@@ -258,7 +301,7 @@ export default function AdminPage() {
                       onClick={() => updateStatus(appt.id, "cancelled")}
                     >
                       <X className="h-4 w-4" />
-                      בטל
+                      ביטול
                     </Button>
                   </div>
                 )}
@@ -272,6 +315,15 @@ export default function AdminPage() {
                     בטל תור
                   </Button>
                 )}
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  loading={updating === appt.id}
+                  onClick={() => deleteAppointment(appt.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  מחק תור
+                </Button>
               </GlassCard>
             );
           })}
