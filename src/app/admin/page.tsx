@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Check, LogOut, Plus, Settings, Trash2, X } from "lucide-react";
+import { Check, LogOut, Plus, Settings, Trash2, Users, X } from "lucide-react";
 import { AdminCreateAppointmentModal } from "@/components/AdminCreateAppointmentModal";
 import { Button } from "@/components/Button";
+import { DatePickerBar } from "@/components/DatePickerBar";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { GlassCard } from "@/components/GlassCard";
@@ -44,7 +45,6 @@ const STATUS_CLASSES: Record<Appointment["status"], string> = {
 
 const TABS = [
   { key: "all", label: "הכל" },
-  { key: "today", label: "היום" },
   { key: "pending", label: "ממתינים" },
   { key: "confirmed", label: "מאושרים" },
   { key: "cancelled", label: "בוטלו" },
@@ -54,6 +54,7 @@ export default function AdminPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [inspoMap, setInspoMap] = useState<Record<number, InspoImage>>({});
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("all");
+  const [selectedDate, setSelectedDate] = useState(formatJerusalemDate());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [updating, setUpdating] = useState<number | null>(null);
@@ -142,22 +143,13 @@ export default function AdminPage() {
     window.location.href = "/admin/login";
   }
 
-  const todayJerusalem = formatJerusalemDate();
-
   const filtered = appointments
     .filter((a) => {
-      if (tab === "all") {
-        return true;
-      }
-      if (tab === "today") {
-        return a.date === todayJerusalem && a.status !== "cancelled";
-      }
+      if (a.date !== selectedDate) return false;
+      if (tab === "all") return true;
       return a.status === tab;
     })
-    .sort((a, b) => {
-      if (a.date !== b.date) return a.date.localeCompare(b.date);
-      return a.time.localeCompare(b.time);
-    });
+    .sort((a, b) => a.time.localeCompare(b.time));
 
   if (loading) return <LoadingSpinner />;
 
@@ -167,13 +159,22 @@ export default function AdminPage() {
         showBack
         backHref="/"
         topContent={
-          <Link
-            href="/admin/settings"
-            className="flex min-h-11 items-center rounded-xl px-3 text-black transition-colors hover:text-black/70"
-            aria-label="הגדרות"
-          >
-            <Settings className="h-5 w-5" />
-          </Link>
+          <div className="flex items-center gap-1">
+            <Link
+              href="/admin/customers"
+              className="flex min-h-11 items-center rounded-xl px-3 text-black transition-colors hover:text-black/70"
+              aria-label="לקוחות"
+            >
+              <Users className="h-5 w-5" />
+            </Link>
+            <Link
+              href="/admin/settings"
+              className="flex min-h-11 items-center rounded-xl px-3 text-black transition-colors hover:text-black/70"
+              aria-label="הגדרות"
+            >
+              <Settings className="h-5 w-5" />
+            </Link>
+          </div>
         }
         bottomContent={
           <h1 className="text-2xl font-bold text-white">ניהול תורים</h1>
@@ -196,6 +197,15 @@ export default function AdminPage() {
         </div>
       )}
 
+      <div className="mb-6">
+        <DatePickerBar
+          selectedDate={selectedDate}
+          onSelect={setSelectedDate}
+          restrictAvailability={false}
+          allowPastDates
+        />
+      </div>
+
       <div className="mb-6 flex gap-2 overflow-x-auto hide-scrollbar">
         {TABS.map((t) => (
           <button
@@ -210,9 +220,6 @@ export default function AdminPage() {
             )}
           >
             {t.label}
-            {t.key === "today" && (
-              <span className="mr-1 text-xs opacity-70">({todayJerusalem})</span>
-            )}
           </button>
         ))}
       </div>
@@ -222,10 +229,8 @@ export default function AdminPage() {
           title="אין תורים"
           description={
             tab === "all"
-              ? "אין תורים במערכת"
-              : tab === "today"
-              ? `אין תורים פעילים להיום (${todayJerusalem})`
-              : `אין תורים בסטטוס "${TABS.find((t) => t.key === tab)?.label}"`
+              ? `אין תורים ב-${selectedDate}`
+              : `אין תורים בסטטוס "${TABS.find((t) => t.key === tab)?.label}" ב-${selectedDate}`
           }
         />
       ) : (
@@ -253,9 +258,7 @@ export default function AdminPage() {
                     </div>
                     <p className="text-sm text-accent-yellow">{appt.serviceName}</p>
                   </div>
-                  <span className="text-sm text-text-secondary">
-                    {appt.date} · {appt.time}
-                  </span>
+                  <span className="text-sm text-text-secondary">{appt.time}</span>
                 </div>
                 <div className="space-y-1 text-sm text-text-secondary">
                   <p dir="ltr" className="text-right">{appt.customerPhone}</p>

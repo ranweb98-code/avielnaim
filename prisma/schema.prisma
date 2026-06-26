@@ -27,6 +27,22 @@ model Service {
   @@index([active, sortOrder])
 }
 
+model Customer {
+  id        Int      @id @default(autoincrement())
+  firstName String
+  lastName  String   @default("")
+  phone     String   @unique
+  email     String   @default("")
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  appointments Appointment[]
+
+  @@index([firstName, lastName])
+  @@index([phone])
+}
+
 model Appointment {
   id              Int               @id @default(autoincrement())
   serviceId       Int
@@ -35,6 +51,8 @@ model Appointment {
   servicePrice    Int
   date            String
   time            String
+  customerId      Int?
+  customer        Customer?         @relation(fields: [customerId], references: [id], onDelete: SetNull)
   customerName    String
   customerPhone   String
   customerEmail   String
@@ -47,6 +65,7 @@ model Appointment {
 
   @@index([date, time])
   @@index([status])
+  @@index([customerId])
 }
 
 model WorkingHours {

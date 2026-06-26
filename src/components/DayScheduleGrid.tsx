@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useMemo, useRef } from "react";
-import { cn } from "@/lib/cn";
 import type { OccupiedBlock } from "@/lib/availability";
 import {
   formatJerusalemDate,
@@ -20,6 +19,7 @@ type DayScheduleGridProps = {
   workingHours: { startTime: string; endTime: string } | null;
   serviceDurationMin: number;
   isClosed: boolean;
+  slotInterval?: number;
   loading?: boolean;
 };
 
@@ -38,6 +38,7 @@ export function DayScheduleGrid({
   workingHours,
   serviceDurationMin,
   isClosed,
+  slotInterval = 5,
   loading,
 }: DayScheduleGridProps) {
   const gridRef = useRef<HTMLDivElement>(null);
@@ -69,14 +70,14 @@ export function DayScheduleGrid({
     return labels;
   }, [workingHours, startMinutes, endMinutes]);
 
-  const quarterLines = useMemo(() => {
+  const intervalLines = useMemo(() => {
     if (!workingHours) return [];
     const lines: number[] = [];
-    for (let m = startMinutes; m < endMinutes; m += 15) {
+    for (let m = startMinutes; m < endMinutes; m += slotInterval) {
       if (m % 60 !== 0) lines.push(m);
     }
     return lines;
-  }, [workingHours, startMinutes, endMinutes]);
+  }, [workingHours, startMinutes, endMinutes, slotInterval]);
 
   const isTimeSelectable = useCallback(
     (time: string) => {
@@ -85,6 +86,7 @@ export function DayScheduleGrid({
       const end = start + serviceDurationMin;
 
       if (start < startMinutes || end > endMinutes) return false;
+      if (start % slotInterval !== 0) return false;
 
       if (isToday && nowMinutes !== null) {
         if (start < nowMinutes + MIN_ADVANCE_MINUTES) return false;
@@ -106,6 +108,7 @@ export function DayScheduleGrid({
       isToday,
       nowMinutes,
       occupied,
+      slotInterval,
     ]
   );
 
@@ -117,7 +120,8 @@ export function DayScheduleGrid({
       const y = clampMinutes(clientY - rect.top, 0, rect.height);
       const ratio = y / rect.height;
       const clickedMinute = startMinutes + ratio * totalMinutes;
-      const rounded = Math.round(clickedMinute);
+      const rounded =
+        Math.round(clickedMinute / slotInterval) * slotInterval;
 
       const maxStart = endMinutes - serviceDurationMin;
       const clampedStart = clampMinutes(rounded, startMinutes, maxStart);
@@ -133,6 +137,7 @@ export function DayScheduleGrid({
       startMinutes,
       endMinutes,
       serviceDurationMin,
+      slotInterval,
       isTimeSelectable,
       onSelect,
     ]
@@ -161,7 +166,7 @@ export function DayScheduleGrid({
   return (
     <div className="gcal-grid">
       <p className="gcal-grid__hint">
-        לחץ על הזמן הרצוי בלוח — כל מיקום מייצג דקה שונה
+        לחץ על הזמן הרצוי בלוח — מרווחים של {slotInterval} דקות
       </p>
       <div className="gcal-grid__container">
         <div
@@ -190,10 +195,10 @@ export function DayScheduleGrid({
             </div>
           ))}
 
-          {quarterLines.map((minutes) => (
+          {intervalLines.map((minutes) => (
             <div
               key={minutes}
-              className="gcal-grid__quarter-line"
+              className="gcal-grid__interval-line"
               style={{ top: (minutes - startMinutes) * PX_PER_MINUTE }}
             />
           ))}

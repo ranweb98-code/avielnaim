@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isSlotAvailable } from "@/lib/availability";
+import { upsertCustomerFromBooking } from "@/lib/customers";
 import { sendCustomerAdminBookingEmail } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 import { appointmentCreateSchema } from "@/lib/schemas";
@@ -47,6 +48,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const customer = await upsertCustomerFromBooking({
+      name: data.customerName,
+      phone: data.customerPhone,
+      email: data.customerEmail,
+    });
+
     const appointment = await prisma.appointment.create({
       data: {
         serviceId: service.id,
@@ -55,6 +62,7 @@ export async function POST(request: NextRequest) {
         servicePrice: service.price,
         date: data.date,
         time: data.time,
+        customerId: customer.id,
         customerName: data.customerName,
         customerPhone: data.customerPhone,
         customerEmail: data.customerEmail,

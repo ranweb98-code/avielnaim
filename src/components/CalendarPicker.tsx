@@ -28,6 +28,7 @@ type CalendarPickerProps = {
   workingHours: WorkingHour[];
   blockedDates: string[];
   minDate?: string;
+  availabilityMode?: "strict" | "none";
 };
 
 const WEEKDAYS = ["א", "ב", "ג", "ד", "ה", "ו", "ש"];
@@ -36,9 +37,11 @@ function isDayDisabled(
   dateStr: string,
   minDate: string,
   workingHours: WorkingHour[],
-  blockedDates: string[]
+  blockedDates: string[],
+  availabilityMode: "strict" | "none"
 ): boolean {
   if (dateStr < minDate) return true;
+  if (availabilityMode === "none") return false;
   if (blockedDates.includes(dateStr)) return true;
   const dayOfWeek = getJerusalemDayOfWeek(dateStr);
   const wh = workingHours.find((w) => w.dayOfWeek === dayOfWeek);
@@ -51,6 +54,7 @@ export function CalendarPicker({
   workingHours,
   blockedDates,
   minDate,
+  availabilityMode = "strict",
 }: CalendarPickerProps) {
   const today = minDate ?? formatJerusalemDate();
   const initialMonth = selectedDate
@@ -116,7 +120,8 @@ export function CalendarPicker({
             dateStr,
             today,
             workingHours,
-            blockedDates
+            blockedDates,
+            availabilityMode
           );
           const selected = dateStr === selectedDate;
           const dayNum = parseJerusalemDate(dateStr).getDate();

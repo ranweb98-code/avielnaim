@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
 import { isSlotAvailable } from "@/lib/availability";
+import { upsertCustomerFromBooking } from "@/lib/customers";
 import { deleteOldAppointments } from "@/lib/cleanup";
 import {
   sendCustomerSelfBookingEmail,
@@ -49,6 +50,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const customer = await upsertCustomerFromBooking({
+      name: data.customerName,
+      phone: data.customerPhone,
+      email: data.customerEmail,
+    });
+
     const appointment = await prisma.appointment.create({
       data: {
         serviceId: service.id,
@@ -57,6 +64,7 @@ export async function POST(request: NextRequest) {
         servicePrice: service.price,
         date: data.date,
         time: data.time,
+        customerId: customer.id,
         customerName: data.customerName,
         customerPhone: data.customerPhone,
         customerEmail: data.customerEmail,

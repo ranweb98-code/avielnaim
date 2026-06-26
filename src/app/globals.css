@@ -699,6 +699,133 @@ input[type="date"] {
   color: var(--text-primary);
 }
 
+.date-picker-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.date-picker-bar__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.date-picker-bar__center {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.date-picker-bar__date-btn {
+  display: flex;
+  width: 100%;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 1rem;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.date-picker-bar__date-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: color-mix(in srgb, var(--accent-yellow) 35%, var(--border-subtle));
+}
+
+.date-picker-bar__date-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.date-picker-bar__nav-btn {
+  display: flex;
+  height: 2.75rem;
+  width: 2.75rem;
+  shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.date-picker-bar__nav-btn:hover:not(:disabled) {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
+.date-picker-bar__nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.date-picker-bar__popover {
+  position: absolute;
+  inset-inline: 0;
+  top: calc(100% + 0.5rem);
+  z-index: 50;
+  border-radius: 1rem;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  padding: 0.75rem;
+  box-shadow: var(--shadow-soft);
+}
+
+.date-picker-bar__today-btn {
+  align-self: center;
+  font-size: 0.875rem;
+  color: var(--accent-yellow);
+  transition: opacity 0.2s ease;
+}
+
+.date-picker-bar__today-btn:hover {
+  opacity: 0.85;
+}
+
+.customer-search-results {
+  position: absolute;
+  inset-inline: 0;
+  top: calc(100% + 0.25rem);
+  z-index: 20;
+  max-height: 12rem;
+  overflow-y: auto;
+  border-radius: 1rem;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-soft);
+}
+
+.customer-search-results__item {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 0.125rem;
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0.75rem 1rem;
+  text-align: start;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  transition: background-color 0.2s ease;
+}
+
+.customer-search-results__item:last-child {
+  border-bottom: none;
+}
+
+.customer-search-results__item:hover {
+  background: var(--bg-card-hover);
+}
+
 /* Google Calendar-style day grid */
 .gcal-grid {
   background: var(--bg-card);
@@ -763,11 +890,17 @@ input[type="date"] {
   font-variant-numeric: tabular-nums;
 }
 
-.gcal-grid__quarter-line {
+.gcal-grid__quarter-line,
+.gcal-grid__interval-line {
   position: absolute;
   inset-inline: 0;
   border-top: 1px dashed color-mix(in srgb, var(--border-subtle) 80%, transparent);
   pointer-events: none;
+}
+
+.gcal-grid__interval-line {
+  border-top-style: dotted;
+  opacity: 0.55;
 }
 
 .gcal-grid__now-line {

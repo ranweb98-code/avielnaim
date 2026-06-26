@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Check, Phone, Star } from "lucide-react";
 import { DayScheduleGrid } from "@/components/DayScheduleGrid";
+import { DatePickerBar } from "@/components/DatePickerBar";
 import { Button } from "@/components/Button";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { Input, Textarea } from "@/components/Input";
@@ -52,7 +53,7 @@ export default function BookPage() {
     slots: [],
     occupied: [],
     workingHours: null,
-    slotInterval: 30,
+    slotInterval: 5,
     isClosed: true,
   });
   const [slotsLoading, setSlotsLoading] = useState(false);
@@ -93,7 +94,7 @@ export default function BookPage() {
       slots: [],
       occupied: [],
       workingHours: null,
-      slotInterval: 30,
+      slotInterval: 5,
       isClosed: true,
     });
     try {
@@ -105,7 +106,7 @@ export default function BookPage() {
         slots: data.slots ?? [],
         occupied: data.occupied ?? [],
         workingHours: data.workingHours ?? null,
-        slotInterval: data.slotInterval ?? 30,
+        slotInterval: data.slotInterval ?? 5,
         isClosed: data.isClosed ?? false,
       });
     } catch {
@@ -333,6 +334,14 @@ export default function BookPage() {
               <h2 className="mb-3 text-lg font-semibold text-text-primary">
                 קביעת תור
               </h2>
+              <DatePickerBar
+                selectedDate={date}
+                onSelect={setDate}
+                workingHours={workingHours}
+                blockedDates={blockedDates}
+                minDate={minDate}
+                className="mb-3"
+              />
               <WeekDayStrip
                 selectedDate={date}
                 onSelect={setDate}
@@ -355,6 +364,7 @@ export default function BookPage() {
                   workingHours={schedule.workingHours}
                   serviceDurationMin={selectedService?.durationMin ?? 30}
                   isClosed={schedule.isClosed}
+                  slotInterval={schedule.slotInterval}
                   loading={slotsLoading}
                 />
                 {formErrors.time && (

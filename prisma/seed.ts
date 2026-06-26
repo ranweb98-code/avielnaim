@@ -2,6 +2,7 @@ import { prisma } from "../src/lib/prisma";
 
 async function main() {
   await prisma.appointment.deleteMany();
+  await prisma.customer.deleteMany();
   await prisma.service.deleteMany();
   await prisma.workingHours.deleteMany();
   await prisma.blockedDate.deleteMany();
@@ -76,7 +77,7 @@ async function main() {
     { key: "businessPhone", value: "050-1234567" },
     { key: "businessAddress", value: "רothschild 45, Tel Aviv" },
     { key: "ownerEmail", value: "owner@example.com" },
-    { key: "slotInterval", value: "30" },
+    { key: "slotInterval", value: "5" },
     { key: "reminderHours", value: "24" },
     { key: "bookingMode", value: "self" },
     { key: "theme", value: "dark" },

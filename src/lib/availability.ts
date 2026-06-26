@@ -8,7 +8,7 @@ import {
   timeToMinutes,
 } from "@/lib/timezone";
 
-const DEFAULT_SLOT_INTERVAL = 30;
+const DEFAULT_SLOT_INTERVAL = 5;
 const MIN_ADVANCE_MINUTES = 30;
 
 export type OccupiedBlock = {
@@ -175,6 +175,9 @@ export async function isSlotAvailable(
   const whEnd = timeToMinutes(workingHours.endTime);
 
   if (start < whStart || end > whEnd) return false;
+
+  const slotInterval = await getSlotInterval();
+  if (start % slotInterval !== 0) return false;
 
   if (isTodayInJerusalem(date)) {
     const minAllowed = getJerusalemTimeMinutes() + MIN_ADVANCE_MINUTES;

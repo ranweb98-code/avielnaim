@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { DayScheduleGrid } from "@/components/DayScheduleGrid";
+import { DatePickerBar } from "@/components/DatePickerBar";
 import { Button } from "@/components/Button";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { Input, Textarea } from "@/components/Input";
@@ -49,7 +50,7 @@ export function AdminCreateAppointmentModal({
     slots: [] as string[],
     occupied: [] as OccupiedBlock[],
     workingHours: null as { startTime: string; endTime: string } | null,
-    slotInterval: 30,
+    slotInterval: 5,
     isClosed: true,
   });
   const [slotsLoading, setSlotsLoading] = useState(false);
@@ -59,6 +60,11 @@ export function AdminCreateAppointmentModal({
   const [email, setEmail] = useState("");
   const [notes, setNotes] = useState("");
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [customerQuery, setCustomerQuery] = useState("");
+  const [customerResults, setCustomerResults] = useState<
+    Array<{ id: number; fullName: string; phone: string; email: string }>
+  >([]);
+  const [showCustomerResults, setShowCustomerResults] = useState(false);
 
   const minDate = formatJerusalemDate();
   const selectedService = services.find((s) => s.id === serviceId);
@@ -89,6 +95,41 @@ export function AdminCreateAppointmentModal({
       .finally(() => setLoading(false));
   }, [open, minDate]);
 
+  useEffect(() => {
+    if (!open || customerQuery.length < 2) {
+      setCustomerResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `/api/admin/customers?q=${encodeURIComponent(customerQuery)}`
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        setCustomerResults(data.customers ?? []);
+        setShowCustomerResults(true);
+      } catch {
+        /* ignore */
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [open, customerQuery]);
+
+  function selectCustomer(customer: {
+    fullName: string;
+    phone: string;
+    email: string;
+  }) {
+    setName(customer.fullName);
+    setPhone(customer.phone);
+    setEmail(customer.email);
+    setCustomerQuery("");
+    setShowCustomerResults(false);
+  }
+
   const fetchSchedule = useCallback(async (d: string, sId: number) => {
     setSlotsLoading(true);
     try {
@@ -100,7 +141,7 @@ export function AdminCreateAppointmentModal({
         slots: data.slots ?? [],
         occupied: data.occupied ?? [],
         workingHours: data.workingHours ?? null,
-        slotInterval: data.slotInterval ?? 30,
+        slotInterval: data.slotInterval ?? 5,
         isClosed: data.isClosed ?? false,
       });
     } catch {
@@ -211,6 +252,14 @@ export function AdminCreateAppointmentModal({
                 <h3 className="mb-2 text-sm font-medium text-text-primary">
                   תאריך
                 </h3>
+                <DatePickerBar
+                  selectedDate={date}
+                  onSelect={setDate}
+                  workingHours={workingHours}
+                  blockedDates={blockedDates}
+                  minDate={minDate}
+                  className="mb-3"
+                />
                 <WeekDayStrip
                   selectedDate={date}
                   onSelect={setDate}
@@ -230,6 +279,7 @@ export function AdminCreateAppointmentModal({
                     workingHours={schedule.workingHours}
                     serviceDurationMin={selectedService?.durationMin ?? 30}
                     isClosed={schedule.isClosed}
+                    slotInterval={schedule.slotInterval}
                     loading={slotsLoading}
                   />
                   {formErrors.time && (
@@ -239,6 +289,31 @@ export function AdminCreateAppointmentModal({
               )}
 
               <section className="space-y-3">
+                <div className="relative">
+                  <Input
+                    label="חיפוש לקוח קיים"
+                    value={customerQuery}
+                    onChange={(e) => setCustomerQuery(e.target.value)}
+                    placeholder="שם או טלפון..."
+                  />
+                  {showCustomerResults && customerResults.length > 0 && (
+                    <div className="customer-search-results">
+                      {customerResults.map((customer) => (
+                        <button
+                          key={customer.id}
+                          type="button"
+                          className="customer-search-results__item"
+                          onClick={() => selectCustomer(customer)}
+                        >
+                          <span>{customer.fullName}</span>
+                          <span dir="ltr" className="text-text-muted">
+                            {customer.phone}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <Input
                   label="שם לקוח"
                   value={name}

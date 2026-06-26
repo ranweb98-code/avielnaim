@@ -75,3 +75,34 @@ export const settingsPatchSchema = z.object({
 });
 
 export type AppointmentCreateInput = z.infer<typeof appointmentCreateSchema>;
+
+export const customerCreateSchema = z.object({
+  firstName: z.string().min(1, "שם פרטי חובה"),
+  lastName: z.string().optional().default(""),
+  phone: z
+    .string()
+    .min(9, "מספר טלפון לא תקין")
+    .regex(/^[\d\-+()\s]+$/, "מספר טלפון לא תקין"),
+  email: z
+    .string()
+    .optional()
+    .transform((v) => v?.trim() ?? "")
+    .refine(
+      (v) => v === "" || z.string().email().safeParse(v).success,
+      "כתובת אימייל לא תקינה"
+    ),
+  notes: z.string().optional(),
+});
+
+export const customerUpdateSchema = customerCreateSchema.partial();
+
+export const customerImportRowSchema = z.object({
+  firstName: z.string().min(1),
+  lastName: z.string().optional().default(""),
+  phone: z.string().min(9),
+  email: z.string().optional().default(""),
+  notes: z.string().optional(),
+});
+
+export type CustomerCreateInput = z.infer<typeof customerCreateSchema>;
+export type CustomerUpdateInput = z.infer<typeof customerUpdateSchema>;

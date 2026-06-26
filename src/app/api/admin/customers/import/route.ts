@@ -1,0 +1,182 @@
+import { NextRequest, NextResponse } from "next/server";
+import { isAuthenticated } from "@/lib/auth";
+import { normalizePhone } from "@/lib/customers";
+import { prisma } from "@/lib/prisma";
+import { customerImportRowSchema } from "@/lib/schemas";
+
+async function requireAdmin() {
+  const authed = await isAuthenticated();
+  if (!authed) {
+    return NextResponse.json({ error: "לא מורשה" }, { status: 401 });
+  }
+  return null;
+}
+
+const HEADER_MAP: Record<string, keyof ImportRow> = {
+  firstname: "firstName",
+  "first name": "firstName",
+  "שם פרטי": "firstName",
+  lastname: "lastName",
+  "last name": "lastName",
+  "שם משפחה": "lastName",
+  phone: "phone",
+  tel: "phone",
+  mobile: "phone",
+  טלפון: "phone",
+  email: "email",
+  mail: "email",
+  "דוא\"ל": "email",
+  "דואל": "email",
+  notes: "notes",
+  הערות: "notes",
+};
+
+type ImportRow = {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  notes?: string;
+};
+
+function parseCsvLine(line: string): string[] {
+  const result: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      inQuotes = !inQuotes;
+      continue;
+    }
+    if ((char === "," || char === ";") && !inQuotes) {
+      result.push(current.trim());
+      current = "";
+      continue;
+    }
+    current += char;
+  }
+  result.push(current.trim());
+  return result;
+}
+
+function parseCsv(text: string): ImportRow[] {
+  const lines = text
+    .replace(/^\uFEFF/, "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) return [];
+
+  const headerCells = parseCsvLine(lines[0]).map((h) =>
+    h.toLowerCase().trim()
+  );
+  const mappedHeaders = headerCells.map(
+    (h) => HEADER_MAP[h] ?? (h as keyof ImportRow)
+  );
+
+  const rows: ImportRow[] = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const cells = parseCsvLine(lines[i]);
+    const row: Partial<ImportRow> = {};
+
+    mappedHeaders.forEach((key, idx) => {
+      if (cells[idx] !== undefined) {
+        row[key] = cells[idx];
+      }
+    });
+
+    if (row.firstName && row.phone) {
+      rows.push({
+        firstName: row.firstName,
+        lastName: row.lastName ?? "",
+        phone: row.phone,
+        email: row.email ?? "",
+        notes: row.notes,
+      });
+    }
+  }
+
+  return rows;
+}
+
+export async function POST(request: NextRequest) {
+  const authError = await requireAdmin();
+  if (authError) return authError;
+
+  try {
+    const body = await request.json();
+    const csv = typeof body.csv === "string" ? body.csv : "";
+    const contacts = Array.isArray(body.contacts) ? body.contacts : [];
+
+    const rows: ImportRow[] = csv ? parseCsv(csv) : [];
+
+    for (const contact of contacts) {
+      const name = contact.name ?? contact.firstName ?? "";
+      const parts = String(name).trim().split(/\s+/);
+      rows.push({
+        firstName: parts[0] ?? "",
+        lastName: parts.slice(1).join(" "),
+        phone: contact.phone?.[0] ?? contact.tel?.[0] ?? "",
+        email: contact.email?.[0] ?? "",
+        notes: "",
+      });
+    }
+
+    let imported = 0;
+    let updated = 0;
+    let skipped = 0;
+    const errors: string[] = [];
+
+    for (const [index, row] of rows.entries()) {
+      const parsed = customerImportRowSchema.safeParse(row);
+      if (!parsed.success) {
+        skipped++;
+        errors.push(`שורה ${index + 1}: נתונים לא תקינים`);
+        continue;
+      }
+
+      const data = parsed.data;
+      const normalized = normalizePhone(data.phone);
+
+      const existing = await prisma.customer.findFirst({
+        where: {
+          OR: [{ phone: data.phone.trim() }, { phone: normalized }],
+        },
+      });
+
+      if (existing) {
+        await prisma.customer.update({
+          where: { id: existing.id },
+          data: {
+            firstName: data.firstName.trim(),
+            lastName: data.lastName?.trim() ?? "",
+            phone: data.phone.trim(),
+            ...(data.email ? { email: data.email.trim() } : {}),
+            ...(data.notes ? { notes: data.notes.trim() } : {}),
+          },
+        });
+        updated++;
+      } else {
+        await prisma.customer.create({
+          data: {
+            firstName: data.firstName.trim(),
+            lastName: data.lastName?.trim() ?? "",
+            phone: data.phone.trim(),
+            email: data.email?.trim() ?? "",
+            notes: data.notes?.trim() || null,
+          },
+        });
+        imported++;
+      }
+    }
+
+    return NextResponse.json({ imported, updated, skipped, errors });
+  } catch (error) {
+    console.error("Import customers error:", error);
+    return NextResponse.json({ error: "שגיאה בייבוא" }, { status: 500 });
+  }
+}
