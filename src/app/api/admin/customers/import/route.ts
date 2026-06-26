@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
-import { normalizePhone } from "@/lib/customers";
+import { normalizePhone, storeFullName } from "@/lib/customers";
 import { prisma } from "@/lib/prisma";
 import { customerImportRowSchema } from "@/lib/schemas";
 
@@ -12,7 +12,12 @@ async function requireAdmin() {
   return null;
 }
 
-const HEADER_MAP: Record<string, keyof ImportRow> = {
+const HEADER_MAP: Record<string, string> = {
+  fullname: "fullName",
+  "full name": "fullName",
+  name: "fullName",
+  "שם מלא": "fullName",
+  שם: "fullName",
   firstname: "firstName",
   "first name": "firstName",
   "שם פרטי": "firstName",
@@ -25,15 +30,12 @@ const HEADER_MAP: Record<string, keyof ImportRow> = {
   טלפון: "phone",
   email: "email",
   mail: "email",
-  "דוא\"ל": "email",
-  "דואל": "email",
   notes: "notes",
   הערות: "notes",
 };
 
 type ImportRow = {
-  firstName: string;
-  lastName: string;
+  fullName: string;
   phone: string;
   email: string;
   notes?: string;
@@ -73,29 +75,30 @@ function parseCsv(text: string): ImportRow[] {
   const headerCells = parseCsvLine(lines[0]).map((h) =>
     h.toLowerCase().trim()
   );
-  const mappedHeaders = headerCells.map(
-    (h) => HEADER_MAP[h] ?? (h as keyof ImportRow)
-  );
+  const mappedHeaders = headerCells.map((h) => HEADER_MAP[h] ?? h);
 
   const rows: ImportRow[] = [];
 
   for (let i = 1; i < lines.length; i++) {
     const cells = parseCsvLine(lines[i]);
-    const row: Partial<ImportRow> = {};
+    const raw: Record<string, string> = {};
 
     mappedHeaders.forEach((key, idx) => {
       if (cells[idx] !== undefined) {
-        row[key] = cells[idx];
+        raw[key] = cells[idx];
       }
     });
 
-    if (row.firstName && row.phone) {
+    const fullName =
+      raw.fullName ||
+      [raw.firstName, raw.lastName].filter(Boolean).join(" ").trim();
+
+    if (fullName && raw.phone) {
       rows.push({
-        firstName: row.firstName,
-        lastName: row.lastName ?? "",
-        phone: row.phone,
-        email: row.email ?? "",
-        notes: row.notes,
+        fullName,
+        phone: raw.phone,
+        email: raw.email ?? "",
+        notes: raw.notes,
       });
     }
   }
@@ -115,11 +118,9 @@ export async function POST(request: NextRequest) {
     const rows: ImportRow[] = csv ? parseCsv(csv) : [];
 
     for (const contact of contacts) {
-      const name = contact.name ?? contact.firstName ?? "";
-      const parts = String(name).trim().split(/\s+/);
+      const name = contact.name?.[0] ?? contact.firstName ?? "";
       rows.push({
-        firstName: parts[0] ?? "",
-        lastName: parts.slice(1).join(" "),
+        fullName: String(name).trim(),
         phone: contact.phone?.[0] ?? contact.tel?.[0] ?? "",
         email: contact.email?.[0] ?? "",
         notes: "",
@@ -140,6 +141,7 @@ export async function POST(request: NextRequest) {
       }
 
       const data = parsed.data;
+      const { firstName, lastName } = storeFullName(data.fullName);
       const normalized = normalizePhone(data.phone);
 
       const existing = await prisma.customer.findFirst({
@@ -152,8 +154,8 @@ export async function POST(request: NextRequest) {
         await prisma.customer.update({
           where: { id: existing.id },
           data: {
-            firstName: data.firstName.trim(),
-            lastName: data.lastName?.trim() ?? "",
+            firstName,
+            lastName,
             phone: data.phone.trim(),
             ...(data.email ? { email: data.email.trim() } : {}),
             ...(data.notes ? { notes: data.notes.trim() } : {}),
@@ -163,8 +165,8 @@ export async function POST(request: NextRequest) {
       } else {
         await prisma.customer.create({
           data: {
-            firstName: data.firstName.trim(),
-            lastName: data.lastName?.trim() ?? "",
+            firstName,
+            lastName,
             phone: data.phone.trim(),
             email: data.email?.trim() ?? "",
             notes: data.notes?.trim() || null,

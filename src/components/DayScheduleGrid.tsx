@@ -166,7 +166,7 @@ export function DayScheduleGrid({
   return (
     <div className="gcal-grid">
       <p className="gcal-grid__hint">
-        לחץ על הזמן הרצוי בלוח — מרווחים של {slotInterval} דקות
+        לחץ על הזמן הרצוי — בחירה במרווחים של {slotInterval} דקות, התור נמשך {serviceDurationMin} דקות
       </p>
       <div className="gcal-grid__container">
         <div

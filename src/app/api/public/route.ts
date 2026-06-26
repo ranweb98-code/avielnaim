@@ -19,11 +19,18 @@ export async function GET() {
 
   const settingsMap = Object.fromEntries(settings.map((s) => [s.key, s.value]));
 
-  return NextResponse.json({
-    services,
-    inspoImages,
-    settings: settingsMap,
-    workingHours,
-    blockedDates: blockedDates.map((b) => b.date),
-  });
+  return NextResponse.json(
+    {
+      services,
+      inspoImages,
+      settings: settingsMap,
+      workingHours,
+      blockedDates: blockedDates.map((b) => b.date),
+    },
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+      },
+    }
+  );
 }

@@ -4,20 +4,16 @@ export function normalizePhone(phone: string): string {
   return phone.replace(/[\s\-()+]/g, "").replace(/^0/, "972");
 }
 
-export function splitFullName(name: string): {
+export function formatCustomerName(firstName: string, lastName: string): string {
+  const full = [firstName, lastName].filter(Boolean).join(" ").trim();
+  return full || firstName;
+}
+
+export function storeFullName(fullName: string): {
   firstName: string;
   lastName: string;
 } {
-  const trimmed = name.trim();
-  const parts = trimmed.split(/\s+/);
-  if (parts.length <= 1) {
-    return { firstName: trimmed, lastName: "" };
-  }
-  return { firstName: parts[0], lastName: parts.slice(1).join(" ") };
-}
-
-export function formatCustomerName(firstName: string, lastName: string): string {
-  return [firstName, lastName].filter(Boolean).join(" ").trim();
+  return { firstName: fullName.trim(), lastName: "" };
 }
 
 type UpsertBookingInput = {
@@ -28,7 +24,7 @@ type UpsertBookingInput = {
 
 export async function upsertCustomerFromBooking(input: UpsertBookingInput) {
   const normalized = normalizePhone(input.phone);
-  const { firstName, lastName } = splitFullName(input.name);
+  const { firstName, lastName } = storeFullName(input.name);
   const email = input.email?.trim() ?? "";
 
   const existing = await prisma.customer.findFirst({

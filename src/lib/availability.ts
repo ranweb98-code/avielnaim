@@ -8,8 +8,10 @@ import {
   timeToMinutes,
 } from "@/lib/timezone";
 
-const DEFAULT_SLOT_INTERVAL = 5;
+const BOOKING_TIME_STEP = 5;
 const MIN_ADVANCE_MINUTES = 30;
+
+export { BOOKING_TIME_STEP };
 
 export type OccupiedBlock = {
   start: string;
@@ -25,11 +27,8 @@ export type DaySchedule = {
   isClosed: boolean;
 };
 
-async function getSlotInterval(): Promise<number> {
-  const setting = await prisma.setting.findUnique({
-    where: { key: "slotInterval" },
-  });
-  return setting ? parseInt(setting.value, 10) : DEFAULT_SLOT_INTERVAL;
+async function getBookingTimeStep(): Promise<number> {
+  return BOOKING_TIME_STEP;
 }
 
 export async function getAvailableSlots(
@@ -54,7 +53,7 @@ export async function getDaySchedule(
       slots: [],
       occupied: [],
       workingHours: null,
-      slotInterval: DEFAULT_SLOT_INTERVAL,
+      slotInterval: BOOKING_TIME_STEP,
       isClosed: true,
     };
   }
@@ -68,7 +67,7 @@ export async function getDaySchedule(
       slots: [],
       occupied: [],
       workingHours: null,
-      slotInterval: await getSlotInterval(),
+      slotInterval: BOOKING_TIME_STEP,
       isClosed: true,
     };
   }
@@ -83,16 +82,16 @@ export async function getDaySchedule(
       slots: [],
       occupied: [],
       workingHours: null,
-      slotInterval: await getSlotInterval(),
+      slotInterval: BOOKING_TIME_STEP,
       isClosed: true,
     };
   }
 
-  const slotInterval = await getSlotInterval();
+  const timeStep = await getBookingTimeStep();
   const allSlots = generateTimeSlots(
     workingHours.startTime,
     workingHours.endTime,
-    slotInterval
+    timeStep
   );
 
   const appointments = await prisma.appointment.findMany({
@@ -143,7 +142,7 @@ export async function getDaySchedule(
       startTime: workingHours.startTime,
       endTime: workingHours.endTime,
     },
-    slotInterval,
+    slotInterval: timeStep,
     isClosed: false,
   };
 }
@@ -176,8 +175,8 @@ export async function isSlotAvailable(
 
   if (start < whStart || end > whEnd) return false;
 
-  const slotInterval = await getSlotInterval();
-  if (start % slotInterval !== 0) return false;
+  const timeStep = await getBookingTimeStep();
+  if (start % timeStep !== 0) return false;
 
   if (isTodayInJerusalem(date)) {
     const minAllowed = getJerusalemTimeMinutes() + MIN_ADVANCE_MINUTES;

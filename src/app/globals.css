@@ -668,6 +668,236 @@ input[type="date"] {
   font-weight: 600;
 }
 
+.week-day-strip--calmark .week-day-strip__day--calmark-selected {
+  background: #2f80ed;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.week-day-strip--calmark .week-day-strip__day--today:not(.week-day-strip__day--calmark-selected) {
+  box-shadow: inset 0 0 0 1.5px #2f80ed55;
+}
+
+.date-picker-bar--compact {
+  flex-shrink: 0;
+}
+
+.date-picker-bar__controls--compact {
+  gap: 0;
+}
+
+.date-picker-bar__date-btn--icon-only {
+  width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0;
+  justify-content: center;
+  border-radius: 9999px;
+  color: #2f80ed;
+}
+
+.date-picker-bar__popover--compact {
+  inset-inline-end: 0;
+  inset-inline-start: auto;
+  width: min(20rem, calc(100vw - 2rem));
+}
+
+.admin-date-nav {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.admin-date-nav .week-day-strip {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-shell {
+  min-height: 100dvh;
+  background: var(--bg-app);
+  padding-bottom: 6rem;
+}
+
+.admin-shell__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-block: 0.875rem 0.5rem;
+}
+
+.admin-shell__brand {
+  font-family: var(--font-brand), cursive;
+  font-size: 1.35rem;
+  color: var(--text-primary);
+}
+
+.admin-shell__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.admin-shell__icon-btn {
+  display: flex;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  color: var(--text-secondary);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.admin-shell__icon-btn:hover {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.admin-shell__staff-name {
+  margin-bottom: 0.75rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.admin-cal {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 1.25rem;
+  overflow: hidden;
+}
+
+.admin-cal--empty {
+  padding: 2.5rem 1rem;
+}
+
+.admin-cal__scroll {
+  overflow-y: auto;
+  max-height: calc(100dvh - 18rem);
+  padding: 0.75rem 1rem 1rem 3.5rem;
+}
+
+.admin-cal__canvas {
+  position: relative;
+}
+
+.admin-cal__hour-line {
+  position: absolute;
+  inset-inline: 0;
+  border-top: 1px solid var(--border-subtle);
+  pointer-events: none;
+}
+
+.admin-cal__hour-label {
+  position: absolute;
+  inset-inline-end: calc(100% + 0.625rem);
+  top: -0.55rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-cal__now-line {
+  position: absolute;
+  inset-inline: 0;
+  height: 2px;
+  background: #ef4444;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.admin-cal-block {
+  position: absolute;
+  inset-inline: 0.25rem;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.125rem;
+  border: none;
+  border-radius: 1rem;
+  padding: 0.625rem 0.875rem;
+  text-align: start;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-cal-block:hover {
+  transform: scale(1.01);
+}
+
+.admin-cal-block--selected {
+  box-shadow: 0 0 0 2px #2f80ed;
+}
+
+.admin-cal-block--pending {
+  box-shadow: inset 0 0 0 2px rgba(245, 158, 11, 0.55);
+}
+
+.admin-cal-block--cancelled {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+.admin-cal-block--blue {
+  background: #dbeafe;
+  color: #1e3a5f;
+}
+
+.admin-cal-block--yellow {
+  background: #fef3c7;
+  color: #713f12;
+}
+
+.admin-cal-block--purple {
+  background: #ede9fe;
+  color: #4c1d95;
+}
+
+.admin-cal-block--teal {
+  background: #ccfbf1;
+  color: #115e59;
+}
+
+.admin-cal-block--pink {
+  background: #fce7f3;
+  color: #831843;
+}
+
+.admin-cal-block--orange {
+  background: #ffedd5;
+  color: #7c2d12;
+}
+
+.admin-cal-block__name {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.admin-cal-block__meta {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  opacity: 0.85;
+  line-height: 1.3;
+}
+
+.admin-appt-detail {
+  border-radius: 1.25rem;
+}
+
+.admin-fab--calmark {
+  background: #2f80ed;
+  box-shadow: 0 8px 24px rgba(47, 128, 237, 0.35);
+}
+
+.admin-fab--calmark:hover {
+  filter: brightness(1.05);
+}
+
 .week-day-strip__day--disabled {
   opacity: 0.35;
   cursor: not-allowed;

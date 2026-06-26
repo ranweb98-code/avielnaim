@@ -13,6 +13,7 @@ type PageHeroProps = {
   bottomContent?: React.ReactNode;
   topContent?: React.ReactNode;
   className?: string;
+  imagePriority?: boolean;
 };
 
 export function PageHero({
@@ -23,6 +24,7 @@ export function PageHero({
   bottomContent,
   topContent,
   className,
+  imagePriority = true,
 }: PageHeroProps) {
   return (
     <section
@@ -37,7 +39,8 @@ export function PageHero({
           src={HERO_IMAGE}
           alt={businessName}
           fill
-          priority
+          priority={imagePriority}
+          loading={imagePriority ? undefined : "lazy"}
           quality={95}
           className="object-cover grayscale"
           sizes="100vw"

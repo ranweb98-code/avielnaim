@@ -13,8 +13,21 @@ import { PageHero } from "@/components/PageHero";
 import { ServiceList } from "@/components/ServiceList";
 import { WeekDayStrip } from "@/components/WeekDayStrip";
 import type { OccupiedBlock } from "@/lib/availability";
+import { fetchWithCache, getCachedData } from "@/lib/fetch-cache";
 import { formatJerusalemDate } from "@/lib/timezone";
 import { BUSINESS_NAME, toWhatsAppUrl } from "@/lib/utils";
+
+const PUBLIC_CACHE_KEY = "public-api";
+
+type PublicData = {
+  services: Service[];
+  workingHours: WorkingHour[];
+  blockedDates: string[];
+  settings?: {
+    bookingMode?: string;
+    businessPhone?: string;
+  };
+};
 
 type Service = {
   id: number;
@@ -71,20 +84,29 @@ export default function BookPage() {
   const minDate = formatJerusalemDate();
 
   useEffect(() => {
-    fetch("/api/public")
-      .then((r) => r.json())
-      .then((data) => {
-        setServices(data.services ?? []);
-        setWorkingHours(data.workingHours ?? []);
-        setBlockedDates(data.blockedDates ?? []);
-        setBookingMode(data.settings?.bookingMode ?? "self");
-        setBusinessPhone(data.settings?.businessPhone ?? "");
-        if (data.services?.length > 0) {
-          setServiceId(data.services[0].id);
-        }
-        setDate(minDate);
+    function applyPublicData(data: PublicData) {
+      setServices(data.services ?? []);
+      setWorkingHours(data.workingHours ?? []);
+      setBlockedDates(data.blockedDates ?? []);
+      setBookingMode(data.settings?.bookingMode ?? "self");
+      setBusinessPhone(data.settings?.businessPhone ?? "");
+      if (data.services?.length > 0) {
+        setServiceId(data.services[0].id);
+      }
+      setDate(minDate);
+    }
+
+    const cached = getCachedData<PublicData>(PUBLIC_CACHE_KEY);
+    if (cached) {
+      applyPublicData(cached);
+      setLoading(false);
+    }
+
+    fetchWithCache<PublicData>(PUBLIC_CACHE_KEY, "/api/public")
+      .then(applyPublicData)
+      .catch(() => {
+        if (!cached) setError("שגיאה בטעינת נתונים");
       })
-      .catch(() => setError("שגיאה בטעינת נתונים"))
       .finally(() => setLoading(false));
   }, [minDate]);
 
@@ -292,6 +314,7 @@ export default function BookPage() {
         businessName={BUSINESS_NAME}
         showBack
         backHref="/"
+        imagePriority={false}
         bottomContent={
           <div>
             <span className="badge-gold">ספר מקצועי</span>

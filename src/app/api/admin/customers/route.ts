@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
-import { formatCustomerName, searchCustomers } from "@/lib/customers";
+import { formatCustomerName, searchCustomers, storeFullName } from "@/lib/customers";
 import { prisma } from "@/lib/prisma";
 import { customerCreateSchema } from "@/lib/schemas";
 
@@ -62,10 +62,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const { firstName, lastName } = storeFullName(data.fullName);
+
     const customer = await prisma.customer.create({
       data: {
-        firstName: data.firstName.trim(),
-        lastName: data.lastName?.trim() ?? "",
+        firstName,
+        lastName,
         phone: data.phone.trim(),
         email: data.email ?? "",
         notes: data.notes?.trim() || null,

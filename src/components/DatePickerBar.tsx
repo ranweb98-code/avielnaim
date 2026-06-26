@@ -25,6 +25,7 @@ type DatePickerBarProps = {
   restrictAvailability?: boolean;
   allowPastDates?: boolean;
   className?: string;
+  compact?: boolean;
 };
 
 export function DatePickerBar({
@@ -36,6 +37,7 @@ export function DatePickerBar({
   restrictAvailability = true,
   allowPastDates = false,
   className,
+  compact = false,
 }: DatePickerBarProps) {
   const today = formatJerusalemDate();
   const effectiveMinDate = allowPastDates ? "1970-01-01" : (minDate ?? today);
@@ -73,32 +75,47 @@ export function DatePickerBar({
   }
 
   return (
-    <div className={cn("date-picker-bar", className)}>
-      <div className="date-picker-bar__controls">
-        <button
-          type="button"
-          className="date-picker-bar__nav-btn"
-          onClick={() => shiftDay(-1)}
-          disabled={!allowPastDates && selectedDate <= today}
-          aria-label="יום קודם"
-        >
-          <ChevronRight className="h-5 w-5" />
-        </button>
+    <div className={cn("date-picker-bar", compact && "date-picker-bar--compact", className)}>
+      <div className={cn("date-picker-bar__controls", compact && "date-picker-bar__controls--compact")}>
+        {!compact && (
+          <button
+            type="button"
+            className="date-picker-bar__nav-btn"
+            onClick={() => shiftDay(-1)}
+            disabled={!allowPastDates && selectedDate <= today}
+            aria-label="יום קודם"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        )}
 
         <div className="date-picker-bar__center" ref={popoverRef}>
           <button
             type="button"
-            className="date-picker-bar__date-btn"
+            className={cn(
+              "date-picker-bar__date-btn",
+              compact && "date-picker-bar__date-btn--icon-only"
+            )}
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
             aria-haspopup="dialog"
+            aria-label={compact ? "פתיחת לוח שנה" : undefined}
           >
-            <Calendar className="h-4 w-4 shrink-0 text-accent-yellow" />
-            <span className="date-picker-bar__date-label">{selectedLabel}</span>
+            <Calendar className={cn("shrink-0", compact ? "h-5 w-5" : "h-4 w-4 text-accent-yellow")} />
+            {!compact && (
+              <span className="date-picker-bar__date-label">{selectedLabel}</span>
+            )}
           </button>
 
           {open && (
-            <div className="date-picker-bar__popover" role="dialog" aria-label="בחירת תאריך">
+            <div
+              className={cn(
+                "date-picker-bar__popover",
+                compact && "date-picker-bar__popover--compact"
+              )}
+              role="dialog"
+              aria-label="בחירת תאריך"
+            >
               <CalendarPicker
                 selectedDate={selectedDate}
                 onSelect={(date) => {
@@ -114,17 +131,19 @@ export function DatePickerBar({
           )}
         </div>
 
-        <button
-          type="button"
-          className="date-picker-bar__nav-btn"
-          onClick={() => shiftDay(1)}
-          aria-label="יום הבא"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </button>
+        {!compact && (
+          <button
+            type="button"
+            className="date-picker-bar__nav-btn"
+            onClick={() => shiftDay(1)}
+            aria-label="יום הבא"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+        )}
       </div>
 
-      {showTodayShortcut && (
+      {!compact && showTodayShortcut && (
         <button
           type="button"
           className="date-picker-bar__today-btn"

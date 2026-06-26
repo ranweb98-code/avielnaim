@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
-import { formatCustomerName } from "@/lib/customers";
+import { formatCustomerName, storeFullName } from "@/lib/customers";
 import { prisma } from "@/lib/prisma";
 import { customerUpdateSchema } from "@/lib/schemas";
 
@@ -92,11 +92,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const customer = await prisma.customer.update({
       where: { id: customerId },
       data: {
-        ...(data.firstName !== undefined
-          ? { firstName: data.firstName.trim() }
-          : {}),
-        ...(data.lastName !== undefined
-          ? { lastName: data.lastName.trim() }
+        ...(data.fullName !== undefined
+          ? storeFullName(data.fullName)
           : {}),
         ...(data.phone !== undefined ? { phone: data.phone.trim() } : {}),
         ...(data.email !== undefined ? { email: data.email } : {}),

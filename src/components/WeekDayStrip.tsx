@@ -21,6 +21,10 @@ type WeekDayStripProps = {
   blockedDates: string[];
   minDate?: string;
   daysToShow?: number;
+  allowPastDates?: boolean;
+  restrictAvailability?: boolean;
+  anchorToSelected?: boolean;
+  variant?: "default" | "calmark";
 };
 
 const WEEKDAY_LETTERS = ["א", "ב", "ג", "ד", "ה", "ו", "ש"];
@@ -29,9 +33,12 @@ function isDayDisabled(
   dateStr: string,
   minDate: string,
   workingHours: WorkingHour[],
-  blockedDates: string[]
+  blockedDates: string[],
+  allowPastDates: boolean,
+  restrictAvailability: boolean
 ): boolean {
-  if (dateStr < minDate) return true;
+  if (!allowPastDates && dateStr < minDate) return true;
+  if (!restrictAvailability) return false;
   if (blockedDates.includes(dateStr)) return true;
   const dayOfWeek = getJerusalemDayOfWeek(dateStr);
   const wh = workingHours.find((w) => w.dayOfWeek === dayOfWeek);
@@ -45,27 +52,35 @@ export function WeekDayStrip({
   blockedDates,
   minDate,
   daysToShow = 14,
+  allowPastDates = false,
+  restrictAvailability = true,
+  anchorToSelected = false,
+  variant = "default",
 }: WeekDayStripProps) {
   const today = minDate ?? formatJerusalemDate();
 
   const days = useMemo(() => {
-    const start = parseJerusalemDate(today);
+    const start = anchorToSelected
+      ? addDays(parseJerusalemDate(selectedDate), -3)
+      : parseJerusalemDate(today);
     return Array.from({ length: daysToShow }, (_, i) =>
       formatJerusalemDate(addDays(start, i))
     );
-  }, [today, daysToShow]);
+  }, [today, daysToShow, anchorToSelected, selectedDate]);
 
   const showBackToToday = selectedDate !== today;
 
   return (
-    <div className="week-day-strip">
+    <div className={cn("week-day-strip", variant === "calmark" && "week-day-strip--calmark")}>
       <div className="week-day-strip__scroll hide-scrollbar">
         {days.map((dateStr) => {
           const disabled = isDayDisabled(
             dateStr,
             today,
             workingHours,
-            blockedDates
+            blockedDates,
+            allowPastDates,
+            restrictAvailability
           );
           const selected = dateStr === selectedDate;
           const isToday = dateStr === today;
@@ -82,6 +97,7 @@ export function WeekDayStrip({
                 "week-day-strip__day",
                 disabled && "week-day-strip__day--disabled",
                 selected && "week-day-strip__day--selected",
+                variant === "calmark" && selected && "week-day-strip__day--calmark-selected",
                 isToday && !selected && "week-day-strip__day--today"
               )}
               aria-pressed={selected}

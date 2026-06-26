@@ -53,19 +53,17 @@ const STATUS_LABELS = {
 } as const;
 
 const CSV_TEMPLATE =
-  "firstName,lastName,phone,email,notes\nיוסי,כהן,050-1234567,yossi@example.com,לקוח VIP\n";
+  "fullName,phone,email,notes\nיוסי כהן,050-1234567,yossi@example.com,לקוח VIP\n";
 
 type CustomerForm = {
-  firstName: string;
-  lastName: string;
+  fullName: string;
   phone: string;
   email: string;
   notes: string;
 };
 
 const emptyForm: CustomerForm = {
-  firstName: "",
-  lastName: "",
+  fullName: "",
   phone: "",
   email: "",
   notes: "",
@@ -144,8 +142,7 @@ export default function AdminCustomersPage() {
   function openEditModal(customer: CustomerListItem) {
     setEditingId(customer.id);
     setForm({
-      firstName: customer.firstName,
-      lastName: customer.lastName,
+      fullName: customer.fullName,
       phone: customer.phone,
       email: customer.email,
       notes: customer.notes ?? "",
@@ -507,14 +504,9 @@ export default function AdminCustomersPage() {
             </div>
             <div className="admin-modal__body space-y-3">
               <Input
-                label="שם פרטי"
-                value={form.firstName}
-                onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-              />
-              <Input
-                label="שם משפחה"
-                value={form.lastName}
-                onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+                label="שם מלא"
+                value={form.fullName}
+                onChange={(e) => setForm({ ...form, fullName: e.target.value })}
               />
               <Input
                 label="טלפון"
