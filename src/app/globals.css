@@ -751,15 +751,30 @@ input[type="date"] {
 
 .admin-shell {
   min-height: 100dvh;
+  min-height: 100svh;
   background: var(--bg-app);
-  padding-bottom: 6rem;
+  padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
 }
 
 .admin-shell__header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-block: 0.875rem 0.5rem;
+  padding-top: max(0.875rem, env(safe-area-inset-top, 0px));
+  padding-bottom: 0.5rem;
+  background: color-mix(in srgb, var(--bg-app) 94%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+@media (display-mode: standalone) {
+  .admin-shell__header {
+    padding-top: max(2.75rem, calc(0.625rem + env(safe-area-inset-top, 0px)));
+  }
 }
 
 .admin-shell__brand {
