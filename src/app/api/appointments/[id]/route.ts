@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isSlotAvailable } from "@/lib/availability";
 import { isAuthenticated } from "@/lib/auth";
 import { sendCustomerConfirmationEmail } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
@@ -38,19 +39,70 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "תור לא נמצא" }, { status: 404 });
     }
 
+    const data = parsed.data;
+    const targetServiceId = data.serviceId ?? existing.serviceId;
+    const targetDate = data.date ?? existing.date;
+    const targetTime = data.time ?? existing.time;
+
+    if (data.date || data.time || data.serviceId) {
+      const service = await prisma.service.findFirst({
+        where: { id: targetServiceId, active: true },
+      });
+
+      if (!service) {
+        return NextResponse.json({ error: "שירות לא נמצא" }, { status: 404 });
+      }
+
+      const available = await isSlotAvailable(
+        targetDate,
+        targetTime,
+        targetServiceId,
+        { excludeAppointmentId: appointmentId, skipAdvanceCheck: true }
+      );
+
+      if (!available) {
+        return NextResponse.json(
+          { error: "השעה שנבחרה אינה זמינה" },
+          { status: 409 }
+        );
+      }
+    }
+
+    const serviceForUpdate =
+      data.serviceId !== undefined
+        ? await prisma.service.findFirst({
+            where: { id: targetServiceId, active: true },
+          })
+        : null;
+
     const appointment = await prisma.appointment.update({
       where: { id: appointmentId },
-      data: { status: parsed.data.status },
+      data: {
+        ...(data.status !== undefined ? { status: data.status } : {}),
+        ...(data.notes !== undefined ? { notes: data.notes } : {}),
+        ...(data.date || data.time || data.serviceId
+          ? {
+              date: targetDate,
+              time: targetTime,
+              serviceId: serviceForUpdate!.id,
+              serviceName: serviceForUpdate!.name,
+              serviceDuration: serviceForUpdate!.durationMin,
+              servicePrice: serviceForUpdate!.price,
+            }
+          : {}),
+      },
     });
 
-    await sendCustomerConfirmationEmail({
-      customerEmail: appointment.customerEmail,
-      customerName: appointment.customerName,
-      serviceName: appointment.serviceName,
-      date: appointment.date,
-      time: appointment.time,
-      status: appointment.status,
-    });
+    if (data.status !== undefined) {
+      await sendCustomerConfirmationEmail({
+        customerEmail: appointment.customerEmail,
+        customerName: appointment.customerName,
+        serviceName: appointment.serviceName,
+        date: appointment.date,
+        time: appointment.time,
+        status: appointment.status,
+      });
+    }
 
     return NextResponse.json({ appointment });
   } catch (error) {

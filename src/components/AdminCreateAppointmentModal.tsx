@@ -1,15 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { X } from "lucide-react";
-import { DayScheduleGrid } from "@/components/DayScheduleGrid";
-import { DatePickerBar } from "@/components/DatePickerBar";
+import { Plus, X } from "lucide-react";
 import { Button } from "@/components/Button";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { Input, Textarea } from "@/components/Input";
-import { ServiceList } from "@/components/ServiceList";
-import { WeekDayStrip } from "@/components/WeekDayStrip";
-import type { OccupiedBlock } from "@/lib/availability";
+import { cn } from "@/lib/cn";
 import { formatJerusalemDate } from "@/lib/timezone";
 
 type Service = {
@@ -20,39 +16,35 @@ type Service = {
   price: number;
 };
 
-type WorkingHour = {
-  dayOfWeek: number;
-  isOpen: boolean;
-};
-
 type AdminCreateAppointmentModalProps = {
   open: boolean;
+  initialDate?: string;
+  initialTime?: string;
   onClose: () => void;
-  onCreated: (created: { date: string; status: "pending" | "confirmed" | "cancelled" }) => void;
+  onCreated: (created: {
+    date: string;
+    status: "pending" | "confirmed" | "cancelled";
+  }) => void;
 };
 
 export function AdminCreateAppointmentModal({
   open,
+  initialDate,
+  initialTime,
   onClose,
   onCreated,
 }: AdminCreateAppointmentModalProps) {
   const [services, setServices] = useState<Service[]>([]);
-  const [workingHours, setWorkingHours] = useState<WorkingHour[]>([]);
-  const [blockedDates, setBlockedDates] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [tab, setTab] = useState<"details" | "extra">("details");
+  const [showNewCustomer, setShowNewCustomer] = useState(false);
 
   const [serviceId, setServiceId] = useState<number | null>(null);
   const [date, setDate] = useState(formatJerusalemDate());
   const [time, setTime] = useState("");
-  const [schedule, setSchedule] = useState({
-    slots: [] as string[],
-    occupied: [] as OccupiedBlock[],
-    workingHours: null as { startTime: string; endTime: string } | null,
-    slotInterval: 5,
-    isClosed: true,
-  });
+  const [timeSlots, setTimeSlots] = useState<string[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
 
   const [name, setName] = useState("");
@@ -66,34 +58,32 @@ export function AdminCreateAppointmentModal({
   >([]);
   const [showCustomerResults, setShowCustomerResults] = useState(false);
 
-  const minDate = formatJerusalemDate();
-  const selectedService = services.find((s) => s.id === serviceId);
-
   useEffect(() => {
     if (!open) return;
 
     setLoading(true);
+    setTab("details");
+    setShowNewCustomer(false);
     fetch("/api/public")
       .then((r) => r.json())
       .then((data) => {
         setServices(data.services ?? []);
-        setWorkingHours(data.workingHours ?? []);
-        setBlockedDates(data.blockedDates ?? []);
         if (data.services?.length > 0) {
           setServiceId(data.services[0].id);
         }
-        setDate(minDate);
-        setTime("");
+        setDate(initialDate ?? formatJerusalemDate());
+        setTime(initialTime ?? "");
         setName("");
         setPhone("");
         setEmail("");
         setNotes("");
+        setCustomerQuery("");
         setFormErrors({});
         setError("");
       })
       .catch(() => setError("שגיאה בטעינת נתונים"))
       .finally(() => setLoading(false));
-  }, [open, minDate]);
+  }, [open, initialDate, initialTime]);
 
   useEffect(() => {
     if (!open || customerQuery.length < 2) {
@@ -118,6 +108,46 @@ export function AdminCreateAppointmentModal({
     return () => clearTimeout(timer);
   }, [open, customerQuery]);
 
+  const fetchSchedule = useCallback(
+    async (d: string, sId: number, preferredTime?: string) => {
+      setSlotsLoading(true);
+      try {
+        const res = await fetch(
+          `/api/availability?date=${d}&serviceId=${sId}`
+        );
+        const data = await res.json();
+        const slots: string[] = data.slots ?? [];
+        const mergedSlots =
+          preferredTime && !slots.includes(preferredTime)
+            ? [...slots, preferredTime].sort()
+            : slots;
+        setTimeSlots(mergedSlots);
+        setTime((prev) => {
+          if (preferredTime) return preferredTime;
+          if (prev && mergedSlots.includes(prev)) return prev;
+          return mergedSlots[0] ?? "";
+        });
+      } catch {
+        setError("שגיאה בטעינת שעות");
+      } finally {
+        setSlotsLoading(false);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (open && initialTime) {
+      setTime(initialTime);
+    }
+  }, [open, initialTime]);
+
+  useEffect(() => {
+    if (open && date && serviceId) {
+      fetchSchedule(date, serviceId, initialTime);
+    }
+  }, [open, date, serviceId, fetchSchedule, initialTime]);
+
   function selectCustomer(customer: {
     fullName: string;
     phone: string;
@@ -126,37 +156,10 @@ export function AdminCreateAppointmentModal({
     setName(customer.fullName);
     setPhone(customer.phone);
     setEmail(customer.email);
-    setCustomerQuery("");
+    setCustomerQuery(customer.fullName);
     setShowCustomerResults(false);
+    setShowNewCustomer(false);
   }
-
-  const fetchSchedule = useCallback(async (d: string, sId: number) => {
-    setSlotsLoading(true);
-    try {
-      const res = await fetch(
-        `/api/availability?date=${d}&serviceId=${sId}`
-      );
-      const data = await res.json();
-      setSchedule({
-        slots: data.slots ?? [],
-        occupied: data.occupied ?? [],
-        workingHours: data.workingHours ?? null,
-        slotInterval: data.slotInterval ?? 5,
-        isClosed: data.isClosed ?? false,
-      });
-    } catch {
-      setError("שגיאה בטעינת שעות");
-    } finally {
-      setSlotsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (open && date && serviceId) {
-      fetchSchedule(date, serviceId);
-      setTime("");
-    }
-  }, [open, date, serviceId, fetchSchedule]);
 
   function validateForm() {
     const errors: Record<string, string> = {};
@@ -215,9 +218,14 @@ export function AdminCreateAppointmentModal({
 
   if (!open) return null;
 
+  const displaySlots =
+    time && !timeSlots.includes(time)
+      ? [...timeSlots, time].sort()
+      : timeSlots;
+
   return (
     <div className="admin-modal-overlay" role="dialog" aria-modal="true">
-      <div className="admin-modal">
+      <div className="admin-modal admin-modal--calmark">
         <div className="admin-modal__header">
           <h2 className="text-lg font-semibold text-text-primary">תור חדש</h2>
           <button
@@ -230,135 +238,178 @@ export function AdminCreateAppointmentModal({
           </button>
         </div>
 
+        <div className="admin-create-tabs px-5">
+          <button
+            type="button"
+            className={cn(
+              "admin-create-tab",
+              tab === "details" && "admin-create-tab--active"
+            )}
+            onClick={() => setTab("details")}
+          >
+            פרטים
+          </button>
+          <button
+            type="button"
+            className={cn(
+              "admin-create-tab",
+              tab === "extra" && "admin-create-tab--active"
+            )}
+            onClick={() => setTab("extra")}
+          >
+            הגדרות נוספות
+          </button>
+        </div>
+
         <div className="admin-modal__body">
           {error && <ErrorMessage message={error} />}
 
           {loading ? (
             <p className="py-8 text-center text-text-secondary">טוען...</p>
-          ) : (
-            <div className="space-y-5">
-              <section>
-                <h3 className="mb-2 text-sm font-medium text-text-primary">
-                  שירות
-                </h3>
-                <ServiceList
-                  services={services}
-                  selectedId={serviceId}
-                  onSelect={setServiceId}
+          ) : tab === "details" ? (
+            <div className="space-y-4">
+              <div className="admin-sheet-form__row">
+                <Input
+                  label="תאריך"
+                  type="date"
+                  value={date}
+                  onChange={(e) => {
+                    setDate(e.target.value);
+                    setTime("");
+                  }}
+                  error={formErrors.date}
                 />
-                {formErrors.service && (
-                  <p className="mt-1 text-sm text-red-400">{formErrors.service}</p>
-                )}
-              </section>
-
-              <section>
-                <h3 className="mb-2 text-sm font-medium text-text-primary">
-                  תאריך
-                </h3>
-                <DatePickerBar
-                  selectedDate={date}
-                  onSelect={setDate}
-                  workingHours={workingHours}
-                  blockedDates={blockedDates}
-                  minDate={minDate}
-                  className="mb-3"
-                />
-                <WeekDayStrip
-                  selectedDate={date}
-                  onSelect={setDate}
-                  workingHours={workingHours}
-                  blockedDates={blockedDates}
-                  minDate={minDate}
-                />
-              </section>
-
-              {date && serviceId && (
-                <section>
-                  <DayScheduleGrid
-                    date={date}
-                    selectedTime={time}
-                    onSelect={setTime}
-                    occupied={schedule.occupied}
-                    workingHours={schedule.workingHours}
-                    serviceDurationMin={selectedService?.durationMin ?? 30}
-                    isClosed={schedule.isClosed}
-                    slotInterval={schedule.slotInterval}
-                    loading={slotsLoading}
-                  />
+                <label className="admin-sheet-field">
+                  <span className="admin-sheet-field__label">שעה</span>
+                  <select
+                    className="admin-sheet-field__input"
+                    value={time}
+                    onChange={(e) => setTime(e.target.value)}
+                    disabled={slotsLoading}
+                  >
+                    <option value="">בחר שעה</option>
+                    {displaySlots.map((slot) => (
+                      <option key={slot} value={slot}>
+                        {slot}
+                      </option>
+                    ))}
+                  </select>
                   {formErrors.time && (
-                    <p className="mt-1 text-sm text-red-400">{formErrors.time}</p>
+                    <span className="text-sm text-red-400">{formErrors.time}</span>
                   )}
-                </section>
-              )}
+                </label>
+              </div>
 
-              <section className="space-y-3">
-                <div className="relative">
-                  <Input
-                    label="חיפוש לקוח קיים"
-                    value={customerQuery}
-                    onChange={(e) => setCustomerQuery(e.target.value)}
-                    placeholder="שם או טלפון..."
-                  />
-                  {showCustomerResults && customerResults.length > 0 && (
-                    <div className="customer-search-results">
-                      {customerResults.map((customer) => (
-                        <button
-                          key={customer.id}
-                          type="button"
-                          className="customer-search-results__item"
-                          onClick={() => selectCustomer(customer)}
-                        >
-                          <span>{customer.fullName}</span>
-                          <span dir="ltr" className="text-text-muted">
-                            {customer.phone}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
+              <label className="admin-sheet-field">
+                <span className="admin-sheet-field__label">שירותים</span>
+                <select
+                  className="admin-sheet-field__input"
+                  value={serviceId ?? ""}
+                  onChange={(e) => {
+                    setServiceId(Number(e.target.value));
+                  }}
+                >
+                  {services.map((service) => (
+                    <option key={service.id} value={service.id}>
+                      {service.name}
+                    </option>
+                  ))}
+                </select>
+                {formErrors.service && (
+                  <span className="text-sm text-red-400">{formErrors.service}</span>
+                )}
+              </label>
+
+              <div>
+                <span className="admin-sheet-field__label">לקוח/ה</span>
+                <div className="admin-create-customer-row mt-1">
+                  <div className="relative flex-1">
+                    <input
+                      className="admin-sheet-field__input w-full"
+                      value={customerQuery || name}
+                      onChange={(e) => {
+                        setCustomerQuery(e.target.value);
+                        setName(e.target.value);
+                      }}
+                      placeholder="חיפוש לקוח..."
+                    />
+                    {showCustomerResults && customerResults.length > 0 && (
+                      <div className="customer-search-results">
+                        {customerResults.map((customer) => (
+                          <button
+                            key={customer.id}
+                            type="button"
+                            className="customer-search-results__item"
+                            onClick={() => selectCustomer(customer)}
+                          >
+                            <span>{customer.fullName}</span>
+                            <span dir="ltr" className="text-text-muted">
+                              {customer.phone}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    className="admin-create-add-btn"
+                    aria-label="לקוח חדש"
+                    onClick={() => setShowNewCustomer((v) => !v)}
+                  >
+                    <Plus className="h-5 w-5" />
+                  </button>
                 </div>
-                <Input
-                  label="שם לקוח"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  error={formErrors.name}
-                />
-                <Input
-                  label="טלפון"
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  error={formErrors.phone}
-                  dir="ltr"
-                  className="text-left"
-                />
-                <Input
-                  label="אימייל (אופציונלי)"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  error={formErrors.email}
-                  dir="ltr"
-                  className="text-left"
-                />
-                <Textarea
-                  label="הערות"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={2}
-                />
-              </section>
+              </div>
 
-              <Button
-                className="w-full"
-                loading={submitting}
-                disabled={!serviceId || !date || !time}
-                onClick={submit}
-              >
-                צור תור
-              </Button>
+              {(showNewCustomer || phone) && (
+                <div className="space-y-3">
+                  <Input
+                    label="שם מלא"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    error={formErrors.name}
+                  />
+                  <Input
+                    label="טלפון"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    error={formErrors.phone}
+                    dir="ltr"
+                    className="text-left"
+                  />
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <Input
+                label="אימייל (אופציונלי)"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                error={formErrors.email}
+                dir="ltr"
+                className="text-left"
+              />
+              <Textarea
+                label="הערות"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={3}
+              />
             </div>
           )}
+
+          <Button
+            className="mt-5 w-full"
+            loading={submitting}
+            disabled={!serviceId || !date || !time}
+            onClick={submit}
+          >
+            שמירה
+          </Button>
         </div>
       </div>
     </div>

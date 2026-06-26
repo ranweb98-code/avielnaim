@@ -150,7 +150,8 @@ export async function getDaySchedule(
 export async function isSlotAvailable(
   date: string,
   time: string,
-  serviceId: number
+  serviceId: number,
+  options?: { excludeAppointmentId?: number; skipAdvanceCheck?: boolean }
 ): Promise<boolean> {
   const service = await prisma.service.findFirst({
     where: { id: serviceId, active: true },
@@ -178,7 +179,7 @@ export async function isSlotAvailable(
   const timeStep = await getBookingTimeStep();
   if (start % timeStep !== 0) return false;
 
-  if (isTodayInJerusalem(date)) {
+  if (isTodayInJerusalem(date) && !options?.skipAdvanceCheck) {
     const minAllowed = getJerusalemTimeMinutes() + MIN_ADVANCE_MINUTES;
     if (start < minAllowed) return false;
   }
@@ -187,6 +188,9 @@ export async function isSlotAvailable(
     where: {
       date,
       status: { in: ["pending", "confirmed"] },
+      ...(options?.excludeAppointmentId
+        ? { id: { not: options.excludeAppointmentId } }
+        : {}),
     },
   });
 

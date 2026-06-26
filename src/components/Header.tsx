@@ -9,10 +9,12 @@ import { BUSINESS_NAME } from "@/lib/utils";
 
 export function Header() {
   const pathname = usePathname();
-  const isBook = pathname === "/book";
   const isAdmin = pathname.startsWith("/admin");
+  const isBook = pathname === "/book";
   const isOffline = pathname === "/offline";
   const hideOnMobile = pathname === "/" || isBook || isAdmin || isOffline;
+
+  if (isAdmin) return null;
 
   return (
     <header

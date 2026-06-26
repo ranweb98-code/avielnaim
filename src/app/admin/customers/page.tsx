@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   ChevronDown,
   ChevronUp,
@@ -20,7 +21,6 @@ import { ErrorMessage } from "@/components/ErrorMessage";
 import { GlassCard } from "@/components/GlassCard";
 import { Input, Textarea } from "@/components/Input";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
-import { PageHero } from "@/components/PageHero";
 import { cn } from "@/lib/cn";
 
 type CustomerListItem = {
@@ -78,6 +78,15 @@ function supportsContactPicker() {
 }
 
 export default function AdminCustomersPage() {
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <AdminCustomersContent />
+    </Suspense>
+  );
+}
+
+function AdminCustomersContent() {
+  const searchParams = useSearchParams();
   const [customers, setCustomers] = useState<CustomerListItem[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -111,6 +120,11 @@ export default function AdminCustomersPage() {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q) setQuery(q);
+  }, [searchParams]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -287,24 +301,11 @@ export default function AdminCustomersPage() {
   }
 
   return (
-    <>
-      <PageHero
-        showBack
-        backHref="/admin"
-        bottomContent={
-          <h1 className="text-2xl font-bold text-white">לקוחות</h1>
-        }
-      />
-
-      <div className="site-container max-w-5xl pb-8 pt-6">
-        <div className="mb-4 flex items-center justify-between">
-          <Link
-            href="/admin"
-            className="text-sm text-text-secondary hover:text-text-primary"
-          >
-            ← חזרה לתורים
-          </Link>
-        </div>
+    <div className="admin-subpage mx-auto w-full max-w-5xl">
+      <Link href="/admin" className="admin-subpage__back">
+        ← חזרה לתורים
+      </Link>
+      <h1 className="admin-subpage__title">לקוחות</h1>
 
         {error && (
           <div className="mb-4">
@@ -484,8 +485,6 @@ export default function AdminCustomersPage() {
             })}
           </div>
         )}
-      </div>
-
       {modalOpen && (
         <div className="admin-modal-overlay" role="dialog" aria-modal="true">
           <div className="admin-modal">
@@ -537,6 +536,6 @@ export default function AdminCustomersPage() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

@@ -21,9 +21,29 @@ export const appointmentCreateSchema = z.object({
   inspoIds: z.array(z.number().int()).optional().default([]),
 });
 
-export const appointmentUpdateSchema = z.object({
-  status: z.enum(["pending", "confirmed", "cancelled"]),
-});
+export const appointmentUpdateSchema = z
+  .object({
+    status: z.enum(["pending", "confirmed", "cancelled"]).optional(),
+    date: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional(),
+    time: z
+      .string()
+      .regex(/^\d{2}:\d{2}$/)
+      .optional(),
+    serviceId: z.number().int().positive().optional(),
+    notes: z.string().nullable().optional(),
+  })
+  .refine(
+    (data) =>
+      data.status !== undefined ||
+      data.date !== undefined ||
+      data.time !== undefined ||
+      data.serviceId !== undefined ||
+      data.notes !== undefined,
+    { message: "לא נשלחו שדות לעדכון" }
+  );
 
 export const availabilityQuerySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),

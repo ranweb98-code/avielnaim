@@ -8,7 +8,6 @@ import { ErrorMessage } from "@/components/ErrorMessage";
 import { GlassCard } from "@/components/GlassCard";
 import { Input } from "@/components/Input";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
-import { PageHero } from "@/components/PageHero";
 import { DAY_NAMES, BUSINESS_NAME } from "@/lib/utils";
 
 type WorkingHour = {
@@ -273,22 +272,12 @@ export default function AdminSettingsPage() {
   if (loading) return <LoadingSpinner />;
 
   return (
-    <>
-      <PageHero
-        showBack
-        backHref="/admin"
-        bottomContent={
-          <h1 className="text-2xl font-bold text-white">הגדרות</h1>
-        }
-      />
-      <div className="site-container max-w-5xl space-y-8 pb-12 pt-6">
-        <Link
-          href="/admin"
-          className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary"
-        >
-          <ArrowRight className="h-4 w-4" />
-          חזרה לתורים
-        </Link>
+    <div className="admin-subpage mx-auto w-full max-w-5xl space-y-8">
+      <Link href="/admin" className="admin-subpage__back">
+        <ArrowRight className="h-4 w-4" />
+        חזרה לתורים
+      </Link>
+      <h1 className="admin-subpage__title">הגדרות</h1>
 
         {error && <ErrorMessage message={error} />}
         {success && (
@@ -797,7 +786,6 @@ export default function AdminSettingsPage() {
             </GlassCard>
           </div>
         </section>
-      </div>
-    </>
+    </div>
   );
 }
