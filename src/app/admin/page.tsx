@@ -169,10 +169,10 @@ export default function AdminPage() {
         topContent={
           <Link
             href="/admin/settings"
-            className="hero-settings-btn"
+            className="flex min-h-11 items-center rounded-xl px-3 text-black transition-colors hover:text-black/70"
             aria-label="הגדרות"
           >
-            <Settings className="h-5 w-5" strokeWidth={2.25} />
+            <Settings className="h-5 w-5" />
           </Link>
         }
         bottomContent={
