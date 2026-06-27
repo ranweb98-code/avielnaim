@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Clock, MapPin, Phone, Scissors, Star } from "lucide-react";
 import { Button } from "@/components/Button";
 import { PageHero } from "@/components/PageHero";
@@ -19,6 +20,10 @@ export default async function HomePage() {
     prisma.workingHours.findMany({ orderBy: { dayOfWeek: "asc" } }),
     isAuthenticated(),
   ]);
+
+  if (isAdmin) {
+    redirect("/admin");
+  }
 
   const phone = settings.businessPhone ?? "";
   const address = settings.businessAddress ?? "";
@@ -153,21 +158,12 @@ export default async function HomePage() {
       </div>
 
       <div className="site-container pb-10 pt-2 text-center md:pb-14">
-        {isAdmin ? (
-          <Link
-            href="/admin"
-            className="inline-flex min-h-11 items-center justify-center rounded-full border border-border-medium bg-bg-card px-5 text-sm font-medium text-text-primary transition-colors hover:bg-bg-card-hover"
-          >
-            חזרה ללוח הניהול
-          </Link>
-        ) : (
-          <Link
-            href="/admin/login"
-            className="text-[10px] tracking-wide text-text-muted/35 transition-colors hover:text-text-muted/60"
-          >
-            כניסת מנהל
-          </Link>
-        )}
+        <Link
+          href="/admin/login"
+          className="text-[10px] tracking-wide text-text-muted/35 transition-colors hover:text-text-muted/60"
+        >
+          כניסת מנהל
+        </Link>
       </div>
     </>
   );
