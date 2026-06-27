@@ -83,7 +83,7 @@ export function AdminShell({ children }: AdminShellProps) {
             הגדרות
           </Link>
           <Link
-            href="/"
+            href="/?public=1"
             className="admin-menu__link"
             onClick={() => setMenuOpen(false)}
           >
@@ -127,7 +127,7 @@ export function AdminShell({ children }: AdminShellProps) {
 
           <div className="admin-shell__header-actions">
             <Link
-              href="/"
+              href="/?public=1"
               className="admin-shell__icon-btn"
               aria-label="דף הבית"
             >
