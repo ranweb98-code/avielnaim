@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import {
   formatJerusalemDate,
@@ -42,13 +42,19 @@ type DragState = {
   height: number;
 };
 
-type PendingMove = {
-  id: number;
+type PendingCreateSlot = {
+  time: string;
+  top: number;
+};
+
+type PendingRescheduleSlot = {
   time: string;
   top: number;
   height: number;
-  customerName: string;
 };
+
+const PICK_BAR_HEIGHT = 44;
+const PICK_BAR_GAP = 4;
 
 const PX_PER_MINUTE = 3.5;
 const MIN_BLOCK_HEIGHT = 44;
@@ -81,6 +87,30 @@ function minutesFromPointer(
   return Math.max(startMinutes, Math.min(endMinutes - SLOT_STEP, snapped));
 }
 
+function layoutPickBars<T extends { top: number }>(
+  slots: T[]
+): Array<T & { barTop: number }> {
+  const sorted = [...slots].sort((a, b) => a.top - b.top);
+  const laidOut: Array<T & { barTop: number }> = [];
+
+  for (const slot of sorted) {
+    let barTop = slot.top;
+
+    for (const prev of laidOut) {
+      const overlaps =
+        barTop < prev.barTop + PICK_BAR_HEIGHT + PICK_BAR_GAP &&
+        barTop + PICK_BAR_HEIGHT + PICK_BAR_GAP > prev.barTop;
+      if (overlaps) {
+        barTop = prev.barTop + PICK_BAR_HEIGHT + PICK_BAR_GAP;
+      }
+    }
+
+    laidOut.push({ ...slot, barTop });
+  }
+
+  return laidOut;
+}
+
 function rangesOverlap(
   startA: number,
   endA: number,
@@ -105,9 +135,13 @@ export function AdminDayCalendar({
   const canvasRef = useRef<HTMLDivElement>(null);
   const [hoverMinutes, setHoverMinutes] = useState<number | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
-  const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
+  const [pendingCreateSlots, setPendingCreateSlots] = useState<
+    PendingCreateSlot[]
+  >([]);
+  const [pendingRescheduleSlots, setPendingRescheduleSlots] = useState<
+    PendingRescheduleSlot[]
+  >([]);
   const [confirming, setConfirming] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const today = formatJerusalemDate();
   const isToday = isTodayInJerusalem(date);
   const isPastDay = date < today;
@@ -117,24 +151,15 @@ export function AdminDayCalendar({
     : null;
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    setPendingCreateSlots([]);
+    setPendingRescheduleSlots([]);
+  }, [date]);
 
   useEffect(() => {
     if (!rescheduleTargetId) {
-      setPendingMove(null);
+      setPendingRescheduleSlots([]);
     }
   }, [rescheduleTargetId]);
-
-  useEffect(() => {
-    if (!pendingMove) return;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [pendingMove]);
 
   const { startMinutes, endMinutes, totalHeight } = useMemo(() => {
     if (!workingHours) {
@@ -182,6 +207,23 @@ export function AdminDayCalendar({
     ? snapToStep(startMinutes + drag.currentTop / PX_PER_MINUTE)
     : null;
 
+  const laidOutCreateSlots = useMemo(
+    () => layoutPickBars(pendingCreateSlots),
+    [pendingCreateSlots]
+  );
+
+  const laidOutRescheduleSlots = useMemo(
+    () =>
+      layoutPickBars(
+        pendingRescheduleSlots.map((slot) => ({
+          ...slot,
+          top:
+            slot.top + Math.max(0, (slot.height - PICK_BAR_HEIGHT) / 2),
+        }))
+      ),
+    [pendingRescheduleSlots]
+  );
+
   function isSlotBookable(minutes: number): boolean {
     if (isClosedDay || isPastDay) return false;
     if (minutes < startMinutes || minutes >= endMinutes - SLOT_STEP) return false;
@@ -212,13 +254,12 @@ export function AdminDayCalendar({
     );
   }
 
-  function proposeMove(
+  function addPendingRescheduleSlot(
     appt: AdminCalendarAppointment,
     minutes: number,
     height: number
   ) {
     if (minutes === timeToMinutes(appt.time)) return;
-
     if (!isSlotBookable(minutes)) return;
 
     if (hasConflict(minutes, appt.serviceDuration, appt.id)) {
@@ -226,17 +267,33 @@ export function AdminDayCalendar({
       return;
     }
 
-    setPendingMove({
-      id: appt.id,
-      time: minutesToTime(minutes),
-      top: (minutes - startMinutes) * PX_PER_MINUTE,
-      height,
-      customerName: appt.customerName,
+    const time = minutesToTime(minutes);
+    const top = (minutes - startMinutes) * PX_PER_MINUTE;
+
+    setPendingRescheduleSlots((prev) => {
+      if (prev.some((slot) => slot.time === time)) {
+        return prev.filter((slot) => slot.time !== time);
+      }
+      return [...prev, { time, top, height }];
+    });
+  }
+
+  function addPendingCreateSlot(minutes: number) {
+    if (!isSlotBookable(minutes)) return;
+
+    const time = minutesToTime(minutes);
+    const top = (minutes - startMinutes) * PX_PER_MINUTE;
+
+    setPendingCreateSlots((prev) => {
+      if (prev.some((slot) => slot.time === time)) {
+        return prev.filter((slot) => slot.time !== time);
+      }
+      return [...prev, { time, top }];
     });
   }
 
   function handleSlotAction(clientY: number, canvasEl: HTMLDivElement) {
-    if (drag || pendingMove) return;
+    if (drag) return;
 
     const minutes = slotFromPointer(clientY, canvasEl);
 
@@ -247,13 +304,12 @@ export function AdminDayCalendar({
         appt.serviceDuration * PX_PER_MINUTE,
         MIN_BLOCK_HEIGHT
       );
-      proposeMove(appt, minutes, height);
+      addPendingRescheduleSlot(appt, minutes, height);
       return;
     }
 
     if (!onSlotClick) return;
-    if (!isSlotBookable(minutes)) return;
-    onSlotClick(minutesToTime(minutes));
+    addPendingCreateSlot(minutes);
   }
 
   function clampTop(top: number, height: number): number {
@@ -266,10 +322,8 @@ export function AdminDayCalendar({
     top: number,
     height: number
   ) {
-    if (!onReschedule || appt.status === "cancelled" || pendingMove) return;
-
     e.stopPropagation();
-    setPendingMove(null);
+    if (appt.status === "cancelled" || !onReschedule) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     setDrag({
       id: appt.id,
@@ -312,11 +366,10 @@ export function AdminDayCalendar({
     setDrag(null);
 
     if (!moved) {
-      onSelect(appt.id);
       return;
     }
 
-    proposeMove(appt, newMinutes, drag.height);
+    addPendingRescheduleSlot(appt, newMinutes, drag.height);
   }
 
   function handleBlockPointerCancel(
@@ -328,15 +381,60 @@ export function AdminDayCalendar({
     setDrag(null);
   }
 
-  async function confirmPendingMove() {
-    if (!pendingMove || !onReschedule) return;
+  function confirmCreateSlot(time: string) {
+    onSlotClick?.(time);
+    setPendingCreateSlots((prev) => prev.filter((slot) => slot.time !== time));
+  }
+
+  async function confirmRescheduleSlot(time: string) {
+    if (!rescheduleTargetId || !onReschedule) return;
     setConfirming(true);
     try {
-      await onReschedule(pendingMove.id, pendingMove.time);
-      setPendingMove(null);
+      await onReschedule(rescheduleTargetId, time);
+      setPendingRescheduleSlots([]);
     } finally {
       setConfirming(false);
     }
+  }
+
+  function renderSlotPickBar(
+    slot: { time: string; top: number; height?: number; barTop: number },
+    onConfirm: () => void,
+    onDismiss: () => void,
+    key: string
+  ) {
+    return (
+      <div
+        key={key}
+        className="admin-cal__slot-pick"
+        style={{
+          top: slot.barTop,
+          height: PICK_BAR_HEIGHT,
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="admin-cal__slot-pick-bar">
+          <span className="admin-cal__slot-pick-time">{slot.time}</span>
+          <button
+            type="button"
+            className="admin-cal__slot-pick-confirm"
+            disabled={confirming}
+            onClick={onConfirm}
+          >
+            {confirming ? "..." : "אישור"}
+          </button>
+          <button
+            type="button"
+            className="admin-cal__slot-pick-dismiss"
+            aria-label="ביטול"
+            disabled={confirming}
+            onClick={onDismiss}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (!workingHours) {
@@ -355,52 +453,7 @@ export function AdminDayCalendar({
     Boolean(onSlotClick || rescheduleTargetId) &&
     !isPastDay &&
     !isClosedDay &&
-    !drag &&
-    !pendingMove;
-
-  const confirmDialog =
-    pendingMove && mounted
-      ? createPortal(
-          <>
-            <button
-              type="button"
-              className="admin-move-confirm-backdrop"
-              aria-label="סגור"
-              onClick={() => !confirming && setPendingMove(null)}
-            />
-            <div
-              className="admin-move-confirm-modal"
-              role="alertdialog"
-              aria-modal="true"
-              aria-labelledby="admin-move-confirm-title"
-            >
-              <p id="admin-move-confirm-title" className="admin-move-confirm-modal__text">
-                להעביר את <strong>{pendingMove.customerName}</strong> ל-
-                <strong dir="ltr">{pendingMove.time}</strong>?
-              </p>
-              <div className="admin-move-confirm-modal__actions">
-                <button
-                  type="button"
-                  className="admin-cal__confirm-btn admin-cal__confirm-btn--yes"
-                  disabled={confirming}
-                  onClick={confirmPendingMove}
-                >
-                  {confirming ? "שומר..." : "כן, העבר"}
-                </button>
-                <button
-                  type="button"
-                  className="admin-cal__confirm-btn admin-cal__confirm-btn--no"
-                  disabled={confirming}
-                  onClick={() => setPendingMove(null)}
-                >
-                  ביטול
-                </button>
-              </div>
-            </div>
-          </>,
-          document.body
-        )
-      : null;
+    !drag;
 
   return (
     <>
@@ -451,7 +504,7 @@ export function AdminDayCalendar({
                     (a) => a.id === rescheduleTargetId
                   );
                   if (appt) {
-                    proposeMove(
+                    addPendingRescheduleSlot(
                       appt,
                       minBookableMinutes,
                       Math.max(
@@ -461,7 +514,7 @@ export function AdminDayCalendar({
                     );
                   }
                 } else {
-                  onSlotClick?.(minutesToTime(minBookableMinutes));
+                  addPendingCreateSlot(minBookableMinutes);
                 }
               }
             }}
@@ -509,6 +562,51 @@ export function AdminDayCalendar({
                 </div>
               )}
 
+            {pendingCreateSlots.map((slot) => (
+              <div
+                key={`create-${slot.time}`}
+                className="admin-cal__slot-preview admin-cal__slot-preview--create"
+                style={{
+                  top: slot.top,
+                  height: PICK_BAR_HEIGHT,
+                }}
+                aria-hidden="true"
+              />
+            ))}
+
+            {pendingRescheduleSlots.map((slot) => (
+              <div
+                key={`move-${slot.time}`}
+                className="admin-cal__slot-preview admin-cal__slot-preview--move"
+                style={{ top: slot.top, height: slot.height }}
+                aria-hidden="true"
+              />
+            ))}
+
+            {laidOutCreateSlots.map((slot) =>
+              renderSlotPickBar(
+                slot,
+                () => confirmCreateSlot(slot.time),
+                () =>
+                  setPendingCreateSlots((prev) =>
+                    prev.filter((item) => item.time !== slot.time)
+                  ),
+                `create-bar-${slot.time}`
+              )
+            )}
+
+            {laidOutRescheduleSlots.map((slot) =>
+              renderSlotPickBar(
+                slot,
+                () => void confirmRescheduleSlot(slot.time),
+                () =>
+                  setPendingRescheduleSlots((prev) =>
+                    prev.filter((item) => item.time !== slot.time)
+                  ),
+                `move-bar-${slot.time}`
+              )
+            )}
+
             {drag && dragPreviewMinutes !== null && (
               <div
                 className={cn(
@@ -552,17 +650,10 @@ export function AdminDayCalendar({
                 MIN_BLOCK_HEIGHT
               );
               const isDragging = drag?.id === appt.id;
-              const isPending = pendingMove?.id === appt.id;
-              const top = isDragging
-                ? drag.currentTop
-                : isPending
-                  ? pendingMove.top
-                  : baseTop;
+              const top = isDragging ? drag.currentTop : baseTop;
               const selected = selectedId === appt.id;
               const draggable =
-                Boolean(onReschedule) &&
-                appt.status !== "cancelled" &&
-                !pendingMove;
+                Boolean(onReschedule) && appt.status !== "cancelled";
 
               return (
                 <button
@@ -573,9 +664,8 @@ export function AdminDayCalendar({
                     appt.status === "pending" && "admin-cal-block--pending",
                     appt.status === "cancelled" &&
                       "admin-cal-block--cancelled",
-                    selected && !isDragging && !isPending && "admin-cal-block--selected",
+                    selected && !isDragging && "admin-cal-block--selected",
                     isDragging && "admin-cal-block--dragging",
-                    isPending && "admin-cal-block--pending-move",
                     draggable && "admin-cal-block--draggable"
                   )}
                   style={{ top, height }}
@@ -587,7 +677,10 @@ export function AdminDayCalendar({
                   onPointerCancel={(e) =>
                     handleBlockPointerCancel(e, appt.id)
                   }
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSelect(appt.id);
+                  }}
                 >
                   <span className="admin-cal-block__text">
                     {formatBlockLabel(appt)}
@@ -599,7 +692,6 @@ export function AdminDayCalendar({
         </div>
       </div>
       </div>
-      {confirmDialog}
     </>
   );
 }

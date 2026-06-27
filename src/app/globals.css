@@ -1407,6 +1407,94 @@ input[type="date"] {
   border-radius: 0.25rem;
 }
 
+.admin-cal__slot-preview {
+  position: absolute;
+  left: 0.375rem;
+  right: 0.375rem;
+  z-index: 6;
+  pointer-events: none;
+  border-radius: 0.625rem;
+}
+
+.admin-cal__slot-preview--create {
+  border: 2px dashed #3ecf8e;
+  background: color-mix(in srgb, #3ecf8e 14%, transparent);
+}
+
+.admin-cal__slot-preview--move {
+  border: 2px dashed var(--accent-yellow);
+  background: color-mix(in srgb, var(--accent-yellow) 12%, transparent);
+}
+
+.admin-cal__slot-pick {
+  position: absolute;
+  left: 0.375rem;
+  right: 0.375rem;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  pointer-events: auto;
+}
+
+.admin-cal__slot-pick-bar {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 2.75rem;
+  border-radius: 0.75rem;
+  background: #3ecf8e;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+  direction: rtl;
+}
+
+.admin-cal__slot-pick-time {
+  flex-shrink: 0;
+  padding: 0 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+  border-inline-start: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.admin-cal__slot-pick-confirm {
+  flex: 1;
+  min-width: 0;
+  min-height: 2.75rem;
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+}
+
+.admin-cal__slot-pick-confirm:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.admin-cal__slot-pick-dismiss {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  min-height: 2.75rem;
+  border: none;
+  border-inline-start: 1px solid rgba(255, 255, 255, 0.28);
+  background: transparent;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.admin-cal__slot-pick-dismiss:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .admin-cal__now-line {
   position: absolute;
   left: 0;
@@ -1540,9 +1628,66 @@ input[type="date"] {
   inset: 0;
   z-index: 130;
   border: none;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.35);
   cursor: pointer;
   animation: ui-fade-in 0.2s ease-out;
+}
+
+.admin-move-confirm-bar {
+  position: fixed;
+  inset-inline: 0.75rem;
+  bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  z-index: 131;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-height: 3.25rem;
+  border-radius: 0.875rem;
+  background: #3ecf8e;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+  animation: ui-sheet-up 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.admin-move-confirm-bar__confirm {
+  flex: 1;
+  min-width: 0;
+  min-height: 3.25rem;
+  padding: 0 1rem;
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.admin-move-confirm-bar__confirm:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.admin-move-confirm-bar__close {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 3.25rem;
+  min-height: 3.25rem;
+  border: none;
+  border-inline-start: 1px solid rgba(255, 255, 255, 0.28);
+  background: transparent;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.admin-move-confirm-bar__close:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .admin-move-confirm-modal {
@@ -1636,8 +1781,17 @@ input[type="date"] {
 }
 
 .admin-cal-block--cancelled {
-  opacity: 0.45;
+  opacity: 0.72;
+  cursor: pointer;
   text-decoration: line-through;
+  background: color-mix(in srgb, var(--bg-card) 70%, #ef4444 12%) !important;
+}
+
+.admin-sheet__status {
+  margin: 0.125rem 0 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #ef4444;
 }
 
 .admin-cal-block:hover:not(.admin-cal-block--dragging) {

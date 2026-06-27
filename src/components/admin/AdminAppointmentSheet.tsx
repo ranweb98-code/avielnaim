@@ -174,7 +174,14 @@ export function AdminAppointmentSheet({
       <div className="admin-sheet">
         <div className="admin-sheet__handle" aria-hidden />
         <div className="admin-sheet__header">
-          <h2 className="admin-sheet__title">{appointment.customerName}</h2>
+          <div className="min-w-0">
+            <h2 className="admin-sheet__title">{appointment.customerName}</h2>
+            {appointment.status === "cancelled" && (
+              <p className="admin-sheet__status">
+                {appointment.notes === "הברזה" ? "הברזה" : "בוטל"}
+              </p>
+            )}
+          </div>
           <button
             type="button"
             className="admin-modal__close"
