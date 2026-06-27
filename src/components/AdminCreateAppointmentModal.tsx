@@ -6,7 +6,6 @@ import { Button } from "@/components/Button";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { Input, Textarea } from "@/components/Input";
 import { TimeSlotGrid } from "@/components/TimeSlotGrid";
-import { TimeSlotListPicker } from "@/components/TimeSlotListPicker";
 import { cn } from "@/lib/cn";
 import { isIOSDevice } from "@/lib/device";
 import {
@@ -71,11 +70,11 @@ export function AdminCreateAppointmentModal({
   >([]);
   const [showCustomerResults, setShowCustomerResults] = useState(false);
   const [contactPickerSupported, setContactPickerSupported] = useState(false);
-  const [useListTimePicker, setUseListTimePicker] = useState(false);
+  const [useNativeTimePicker, setUseNativeTimePicker] = useState(false);
 
   useEffect(() => {
     setContactPickerSupported(isContactPickerSupported());
-    setUseListTimePicker(isIOSDevice());
+    setUseNativeTimePicker(isIOSDevice());
   }, []);
 
   useEffect(() => {
@@ -331,31 +330,43 @@ export function AdminCreateAppointmentModal({
                 )}
               </label>
 
-              <div>
+              <label className="admin-sheet-field">
                 <span className="admin-sheet-field__label">שעה</span>
-                <div className="mt-1">
-                  {useListTimePicker ? (
-                    <TimeSlotListPicker
-                      slots={displaySlots}
-                      selectedTime={time}
-                      onSelect={setTime}
-                      loading={slotsLoading}
-                    />
-                  ) : (
+                {slotsLoading ? (
+                  <div className="admin-sheet-field__input animate-pulse bg-bg-card-hover" />
+                ) : displaySlots.length === 0 ? (
+                  <p className="py-2 text-sm text-text-secondary">
+                    אין שעות פנויות לתאריך זה
+                  </p>
+                ) : useNativeTimePicker ? (
+                  <select
+                    className="admin-sheet-field__input"
+                    value={time}
+                    onChange={(e) => setTime(e.target.value)}
+                    aria-label="בחירת שעה"
+                  >
+                    {displaySlots.map((slot) => (
+                      <option key={slot} value={slot}>
+                        {slot}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="mt-1">
                     <TimeSlotGrid
                       slots={displaySlots}
                       selectedTime={time}
                       onSelect={setTime}
-                      loading={slotsLoading}
+                      loading={false}
                     />
-                  )}
-                </div>
+                  </div>
+                )}
                 {formErrors.time && (
                   <span className="mt-1 block text-sm text-red-400">
                     {formErrors.time}
                   </span>
                 )}
-              </div>
+              </label>
 
               <label className="admin-sheet-field">
                 <span className="admin-sheet-field__label">שירותים</span>
