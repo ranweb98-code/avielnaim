@@ -298,37 +298,36 @@ export function AdminCreateAppointmentModal({
             <p className="py-8 text-center text-text-secondary">טוען...</p>
           ) : tab === "details" ? (
             <div className="space-y-4">
-              <div className="admin-sheet-form__row">
-                <Input
-                  label="תאריך"
-                  type="date"
-                  value={date}
-                  onChange={(e) => {
-                    setDate(e.target.value);
-                    setTime("");
-                  }}
-                  error={formErrors.date}
-                />
-                <label className="admin-sheet-field admin-sheet-field--time">
-                  <span className="admin-sheet-field__label">שעה</span>
-                  <select
-                    className="admin-sheet-field__input admin-sheet-field__input--time"
-                    value={time}
-                    onChange={(e) => setTime(e.target.value)}
-                    disabled={slotsLoading}
-                  >
-                    <option value="">בחר שעה</option>
-                    {displaySlots.map((slot) => (
-                      <option key={slot} value={slot}>
-                        {slot}
-                      </option>
-                    ))}
-                  </select>
-                  {formErrors.time && (
-                    <span className="text-sm text-red-400">{formErrors.time}</span>
-                  )}
-                </label>
-              </div>
+              <Input
+                label="תאריך"
+                type="date"
+                value={date}
+                onChange={(e) => {
+                  setDate(e.target.value);
+                  setTime("");
+                }}
+                error={formErrors.date}
+                className="admin-create-date-input"
+              />
+              <label className="admin-sheet-field">
+                <span className="admin-sheet-field__label">שעה</span>
+                <select
+                  className="admin-sheet-field__input"
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                  disabled={slotsLoading}
+                >
+                  <option value="">בחר שעה</option>
+                  {displaySlots.map((slot) => (
+                    <option key={slot} value={slot}>
+                      {slot}
+                    </option>
+                  ))}
+                </select>
+                {formErrors.time && (
+                  <span className="text-sm text-red-400">{formErrors.time}</span>
+                )}
+              </label>
 
               <label className="admin-sheet-field">
                 <span className="admin-sheet-field__label">שירותים</span>

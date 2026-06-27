@@ -2386,7 +2386,7 @@ input[type="date"] {
 
 .admin-sheet-form__row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 6.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem;
   align-items: end;
 }
@@ -2395,21 +2395,16 @@ input[type="date"] {
   min-width: 0;
 }
 
-.admin-sheet-form__row input[type="date"] {
+.admin-create-date-input {
   width: 100%;
-  min-width: 0;
   max-width: 100%;
+  box-sizing: border-box;
+  direction: ltr;
+  text-align: start;
 }
 
-.admin-sheet-field--time {
-  width: 100%;
-}
-
-.admin-sheet-field__input--time {
-  width: 100%;
-  padding-inline: 0.5rem;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
+.admin-create-date-input::-webkit-date-and-time-value {
+  text-align: start;
 }
 
 .admin-sheet-form__row--thirds {
