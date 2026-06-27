@@ -5,12 +5,19 @@ import { BookUser, Plus, X } from "lucide-react";
 import { Button } from "@/components/Button";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { Input, Textarea } from "@/components/Input";
+import { TimeSlotGrid } from "@/components/TimeSlotGrid";
 import { cn } from "@/lib/cn";
 import {
   isContactPickerSupported,
   pickContactFromDevice,
 } from "@/lib/contact-picker";
-import { formatJerusalemDate } from "@/lib/timezone";
+import { formatJerusalemDate, parseJerusalemDate } from "@/lib/timezone";
+import { format } from "date-fns";
+
+function formatAdminDateLabel(dateStr: string) {
+  if (!dateStr) return "בחר תאריך";
+  return format(parseJerusalemDate(dateStr), "dd/MM/yyyy");
+}
 
 type Service = {
   id: number;
@@ -297,37 +304,45 @@ export function AdminCreateAppointmentModal({
           {loading ? (
             <p className="py-8 text-center text-text-secondary">טוען...</p>
           ) : tab === "details" ? (
-            <div className="space-y-4">
-              <Input
-                label="תאריך"
-                type="date"
-                value={date}
-                onChange={(e) => {
-                  setDate(e.target.value);
-                  setTime("");
-                }}
-                error={formErrors.date}
-                className="admin-create-date-input"
-              />
+            <div className="admin-create-form space-y-4">
               <label className="admin-sheet-field">
-                <span className="admin-sheet-field__label">שעה</span>
-                <select
-                  className="admin-sheet-field__input"
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
-                  disabled={slotsLoading}
-                >
-                  <option value="">בחר שעה</option>
-                  {displaySlots.map((slot) => (
-                    <option key={slot} value={slot}>
-                      {slot}
-                    </option>
-                  ))}
-                </select>
-                {formErrors.time && (
-                  <span className="text-sm text-red-400">{formErrors.time}</span>
+                <span className="admin-sheet-field__label">תאריך</span>
+                <div className="admin-create-date-wrap">
+                  <span className="admin-create-date-display" aria-hidden="true">
+                    {formatAdminDateLabel(date)}
+                  </span>
+                  <input
+                    type="date"
+                    className="admin-create-date-native"
+                    value={date}
+                    onChange={(e) => {
+                      setDate(e.target.value);
+                      setTime("");
+                    }}
+                    aria-label="בחירת תאריך"
+                  />
+                </div>
+                {formErrors.date && (
+                  <span className="text-sm text-red-400">{formErrors.date}</span>
                 )}
               </label>
+
+              <div>
+                <span className="admin-sheet-field__label">שעה</span>
+                <div className="mt-1">
+                  <TimeSlotGrid
+                    slots={displaySlots}
+                    selectedTime={time}
+                    onSelect={setTime}
+                    loading={slotsLoading}
+                  />
+                </div>
+                {formErrors.time && (
+                  <span className="mt-1 block text-sm text-red-400">
+                    {formErrors.time}
+                  </span>
+                )}
+              </div>
 
               <label className="admin-sheet-field">
                 <span className="admin-sheet-field__label">שירותים</span>
@@ -352,7 +367,7 @@ export function AdminCreateAppointmentModal({
               <div>
                 <span className="admin-sheet-field__label">לקוח/ה</span>
                 <div className="admin-create-customer-row mt-1">
-                  <div className="relative flex-1">
+                  <div className="admin-create-customer-search">
                     <input
                       className="admin-sheet-field__input w-full"
                       value={customerQuery || name}
