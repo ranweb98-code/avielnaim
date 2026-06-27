@@ -48,6 +48,7 @@ type PendingCreateSlot = {
 };
 
 type PendingRescheduleSlot = {
+  id: number;
   time: string;
   top: number;
   height: number;
@@ -133,6 +134,7 @@ export function AdminDayCalendar({
   isClosedDay = false,
 }: AdminDayCalendarProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
+  const didDragRef = useRef(false);
   const [hoverMinutes, setHoverMinutes] = useState<number | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [pendingCreateSlots, setPendingCreateSlots] = useState<
@@ -207,6 +209,10 @@ export function AdminDayCalendar({
     ? snapToStep(startMinutes + drag.currentTop / PX_PER_MINUTE)
     : null;
 
+  const draggingAppt = drag
+    ? appointments.find((appt) => appt.id === drag.id)
+    : null;
+
   const laidOutCreateSlots = useMemo(
     () => layoutPickBars(pendingCreateSlots),
     [pendingCreateSlots]
@@ -245,6 +251,21 @@ export function AdminDayCalendar({
     return false;
   }
 
+  function topFromMinutes(minutes: number): number {
+    return (minutes - startMinutes) * PX_PER_MINUTE;
+  }
+
+  function snapTop(top: number, height: number): number {
+    const rawMinutes = startMinutes + top / PX_PER_MINUTE;
+    const snapped = snapToStep(rawMinutes);
+    const clampedMinutes = Math.max(
+      minBookableMinutes,
+      Math.min(endMinutes - SLOT_STEP, snapped)
+    );
+    const snappedTop = topFromMinutes(clampedMinutes);
+    return Math.max(0, Math.min(totalHeight - height, snappedTop));
+  }
+
   function slotFromPointer(clientY: number, canvasEl: HTMLDivElement): number {
     return minutesFromPointer(
       clientY,
@@ -274,7 +295,7 @@ export function AdminDayCalendar({
       if (prev.some((slot) => slot.time === time)) {
         return prev.filter((slot) => slot.time !== time);
       }
-      return [...prev, { time, top, height }];
+      return [...prev, { id: appt.id, time, top, height }];
     });
   }
 
@@ -324,6 +345,7 @@ export function AdminDayCalendar({
   ) {
     e.stopPropagation();
     if (appt.status === "cancelled" || !onReschedule) return;
+    didDragRef.current = false;
     e.currentTarget.setPointerCapture(e.pointerId);
     setDrag({
       id: appt.id,
@@ -343,7 +365,10 @@ export function AdminDayCalendar({
 
     e.stopPropagation();
     const deltaY = e.clientY - drag.startY;
-    const nextTop = clampTop(drag.startTop + deltaY, drag.height);
+    if (Math.abs(deltaY) >= DRAG_THRESHOLD_PX) {
+      didDragRef.current = true;
+    }
+    const nextTop = snapTop(clampTop(drag.startTop + deltaY, drag.height), drag.height);
     setDrag({ ...drag, currentTop: nextTop });
   }
 
@@ -358,18 +383,19 @@ export function AdminDayCalendar({
       e.currentTarget.releasePointerCapture(e.pointerId);
     }
 
-    const moved = Math.abs(e.clientY - drag.startY) >= DRAG_THRESHOLD_PX;
+    const moved = didDragRef.current;
     const newMinutes = snapToStep(
       startMinutes + drag.currentTop / PX_PER_MINUTE
     );
 
+    const dragHeight = drag.height;
     setDrag(null);
 
     if (!moved) {
       return;
     }
 
-    addPendingRescheduleSlot(appt, newMinutes, drag.height);
+    addPendingRescheduleSlot(appt, newMinutes, dragHeight);
   }
 
   function handleBlockPointerCancel(
@@ -386,11 +412,11 @@ export function AdminDayCalendar({
     setPendingCreateSlots((prev) => prev.filter((slot) => slot.time !== time));
   }
 
-  async function confirmRescheduleSlot(time: string) {
-    if (!rescheduleTargetId || !onReschedule) return;
+  async function confirmRescheduleSlot(id: number, time: string) {
+    if (!onReschedule) return;
     setConfirming(true);
     try {
-      await onReschedule(rescheduleTargetId, time);
+      await onReschedule(id, time);
       setPendingRescheduleSlots([]);
     } finally {
       setConfirming(false);
@@ -472,11 +498,34 @@ export function AdminDayCalendar({
               <span
                 key={label}
                 className="admin-cal__time-label"
-                style={{ top: (minutes - startMinutes) * PX_PER_MINUTE }}
+                style={{ top: topFromMinutes(minutes) }}
               >
                 {label}
               </span>
             ))}
+            {drag &&
+              dragPreviewMinutes !== null &&
+              draggingAppt &&
+              (() => {
+                const endMinutesDrag =
+                  dragPreviewMinutes + draggingAppt.serviceDuration;
+                return (
+                  <>
+                    <span
+                      className="admin-cal__time-label admin-cal__time-label--drag"
+                      style={{ top: topFromMinutes(dragPreviewMinutes) }}
+                    >
+                      {minutesToTime(dragPreviewMinutes)}
+                    </span>
+                    <span
+                      className="admin-cal__time-label admin-cal__time-label--drag admin-cal__time-label--drag-end"
+                      style={{ top: topFromMinutes(endMinutesDrag) }}
+                    >
+                      {minutesToTime(endMinutesDrag)}
+                    </span>
+                  </>
+                );
+              })()}
           </div>
 
           <div
@@ -598,32 +647,13 @@ export function AdminDayCalendar({
             {laidOutRescheduleSlots.map((slot) =>
               renderSlotPickBar(
                 slot,
-                () => void confirmRescheduleSlot(slot.time),
+                () => void confirmRescheduleSlot(slot.id, slot.time),
                 () =>
                   setPendingRescheduleSlots((prev) =>
                     prev.filter((item) => item.time !== slot.time)
                   ),
                 `move-bar-${slot.time}`
               )
-            )}
-
-            {drag && dragPreviewMinutes !== null && (
-              <div
-                className={cn(
-                  "admin-cal__drag-preview",
-                  !isSlotBookable(dragPreviewMinutes) &&
-                    "admin-cal__drag-preview--invalid"
-                )}
-                style={{
-                  top: (dragPreviewMinutes - startMinutes) * PX_PER_MINUTE,
-                  height: drag.height,
-                }}
-                aria-hidden="true"
-              >
-                <span className="admin-cal__drag-preview-label">
-                  {minutesToTime(dragPreviewMinutes)}
-                </span>
-              </div>
             )}
 
             {isToday &&
@@ -679,11 +709,20 @@ export function AdminDayCalendar({
                   }
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (didDragRef.current) {
+                      didDragRef.current = false;
+                      return;
+                    }
                     onSelect(appt.id);
                   }}
                 >
                   <span className="admin-cal-block__text">
-                    {formatBlockLabel(appt)}
+                    {isDragging && dragPreviewMinutes !== null
+                      ? formatBlockLabel({
+                          ...appt,
+                          time: minutesToTime(dragPreviewMinutes),
+                        })
+                      : formatBlockLabel(appt)}
                   </span>
                 </button>
               );

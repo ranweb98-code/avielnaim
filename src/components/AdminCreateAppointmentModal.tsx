@@ -6,7 +6,9 @@ import { Button } from "@/components/Button";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { Input, Textarea } from "@/components/Input";
 import { TimeSlotGrid } from "@/components/TimeSlotGrid";
+import { TimeSlotListPicker } from "@/components/TimeSlotListPicker";
 import { cn } from "@/lib/cn";
+import { isIOSDevice } from "@/lib/device";
 import {
   isContactPickerSupported,
   pickContactFromDevice,
@@ -69,9 +71,11 @@ export function AdminCreateAppointmentModal({
   >([]);
   const [showCustomerResults, setShowCustomerResults] = useState(false);
   const [contactPickerSupported, setContactPickerSupported] = useState(false);
+  const [useListTimePicker, setUseListTimePicker] = useState(false);
 
   useEffect(() => {
     setContactPickerSupported(isContactPickerSupported());
+    setUseListTimePicker(isIOSDevice());
   }, []);
 
   useEffect(() => {
@@ -330,12 +334,21 @@ export function AdminCreateAppointmentModal({
               <div>
                 <span className="admin-sheet-field__label">שעה</span>
                 <div className="mt-1">
-                  <TimeSlotGrid
-                    slots={displaySlots}
-                    selectedTime={time}
-                    onSelect={setTime}
-                    loading={slotsLoading}
-                  />
+                  {useListTimePicker ? (
+                    <TimeSlotListPicker
+                      slots={displaySlots}
+                      selectedTime={time}
+                      onSelect={setTime}
+                      loading={slotsLoading}
+                    />
+                  ) : (
+                    <TimeSlotGrid
+                      slots={displaySlots}
+                      selectedTime={time}
+                      onSelect={setTime}
+                      loading={slotsLoading}
+                    />
+                  )}
                 </div>
                 {formErrors.time && (
                   <span className="mt-1 block text-sm text-red-400">
