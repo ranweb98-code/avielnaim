@@ -859,33 +859,6 @@ input[type="date"] {
   flex-shrink: 0;
 }
 
-.admin-session-hint {
-  position: sticky;
-  top: 0;
-  z-index: 35;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent-yellow) 25%, transparent);
-  background: color-mix(in srgb, var(--accent-yellow) 12%, var(--bg-app));
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-.admin-session-hint__link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  min-height: 2.5rem;
-  padding: 0.5rem 1rem;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  transition: opacity 0.15s ease;
-}
-
-.admin-session-hint__link:hover {
-  opacity: 0.85;
-}
-
 .week-day-strip__footer {
   display: flex;
   flex-direction: column;
@@ -2413,8 +2386,30 @@ input[type="date"] {
 
 .admin-sheet-form__row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) 6.5rem;
   gap: 0.75rem;
+  align-items: end;
+}
+
+.admin-sheet-form__row > * {
+  min-width: 0;
+}
+
+.admin-sheet-form__row input[type="date"] {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.admin-sheet-field--time {
+  width: 100%;
+}
+
+.admin-sheet-field__input--time {
+  width: 100%;
+  padding-inline: 0.5rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .admin-sheet-form__row--thirds {

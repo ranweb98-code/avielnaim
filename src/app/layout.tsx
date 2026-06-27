@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Frank_Ruhl_Libre, Kaushan_Script, Rubik } from "next/font/google";
 import { BottomNav, Header } from "@/components/Header";
-import { AdminSessionHint } from "@/components/AdminSessionHint";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { SerwistRegister } from "@/components/SerwistRegister";
 import { getSetting } from "@/lib/settings";
@@ -61,7 +60,6 @@ export default async function RootLayout({
       </head>
       <body className={`${rubik.variable} ${frankRuhl.variable} ${brand.variable} antialiased`}>
         <Header />
-        <AdminSessionHint />
         <main className="page-shell">{children}</main>
         <BottomNav />
         <InstallPrompt />

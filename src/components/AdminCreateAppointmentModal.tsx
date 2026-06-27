@@ -309,10 +309,10 @@ export function AdminCreateAppointmentModal({
                   }}
                   error={formErrors.date}
                 />
-                <label className="admin-sheet-field">
+                <label className="admin-sheet-field admin-sheet-field--time">
                   <span className="admin-sheet-field__label">שעה</span>
                   <select
-                    className="admin-sheet-field__input"
+                    className="admin-sheet-field__input admin-sheet-field__input--time"
                     value={time}
                     onChange={(e) => setTime(e.target.value)}
                     disabled={slotsLoading}
