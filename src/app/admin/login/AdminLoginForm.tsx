@@ -15,6 +15,7 @@ export function AdminLoginForm() {
   const redirect = searchParams.get("redirect") ?? "/admin";
 
   const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -27,7 +28,7 @@ export function AdminLoginForm() {
       const res = await fetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ password, remember }),
       });
 
       const data = await res.json();
@@ -75,6 +76,15 @@ export function AdminLoginForm() {
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
               />
+              <label className="flex cursor-pointer items-center gap-2.5 text-sm text-text-secondary">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                  className="h-4 w-4 rounded border-border-subtle accent-accent-yellow"
+                />
+                זכור אותי במכשיר זה (90 יום)
+              </label>
               <Button type="submit" className="w-full" loading={loading}>
                 התחבר
               </Button>

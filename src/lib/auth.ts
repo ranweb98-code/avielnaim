@@ -2,14 +2,23 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 
 const COOKIE_NAME = "barber-admin-session";
+const SESSION_MAX_AGE_SHORT = 60 * 60 * 24;
+const SESSION_MAX_AGE_LONG = 60 * 60 * 24 * 90;
 
 export const sessionCookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: "lax" as const,
   path: "/",
-  maxAge: 60 * 60 * 24 * 7,
+  maxAge: SESSION_MAX_AGE_LONG,
 };
+
+export function getSessionCookieOptions(remember = true) {
+  return {
+    ...sessionCookieOptions,
+    maxAge: remember ? SESSION_MAX_AGE_LONG : SESSION_MAX_AGE_SHORT,
+  };
+}
 
 function getSecret() {
   const secret = process.env.AUTH_SECRET;
@@ -19,11 +28,11 @@ function getSecret() {
   return new TextEncoder().encode(secret);
 }
 
-export async function createSession(): Promise<string> {
+export async function createSession(remember = true): Promise<string> {
   return new SignJWT({ role: "admin" })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("7d")
+    .setExpirationTime(remember ? "90d" : "1d")
     .sign(getSecret());
 }
 

@@ -37,6 +37,16 @@ export function findNextOpenDay(
   return fromDate;
 }
 
+/** Today if open, otherwise the next open day — used as admin calendar "home". */
+export function getDefaultScheduleDate(
+  workingHours: DayAvailabilityHour[],
+  blockedDates: string[]
+): string {
+  const today = formatJerusalemDate();
+  if (isWorkingDay(today, workingHours, blockedDates)) return today;
+  return findNextOpenDay(today, workingHours, blockedDates);
+}
+
 export function deriveHoursFromAppointments(
   appointments: { time: string; serviceDuration: number }[]
 ): { startTime: string; endTime: string } | null {

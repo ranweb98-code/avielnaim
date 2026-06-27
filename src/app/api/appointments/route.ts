@@ -97,12 +97,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const emailResults = await Promise.allSettled(emailTasks);
-    for (const result of emailResults) {
-      if (result.status === "rejected") {
-        console.error("Email task rejected:", result.reason);
+    void Promise.allSettled(emailTasks).then((emailResults) => {
+      for (const result of emailResults) {
+        if (result.status === "rejected") {
+          console.error("Email task rejected:", result.reason);
+        }
       }
-    }
+    });
 
     return NextResponse.json({ appointment }, { status: 201 });
   } catch (error) {

@@ -66,30 +66,40 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           { status: 409 }
         );
       }
-    }
 
-    const serviceForUpdate =
-      data.serviceId !== undefined
-        ? await prisma.service.findFirst({
-            where: { id: targetServiceId, active: true },
-          })
-        : null;
+      const appointment = await prisma.appointment.update({
+        where: { id: appointmentId },
+        data: {
+          ...(data.status !== undefined ? { status: data.status } : {}),
+          ...(data.notes !== undefined ? { notes: data.notes } : {}),
+          date: targetDate,
+          time: targetTime,
+          serviceId: service.id,
+          serviceName: service.name,
+          serviceDuration: service.durationMin,
+          servicePrice: service.price,
+        },
+      });
+
+      if (data.status !== undefined) {
+        await sendCustomerConfirmationEmail({
+          customerEmail: appointment.customerEmail,
+          customerName: appointment.customerName,
+          serviceName: appointment.serviceName,
+          date: appointment.date,
+          time: appointment.time,
+          status: appointment.status,
+        });
+      }
+
+      return NextResponse.json({ appointment });
+    }
 
     const appointment = await prisma.appointment.update({
       where: { id: appointmentId },
       data: {
         ...(data.status !== undefined ? { status: data.status } : {}),
         ...(data.notes !== undefined ? { notes: data.notes } : {}),
-        ...(data.date || data.time || data.serviceId
-          ? {
-              date: targetDate,
-              time: targetTime,
-              serviceId: serviceForUpdate!.id,
-              serviceName: serviceForUpdate!.name,
-              serviceDuration: serviceForUpdate!.durationMin,
-              servicePrice: serviceForUpdate!.price,
-            }
-          : {}),
       },
     });
 

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Check, Phone, Star } from "lucide-react";
-import { DayScheduleGrid } from "@/components/DayScheduleGrid";
+import { TimeSlotGrid } from "@/components/TimeSlotGrid";
 import { DatePickerBar } from "@/components/DatePickerBar";
 import { Button } from "@/components/Button";
 import { ErrorMessage } from "@/components/ErrorMessage";
@@ -379,17 +379,21 @@ export default function BookPage() {
 
             {date && serviceId && (
               <section>
-                <DayScheduleGrid
-                  date={date}
-                  selectedTime={time}
-                  onSelect={setTime}
-                  occupied={schedule.occupied}
-                  workingHours={schedule.workingHours}
-                  serviceDurationMin={selectedService?.durationMin ?? 30}
-                  isClosed={schedule.isClosed}
-                  slotInterval={schedule.slotInterval}
-                  loading={slotsLoading}
-                />
+                <h2 className="mb-3 text-lg font-semibold text-text-primary">
+                  בחר שעה
+                </h2>
+                {schedule.isClosed ? (
+                  <p className="py-4 text-center text-sm text-text-secondary">
+                    אין שעות פנויות לתאריך זה
+                  </p>
+                ) : (
+                  <TimeSlotGrid
+                    slots={schedule.slots}
+                    selectedTime={time}
+                    onSelect={setTime}
+                    loading={slotsLoading}
+                  />
+                )}
                 {formErrors.time && (
                   <p className="mt-2 text-sm text-red-400">{formErrors.time}</p>
                 )}

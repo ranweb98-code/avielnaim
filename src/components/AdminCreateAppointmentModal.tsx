@@ -1,11 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, X } from "lucide-react";
+import { BookUser, Plus, X } from "lucide-react";
 import { Button } from "@/components/Button";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { Input, Textarea } from "@/components/Input";
 import { cn } from "@/lib/cn";
+import {
+  isContactPickerSupported,
+  pickContactFromDevice,
+} from "@/lib/contact-picker";
 import { formatJerusalemDate } from "@/lib/timezone";
 
 type Service = {
@@ -57,6 +61,11 @@ export function AdminCreateAppointmentModal({
     Array<{ id: number; fullName: string; phone: string; email: string }>
   >([]);
   const [showCustomerResults, setShowCustomerResults] = useState(false);
+  const [contactPickerSupported, setContactPickerSupported] = useState(false);
+
+  useEffect(() => {
+    setContactPickerSupported(isContactPickerSupported());
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -158,7 +167,28 @@ export function AdminCreateAppointmentModal({
     setEmail(customer.email);
     setCustomerQuery(customer.fullName);
     setShowCustomerResults(false);
-    setShowNewCustomer(false);
+    setShowNewCustomer(true);
+  }
+
+  async function pickFromContacts() {
+    setError("");
+    if (!contactPickerSupported) {
+      setError(
+        "בחירה מאנשי קשר זמינה בעיקר באנדרoid — חפש לקוח קיים או הזן ידנית"
+      );
+      setShowNewCustomer(true);
+      return;
+    }
+
+    const contact = await pickContactFromDevice();
+    if (!contact) return;
+
+    setName(contact.name);
+    setPhone(contact.phone);
+    if (contact.email) setEmail(contact.email);
+    setCustomerQuery(contact.name || contact.phone);
+    setShowCustomerResults(false);
+    setShowNewCustomer(true);
   }
 
   function validateForm() {
@@ -332,6 +362,7 @@ export function AdminCreateAppointmentModal({
                         setName(e.target.value);
                       }}
                       placeholder="חיפוש לקוח..."
+                      autoComplete="name"
                     />
                     {showCustomerResults && customerResults.length > 0 && (
                       <div className="customer-search-results">
@@ -354,21 +385,36 @@ export function AdminCreateAppointmentModal({
                   <button
                     type="button"
                     className="admin-create-add-btn"
+                    aria-label="בחירה מאנשי קשר"
+                    title="מאנשי קשר"
+                    onClick={pickFromContacts}
+                  >
+                    <BookUser className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-create-add-btn"
                     aria-label="לקוח חדש"
                     onClick={() => setShowNewCustomer((v) => !v)}
                   >
                     <Plus className="h-5 w-5" />
                   </button>
                 </div>
+                {contactPickerSupported && (
+                  <p className="mt-1.5 text-xs text-text-muted">
+                    אפשר גם לבחור איש קשר ישירות מהטלפון
+                  </p>
+                )}
               </div>
 
-              {(showNewCustomer || phone) && (
+              {(showNewCustomer || phone || name) && (
                 <div className="space-y-3">
                   <Input
                     label="שם מלא"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     error={formErrors.name}
+                    autoComplete="name"
                   />
                   <Input
                     label="טלפון"
@@ -378,6 +424,7 @@ export function AdminCreateAppointmentModal({
                     error={formErrors.phone}
                     dir="ltr"
                     className="text-left"
+                    autoComplete="tel"
                   />
                 </div>
               )}

@@ -16,7 +16,7 @@ import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { WeekDayStrip } from "@/components/WeekDayStrip";
 import {
   deriveHoursFromAppointments,
-  findNextOpenDay,
+  getDefaultScheduleDate,
   isWorkingDay,
 } from "@/lib/day-availability";
 import { fetchWithCache, getCachedData } from "@/lib/fetch-cache";
@@ -57,6 +57,7 @@ export default function AdminPage() {
   const [updating, setUpdating] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createInitialTime, setCreateInitialTime] = useState("");
+  const [rescheduleId, setRescheduleId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setError("");
@@ -111,17 +112,27 @@ export default function AdminPage() {
   }, [load]);
 
   useEffect(() => {
-    if (workingHours.length === 0) return;
-    if (isWorkingDay(selectedDate, workingHours, blockedDates)) return;
-    if (appointments.some((a) => a.date === selectedDate)) return;
+    function refreshIfVisible() {
+      if (document.visibilityState === "visible") {
+        void load();
+      }
+    }
 
-    const today = formatJerusalemDate();
-    const nextOpen = isWorkingDay(today, workingHours, blockedDates)
-      ? today
-      : findNextOpenDay(today, workingHours, blockedDates);
-    setSelectedDate(nextOpen);
-    setSelectedId(null);
-  }, [workingHours, blockedDates, selectedDate, appointments]);
+    document.addEventListener("visibilitychange", refreshIfVisible);
+    window.addEventListener("focus", refreshIfVisible);
+
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        void load();
+      }
+    }, 60_000);
+
+    return () => {
+      document.removeEventListener("visibilitychange", refreshIfVisible);
+      window.removeEventListener("focus", refreshIfVisible);
+      window.clearInterval(interval);
+    };
+  }, [load]);
 
   const dayAppointments = useMemo(
     () =>
@@ -134,10 +145,16 @@ export default function AdminPage() {
   const dayWorkingHours = useMemo(() => {
     const dayOfWeek = getJerusalemDayOfWeek(selectedDate);
     const wh = workingHours.find((w) => w.dayOfWeek === dayOfWeek);
-    if (wh?.isOpen) {
+    if (wh) {
       return { startTime: wh.startTime, endTime: wh.endTime };
     }
-    return deriveHoursFromAppointments(dayAppointments);
+    const fromAppts = deriveHoursFromAppointments(dayAppointments);
+    if (fromAppts) return fromAppts;
+    const typicalDay = workingHours.find((w) => w.isOpen);
+    if (typicalDay) {
+      return { startTime: typicalDay.startTime, endTime: typicalDay.endTime };
+    }
+    return null;
   }, [workingHours, selectedDate, dayAppointments]);
 
   const appointmentHighlightDates = useMemo(() => {
@@ -148,8 +165,26 @@ export default function AdminPage() {
     return [...dates];
   }, [appointments]);
 
+  const calendarToday = formatJerusalemDate();
+
+  const homeDate = useMemo(() => {
+    if (workingHours.length === 0) return calendarToday;
+    return getDefaultScheduleDate(workingHours, blockedDates);
+  }, [workingHours, blockedDates, calendarToday]);
+
+  const homeDateLabel =
+    homeDate === calendarToday ? "חזרה להיום" : "חזרה ליום הקרוב";
+
+  const isClosedDay = useMemo(() => {
+    if (workingHours.length === 0) return false;
+    return !isWorkingDay(selectedDate, workingHours, blockedDates);
+  }, [workingHours, blockedDates, selectedDate]);
+
   const selectedAppt =
     appointments.find((a) => a.id === selectedId) ?? null;
+
+  const rescheduleAppt =
+    appointments.find((a) => a.id === rescheduleId) ?? null;
 
   async function patchAppointment(
     id: number,
@@ -181,8 +216,6 @@ export default function AdminPage() {
   }
 
   async function deleteAppointment(id: number) {
-    if (!window.confirm("למחוק את התור לצמיתות?")) return;
-
     setUpdating(true);
     try {
       const res = await fetch(`/api/appointments/${id}`, { method: "DELETE" });
@@ -222,24 +255,34 @@ export default function AdminPage() {
     setCreateInitialTime("");
   }
 
+  async function handleDragReschedule(id: number, time: string) {
+    const appt = appointments.find((a) => a.id === id);
+    if (!appt) return;
+
+    const ok = await patchAppointment(id, {
+      date: selectedDate,
+      time,
+      serviceId: appt.serviceId,
+    });
+    if (ok) setRescheduleId(null);
+  }
+
+  function startCalendarReschedule(id: number) {
+    setSelectedId(null);
+    setRescheduleId(id);
+    setError("");
+  }
+
+  function cancelCalendarReschedule() {
+    setRescheduleId(null);
+  }
+
   if (loading) return <LoadingSpinner />;
 
   return (
     <>
       <div className="admin-shell">
         <div className="admin-date-nav">
-          <DatePickerBar
-            selectedDate={selectedDate}
-            onSelect={(date) => {
-              setSelectedDate(date);
-              setSelectedId(null);
-            }}
-            workingHours={workingHours}
-            blockedDates={blockedDates}
-            restrictAvailability
-            allowPastDates
-            compact
-          />
           <WeekDayStrip
             selectedDate={selectedDate}
             onSelect={(date) => {
@@ -248,16 +291,50 @@ export default function AdminPage() {
             }}
             workingHours={workingHours}
             blockedDates={blockedDates}
-            allowPastDates
-            restrictAvailability
-            anchorToSelected
-            daysToShow={10}
+            allowPastDates={false}
+            hidePastDates
+            restrictAvailability={false}
+            markClosedDays
+            anchorToToday
+            daysToShow={14}
             variant="calmark"
             highlightDates={appointmentHighlightDates}
+            homeDate={homeDate}
+            homeDateLabel={homeDateLabel}
+            afterDays={
+              <DatePickerBar
+                selectedDate={selectedDate}
+                onSelect={(date) => {
+                  setSelectedDate(date);
+                  setSelectedId(null);
+                }}
+                workingHours={workingHours}
+                blockedDates={blockedDates}
+                allowPastDates
+                compact
+                className="admin-date-nav__calendar"
+              />
+            }
           />
         </div>
 
         <div className="admin-shell__main">
+          {rescheduleAppt && (
+            <div className="admin-reschedule-banner">
+              <p>
+                בחר שעה חדשה בלוח עבור{" "}
+                <strong>{rescheduleAppt.customerName}</strong>
+              </p>
+              <button
+                type="button"
+                className="admin-reschedule-banner__cancel"
+                onClick={cancelCalendarReschedule}
+              >
+                ביטול
+              </button>
+            </div>
+          )}
+
           {error && (
             <div className="px-4 pb-2">
               <ErrorMessage message={error} />
@@ -271,13 +348,16 @@ export default function AdminPage() {
             selectedId={selectedId}
             onSelect={setSelectedId}
             onSlotClick={openCreateAtTime}
+            onReschedule={handleDragReschedule}
+            rescheduleTargetId={rescheduleId}
+            rescheduleMode={Boolean(rescheduleId)}
+            isClosedDay={isClosedDay}
           />
         </div>
       </div>
 
       <AdminAppointmentSheet
         appointment={selectedAppt}
-        services={services}
         loading={updating}
         onClose={() => setSelectedId(null)}
         onConfirm={(id) => patchAppointment(id, { status: "confirmed" })}
@@ -289,7 +369,7 @@ export default function AdminPage() {
         }
         onDelete={deleteAppointment}
         onSaveNotes={(id, notes) => patchAppointment(id, { notes })}
-        onReschedule={(id, data) => patchAppointment(id, data)}
+        onStartCalendarReschedule={startCalendarReschedule}
       />
 
       <AdminCreateAppointmentModal

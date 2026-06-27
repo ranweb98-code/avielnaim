@@ -1,15 +1,22 @@
 import type { Metadata, Viewport } from "next";
-import { Heebo, Kaushan_Script } from "next/font/google";
+import { Frank_Ruhl_Libre, Kaushan_Script, Rubik } from "next/font/google";
 import { BottomNav, Header } from "@/components/Header";
+import { AdminSessionHint } from "@/components/AdminSessionHint";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { SerwistRegister } from "@/components/SerwistRegister";
 import { getSetting } from "@/lib/settings";
 import "./globals.css";
 
-const heebo = Heebo({
-  variable: "--font-heebo",
+const rubik = Rubik({
+  variable: "--font-rubik",
   subsets: ["hebrew", "latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["300", "400", "500", "600", "700", "800"],
+});
+
+const frankRuhl = Frank_Ruhl_Libre({
+  variable: "--font-display",
+  subsets: ["hebrew", "latin"],
+  weight: ["400", "500", "700", "800", "900"],
 });
 
 const brand = Kaushan_Script({
@@ -52,8 +59,9 @@ export default async function RootLayout({
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
-      <body className={`${heebo.variable} ${brand.variable} antialiased`}>
+      <body className={`${rubik.variable} ${frankRuhl.variable} ${brand.variable} antialiased`}>
         <Header />
+        <AdminSessionHint />
         <main className="page-shell">{children}</main>
         <BottomNav />
         <InstallPrompt />

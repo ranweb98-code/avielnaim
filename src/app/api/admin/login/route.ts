@@ -3,7 +3,7 @@ import {
   COOKIE_NAME,
   createSession,
   clearSessionCookie,
-  sessionCookieOptions,
+  getSessionCookieOptions,
 } from "@/lib/auth";
 import { verifyAdminPassword } from "@/lib/admin-password";
 import { loginSchema } from "@/lib/schemas";
@@ -23,9 +23,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "סיסמה שגויה" }, { status: 401 });
     }
 
-    const token = await createSession();
+    const remember = parsed.data.remember ?? true;
+    const token = await createSession(remember);
     const response = NextResponse.json({ success: true });
-    response.cookies.set(COOKIE_NAME, token, sessionCookieOptions);
+    response.cookies.set(COOKIE_NAME, token, getSessionCookieOptions(remember));
 
     return response;
   } catch (error) {

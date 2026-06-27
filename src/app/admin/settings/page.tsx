@@ -8,7 +8,10 @@ import { ErrorMessage } from "@/components/ErrorMessage";
 import { GlassCard } from "@/components/GlassCard";
 import { Input } from "@/components/Input";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { invalidateCache } from "@/lib/fetch-cache";
 import { DAY_NAMES, BUSINESS_NAME } from "@/lib/utils";
+
+const PUBLIC_CACHE_KEY = "public-api";
 
 type WorkingHour = {
   dayOfWeek: number;
@@ -155,6 +158,7 @@ export default function AdminSettingsPage() {
         return;
       }
       setSuccess("נשמר בהצלחה");
+      invalidateCache(PUBLIC_CACHE_KEY);
       await load();
       if (
         partial.settings &&

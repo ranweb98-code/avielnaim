@@ -69,6 +69,7 @@ export const inspoSchema = z.object({
 
 export const loginSchema = z.object({
   password: z.string().min(1),
+  remember: z.boolean().optional().default(true),
 });
 
 export const changePasswordSchema = z.object({
