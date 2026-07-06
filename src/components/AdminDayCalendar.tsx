@@ -55,7 +55,6 @@ type PendingRescheduleSlot = {
 };
 
 const PICK_BAR_HEIGHT = 44;
-const PICK_BAR_GAP = 4;
 
 const PX_PER_MINUTE = 3.5;
 const MIN_BLOCK_HEIGHT = 44;
@@ -88,30 +87,6 @@ function minutesFromPointer(
   return Math.max(startMinutes, Math.min(endMinutes - SLOT_STEP, snapped));
 }
 
-function layoutPickBars<T extends { top: number }>(
-  slots: T[]
-): Array<T & { barTop: number }> {
-  const sorted = [...slots].sort((a, b) => a.top - b.top);
-  const laidOut: Array<T & { barTop: number }> = [];
-
-  for (const slot of sorted) {
-    let barTop = slot.top;
-
-    for (const prev of laidOut) {
-      const overlaps =
-        barTop < prev.barTop + PICK_BAR_HEIGHT + PICK_BAR_GAP &&
-        barTop + PICK_BAR_HEIGHT + PICK_BAR_GAP > prev.barTop;
-      if (overlaps) {
-        barTop = prev.barTop + PICK_BAR_HEIGHT + PICK_BAR_GAP;
-      }
-    }
-
-    laidOut.push({ ...slot, barTop });
-  }
-
-  return laidOut;
-}
-
 function rangesOverlap(
   startA: number,
   endA: number,
@@ -135,33 +110,44 @@ export function AdminDayCalendar({
 }: AdminDayCalendarProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const didDragRef = useRef(false);
-  const [hoverMinutes, setHoverMinutes] = useState<number | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
-  const [pendingCreateSlots, setPendingCreateSlots] = useState<
-    PendingCreateSlot[]
-  >([]);
-  const [pendingRescheduleSlots, setPendingRescheduleSlots] = useState<
-    PendingRescheduleSlot[]
-  >([]);
+  const [pendingCreateSlot, setPendingCreateSlot] =
+    useState<PendingCreateSlot | null>(null);
+  const [pendingRescheduleSlot, setPendingRescheduleSlot] =
+    useState<PendingRescheduleSlot | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [liveNowMinutes, setLiveNowMinutes] = useState<number | null>(null);
   const today = formatJerusalemDate();
   const isToday = isTodayInJerusalem(date);
   const isPastDay = date < today;
-  const nowMinutes = isToday ? getJerusalemTimeMinutes() : null;
-  const nowLabel = isToday
-    ? formatJerusalemDate(new Date(), "HH:mm")
-    : null;
+  const nowMinutes = isToday ? liveNowMinutes : null;
+  const nowLabel =
+    isToday && liveNowMinutes !== null
+      ? minutesToTime(liveNowMinutes)
+      : null;
 
   useEffect(() => {
-    setPendingCreateSlots([]);
-    setPendingRescheduleSlots([]);
+    setPendingCreateSlot(null);
+    setPendingRescheduleSlot(null);
   }, [date]);
 
   useEffect(() => {
     if (!rescheduleTargetId) {
-      setPendingRescheduleSlots([]);
+      setPendingRescheduleSlot(null);
     }
   }, [rescheduleTargetId]);
+
+  useEffect(() => {
+    if (!isToday) {
+      setLiveNowMinutes(null);
+      return;
+    }
+
+    const updateNow = () => setLiveNowMinutes(getJerusalemTimeMinutes());
+    updateNow();
+    const interval = window.setInterval(updateNow, 30_000);
+    return () => window.clearInterval(interval);
+  }, [isToday, date]);
 
   const { startMinutes, endMinutes, totalHeight } = useMemo(() => {
     if (!workingHours) {
@@ -212,23 +198,6 @@ export function AdminDayCalendar({
   const draggingAppt = drag
     ? appointments.find((appt) => appt.id === drag.id)
     : null;
-
-  const laidOutCreateSlots = useMemo(
-    () => layoutPickBars(pendingCreateSlots),
-    [pendingCreateSlots]
-  );
-
-  const laidOutRescheduleSlots = useMemo(
-    () =>
-      layoutPickBars(
-        pendingRescheduleSlots.map((slot) => ({
-          ...slot,
-          top:
-            slot.top + Math.max(0, (slot.height - PICK_BAR_HEIGHT) / 2),
-        }))
-      ),
-    [pendingRescheduleSlots]
-  );
 
   function isSlotBookable(minutes: number): boolean {
     if (isClosedDay || isPastDay) return false;
@@ -289,28 +258,22 @@ export function AdminDayCalendar({
     }
 
     const time = minutesToTime(minutes);
-    const top = (minutes - startMinutes) * PX_PER_MINUTE;
+    const top = topFromMinutes(minutes);
 
-    setPendingRescheduleSlots((prev) => {
-      if (prev.some((slot) => slot.time === time)) {
-        return prev.filter((slot) => slot.time !== time);
-      }
-      return [...prev, { id: appt.id, time, top, height }];
-    });
+    setPendingRescheduleSlot((prev) =>
+      prev?.time === time ? null : { id: appt.id, time, top, height }
+    );
   }
 
-  function addPendingCreateSlot(minutes: number) {
+  function selectPendingCreateSlot(minutes: number) {
     if (!isSlotBookable(minutes)) return;
 
     const time = minutesToTime(minutes);
-    const top = (minutes - startMinutes) * PX_PER_MINUTE;
+    const top = topFromMinutes(minutes);
 
-    setPendingCreateSlots((prev) => {
-      if (prev.some((slot) => slot.time === time)) {
-        return prev.filter((slot) => slot.time !== time);
-      }
-      return [...prev, { time, top }];
-    });
+    setPendingCreateSlot((prev) =>
+      prev?.time === time ? null : { time, top }
+    );
   }
 
   function handleSlotAction(clientY: number, canvasEl: HTMLDivElement) {
@@ -330,7 +293,7 @@ export function AdminDayCalendar({
     }
 
     if (!onSlotClick) return;
-    addPendingCreateSlot(minutes);
+    selectPendingCreateSlot(minutes);
   }
 
   function clampTop(top: number, height: number): number {
@@ -409,7 +372,7 @@ export function AdminDayCalendar({
 
   function confirmCreateSlot(time: string) {
     onSlotClick?.(time);
-    setPendingCreateSlots((prev) => prev.filter((slot) => slot.time !== time));
+    setPendingCreateSlot(null);
   }
 
   async function confirmRescheduleSlot(id: number, time: string) {
@@ -417,14 +380,15 @@ export function AdminDayCalendar({
     setConfirming(true);
     try {
       await onReschedule(id, time);
-      setPendingRescheduleSlots([]);
+      setPendingRescheduleSlot(null);
     } finally {
       setConfirming(false);
     }
   }
 
   function renderSlotPickBar(
-    slot: { time: string; top: number; height?: number; barTop: number },
+    slot: { time: string; top: number; height?: number },
+    barTop: number,
     onConfirm: () => void,
     onDismiss: () => void,
     key: string
@@ -434,7 +398,7 @@ export function AdminDayCalendar({
         key={key}
         className="admin-cal__slot-pick"
         style={{
-          top: slot.barTop,
+          top: barTop,
           height: PICK_BAR_HEIGHT,
         }}
         onClick={(e) => e.stopPropagation()}
@@ -563,16 +527,10 @@ export function AdminDayCalendar({
                     );
                   }
                 } else {
-                  addPendingCreateSlot(minBookableMinutes);
+                  selectPendingCreateSlot(minBookableMinutes);
                 }
               }
             }}
-            onMouseMove={(e) => {
-              if (!bookingEnabled && !rescheduleTargetId) return;
-              const minutes = slotFromPointer(e.clientY, e.currentTarget);
-              setHoverMinutes(isSlotBookable(minutes) ? minutes : null);
-            }}
-            onMouseLeave={() => setHoverMinutes(null)}
           >
             {pastOverlayHeight > 0 && (
               <div
@@ -596,65 +554,53 @@ export function AdminDayCalendar({
               />
             ))}
 
-            {(bookingEnabled || rescheduleTargetId) &&
-              hoverMinutes !== null && (
-                <div
-                  className="admin-cal__hover-slot"
-                  style={{
-                    top: (hoverMinutes - startMinutes) * PX_PER_MINUTE,
-                    height: SLOT_STEP * PX_PER_MINUTE,
-                  }}
-                >
-                  <span className="admin-cal__hover-label">
-                    {minutesToTime(hoverMinutes)}
-                  </span>
-                </div>
-              )}
-
-            {pendingCreateSlots.map((slot) => (
+            {pendingCreateSlot && (
               <div
-                key={`create-${slot.time}`}
                 className="admin-cal__slot-preview admin-cal__slot-preview--create"
                 style={{
-                  top: slot.top,
+                  top: pendingCreateSlot.top,
                   height: PICK_BAR_HEIGHT,
                 }}
                 aria-hidden="true"
               />
-            ))}
+            )}
 
-            {pendingRescheduleSlots.map((slot) => (
+            {pendingRescheduleSlot && (
               <div
-                key={`move-${slot.time}`}
                 className="admin-cal__slot-preview admin-cal__slot-preview--move"
-                style={{ top: slot.top, height: slot.height }}
+                style={{
+                  top: pendingRescheduleSlot.top,
+                  height: pendingRescheduleSlot.height,
+                }}
                 aria-hidden="true"
               />
-            ))}
-
-            {laidOutCreateSlots.map((slot) =>
-              renderSlotPickBar(
-                slot,
-                () => confirmCreateSlot(slot.time),
-                () =>
-                  setPendingCreateSlots((prev) =>
-                    prev.filter((item) => item.time !== slot.time)
-                  ),
-                `create-bar-${slot.time}`
-              )
             )}
 
-            {laidOutRescheduleSlots.map((slot) =>
+            {pendingCreateSlot &&
               renderSlotPickBar(
-                slot,
-                () => void confirmRescheduleSlot(slot.id, slot.time),
-                () =>
-                  setPendingRescheduleSlots((prev) =>
-                    prev.filter((item) => item.time !== slot.time)
+                pendingCreateSlot,
+                pendingCreateSlot.top,
+                () => confirmCreateSlot(pendingCreateSlot.time),
+                () => setPendingCreateSlot(null),
+                `create-bar-${pendingCreateSlot.time}`
+              )}
+
+            {pendingRescheduleSlot &&
+              renderSlotPickBar(
+                pendingRescheduleSlot,
+                pendingRescheduleSlot.top +
+                  Math.max(
+                    0,
+                    (pendingRescheduleSlot.height - PICK_BAR_HEIGHT) / 2
                   ),
-                `move-bar-${slot.time}`
-              )
-            )}
+                () =>
+                  void confirmRescheduleSlot(
+                    pendingRescheduleSlot.id,
+                    pendingRescheduleSlot.time
+                  ),
+                () => setPendingRescheduleSlot(null),
+                `move-bar-${pendingRescheduleSlot.time}`
+              )}
 
             {isToday &&
               nowMinutes !== null &&
@@ -662,9 +608,7 @@ export function AdminDayCalendar({
               nowMinutes <= endMinutes && (
                 <div
                   className="admin-cal__now-line"
-                  style={{
-                    top: (nowMinutes - startMinutes) * PX_PER_MINUTE,
-                  }}
+                  style={{ top: topFromMinutes(nowMinutes) }}
                 >
                   {nowLabel && (
                     <span className="admin-cal__now-badge">{nowLabel}</span>

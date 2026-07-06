@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Check, Phone, Star } from "lucide-react";
+import { ContactPickerButton } from "@/components/ContactPickerButton";
 import { TimeSlotGrid } from "@/components/TimeSlotGrid";
 import { DatePickerBar } from "@/components/DatePickerBar";
 import { Button } from "@/components/Button";
@@ -421,6 +422,13 @@ export default function BookPage() {
               <h2 className="text-lg font-semibold text-text-primary">
                 פרטים אישיים
               </h2>
+              <ContactPickerButton
+                onPicked={(contact) => {
+                  setName(contact.name);
+                  setPhone(contact.phone);
+                  if (contact.email) setEmail(contact.email);
+                }}
+              />
               <Input
                 label="שם מלא"
                 value={name}

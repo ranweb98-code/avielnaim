@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { BookUser, Plus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { Button } from "@/components/Button";
+import { ContactPickerButton } from "@/components/ContactPickerButton";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { Input, Textarea } from "@/components/Input";
 import { TimeSlotGrid } from "@/components/TimeSlotGrid";
@@ -10,7 +11,7 @@ import { cn } from "@/lib/cn";
 import { isIOSDevice } from "@/lib/device";
 import {
   isContactPickerSupported,
-  pickContactFromDevice,
+  type PickedContact,
 } from "@/lib/contact-picker";
 import { formatJerusalemDate, parseJerusalemDate } from "@/lib/timezone";
 import { format } from "date-fns";
@@ -180,19 +181,7 @@ export function AdminCreateAppointmentModal({
     setShowNewCustomer(true);
   }
 
-  async function pickFromContacts() {
-    setError("");
-    if (!contactPickerSupported) {
-      setError(
-        "בחירה מאנשי קשר זמינה בעיקר באנדרoid — חפש לקוח קיים או הזן ידנית"
-      );
-      setShowNewCustomer(true);
-      return;
-    }
-
-    const contact = await pickContactFromDevice();
-    if (!contact) return;
-
+  function applyPickedContact(contact: PickedContact) {
     setName(contact.name);
     setPhone(contact.phone);
     if (contact.email) setEmail(contact.email);
@@ -390,7 +379,11 @@ export function AdminCreateAppointmentModal({
 
               <div>
                 <span className="admin-sheet-field__label">לקוח/ה</span>
-                <div className="admin-create-customer-row mt-1">
+                <ContactPickerButton
+                  className="mt-2 w-full"
+                  onPicked={applyPickedContact}
+                />
+                <div className="admin-create-customer-row mt-2">
                   <div className="admin-create-customer-search">
                     <input
                       className="admin-sheet-field__input w-full"
@@ -423,24 +416,15 @@ export function AdminCreateAppointmentModal({
                   <button
                     type="button"
                     className="admin-create-add-btn"
-                    aria-label="בחירה מאנשי קשר"
-                    title="מאנשי קשר"
-                    onClick={pickFromContacts}
-                  >
-                    <BookUser className="h-5 w-5" />
-                  </button>
-                  <button
-                    type="button"
-                    className="admin-create-add-btn"
                     aria-label="לקוח חדש"
                     onClick={() => setShowNewCustomer((v) => !v)}
                   >
                     <Plus className="h-5 w-5" />
                   </button>
                 </div>
-                {contactPickerSupported && (
+                {!contactPickerSupported && (
                   <p className="mt-1.5 text-xs text-text-muted">
-                    אפשר גם לבחור איש קשר ישירות מהטלפון
+                    חפש לקוח קיים או הזן פרטים ידנית
                   </p>
                 )}
               </div>
