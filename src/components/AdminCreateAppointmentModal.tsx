@@ -10,7 +10,6 @@ import { TimeSlotGrid } from "@/components/TimeSlotGrid";
 import { cn } from "@/lib/cn";
 import { isIOSDevice } from "@/lib/device";
 import {
-  isContactPickerSupported,
   type PickedContact,
 } from "@/lib/contact-picker";
 import { formatJerusalemDate, parseJerusalemDate } from "@/lib/timezone";
@@ -20,6 +19,8 @@ function formatAdminDateLabel(dateStr: string) {
   if (!dateStr) return "בחר תאריך";
   return format(parseJerusalemDate(dateStr), "dd/MM/yyyy");
 }
+
+const ADMIN_CREATE_PHONE_INPUT_ID = "admin-create-phone";
 
 type Service = {
   id: number;
@@ -70,11 +71,9 @@ export function AdminCreateAppointmentModal({
     Array<{ id: number; fullName: string; phone: string; email: string }>
   >([]);
   const [showCustomerResults, setShowCustomerResults] = useState(false);
-  const [contactPickerSupported, setContactPickerSupported] = useState(false);
   const [useNativeTimePicker, setUseNativeTimePicker] = useState(false);
 
   useEffect(() => {
-    setContactPickerSupported(isContactPickerSupported());
     setUseNativeTimePicker(isIOSDevice());
   }, []);
 
@@ -188,6 +187,15 @@ export function AdminCreateAppointmentModal({
     setCustomerQuery(contact.name || contact.phone);
     setShowCustomerResults(false);
     setShowNewCustomer(true);
+  }
+
+  function handleIOSContactFallback() {
+    setShowNewCustomer(true);
+    window.setTimeout(() => {
+      const phoneInput = document.getElementById(ADMIN_CREATE_PHONE_INPUT_ID);
+      phoneInput?.focus();
+      phoneInput?.scrollIntoView({ block: "center", behavior: "smooth" });
+    }, 0);
   }
 
   function validateForm() {
@@ -382,6 +390,7 @@ export function AdminCreateAppointmentModal({
                 <ContactPickerButton
                   className="mt-2 w-full"
                   onPicked={applyPickedContact}
+                  onIOSFallback={handleIOSContactFallback}
                 />
                 <div className="admin-create-customer-row mt-2">
                   <div className="admin-create-customer-search">
@@ -422,11 +431,6 @@ export function AdminCreateAppointmentModal({
                     <Plus className="h-5 w-5" />
                   </button>
                 </div>
-                {!contactPickerSupported && (
-                  <p className="mt-1.5 text-xs text-text-muted">
-                    חפש לקוח קיים או הזן פרטים ידנית
-                  </p>
-                )}
               </div>
 
               {(showNewCustomer || phone || name) && (
@@ -437,16 +441,20 @@ export function AdminCreateAppointmentModal({
                     onChange={(e) => setName(e.target.value)}
                     error={formErrors.name}
                     autoComplete="name"
+                    name="customer-name"
                   />
                   <Input
+                    id={ADMIN_CREATE_PHONE_INPUT_ID}
                     label="טלפון"
                     type="tel"
+                    inputMode="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     error={formErrors.phone}
                     dir="ltr"
                     className="text-left"
                     autoComplete="tel"
+                    name="customer-phone"
                   />
                 </div>
               )}
@@ -459,6 +467,7 @@ export function AdminCreateAppointmentModal({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 error={formErrors.email}
+                autoComplete="email"
                 dir="ltr"
                 className="text-left"
               />

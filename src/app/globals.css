@@ -569,6 +569,12 @@ a.info-row--link:hover {
   font-weight: 700;
 }
 
+.contact-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
 .contact-picker-btn {
   display: inline-flex;
   align-items: center;
@@ -588,6 +594,12 @@ a.info-row--link:hover {
 
 .contact-picker-btn:hover {
   background: var(--bg-card-hover);
+}
+
+.contact-picker__hint {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--text-muted);
 }
 
 .service-row {
