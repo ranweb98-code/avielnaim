@@ -64,6 +64,21 @@ export function getStoredPushEndpoint(): string | null {
   }
 }
 
+async function resolveRole(preferred: PushRole): Promise<PushRole> {
+  if (preferred === "owner") return "owner";
+
+  try {
+    const res = await fetch("/api/admin/session", { cache: "no-store" });
+    if (!res.ok) return "customer";
+    const data = (await res.json()) as { authenticated?: boolean };
+    if (data.authenticated) return "owner";
+  } catch {
+    // ignore
+  }
+
+  return "customer";
+}
+
 export async function ensurePushSubscription(options: {
   role: PushRole;
   phone?: string;
@@ -99,6 +114,8 @@ export async function ensurePushSubscription(options: {
     return { ok: false, reason: "no-vapid" };
   }
 
+  const role = await resolveRole(options.role);
+
   try {
     // Ensure SW is registered before waiting for ready (avoids hang if Gate runs first)
     if (process.env.NODE_ENV !== "development") {
@@ -128,13 +145,14 @@ export async function ensurePushSubscription(options: {
     const res = await fetch("/api/push/subscribe", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
       body: JSON.stringify({
         endpoint: json.endpoint,
         keys: {
           p256dh: json.keys.p256dh,
           auth: json.keys.auth,
         },
-        role: options.role,
+        role,
         phone: options.phone,
         email: options.email,
         updateOnly: options.updateOnly,

@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    void sendPushToCustomer(
+    await sendPushToCustomer(
       appointment.customerPhone,
       appointment.customerEmail,
       {
@@ -100,7 +100,8 @@ export async function POST(request: NextRequest) {
         body: `${appointment.serviceName} · ${appointment.date} בשעה ${appointment.time}`,
         url: "/",
         tag: `appt-admin-${appointment.id}`,
-      }
+      },
+      { alsoEndpoint: data.pushEndpoint }
     ).catch((err) => console.error("Admin booking push failed:", err));
 
     return NextResponse.json({ appointment }, { status: 201 });

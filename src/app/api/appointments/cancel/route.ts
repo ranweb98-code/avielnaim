@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     data: { status: "cancelled" },
   });
 
-  void sendPushToCustomer(updated.customerPhone, updated.customerEmail, {
+  await sendPushToCustomer(updated.customerPhone, updated.customerEmail, {
     title: "התור בוטל",
     body: `${updated.serviceName} · ${updated.date} בשעה ${updated.time}`,
     url: "/",

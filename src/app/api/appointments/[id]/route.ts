@@ -142,7 +142,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         data.status !== undefined &&
         data.status !== previousStatus
       ) {
-        void notifyStatusChange(appointment).catch((err) =>
+        await notifyStatusChange(appointment).catch((err) =>
           console.error("Status notify failed:", err)
         );
       }
@@ -159,7 +159,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     });
 
     if (data.status !== undefined && data.status !== previousStatus) {
-      void notifyStatusChange(appointment).catch((err) =>
+      await notifyStatusChange(appointment).catch((err) =>
         console.error("Status notify failed:", err)
       );
     }

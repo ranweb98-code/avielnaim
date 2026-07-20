@@ -82,12 +82,29 @@ export async function sendToSubscription(
   }
 }
 
+export async function sendPushToEndpoint(
+  endpoint: string | null | undefined,
+  payload: PushPayload
+): Promise<boolean> {
+  if (!endpoint?.trim()) return false;
+
+  const sub = await prisma.pushSubscription.findUnique({
+    where: { endpoint: endpoint.trim() },
+  });
+  if (!sub) return false;
+  return sendToSubscription(sub, payload);
+}
+
 export async function sendPushToOwners(payload: PushPayload): Promise<number> {
   if (!ensureVapid()) return 0;
 
   const subs = await prisma.pushSubscription.findMany({
     where: { role: "owner" },
   });
+
+  if (subs.length === 0) {
+    console.warn("[push] No owner subscriptions found");
+  }
 
   let sent = 0;
   for (const sub of subs) {
@@ -115,9 +132,19 @@ function phoneVariants(phone: string): string[] {
 export async function sendPushToCustomer(
   phone: string | null | undefined,
   email: string | null | undefined,
-  payload: PushPayload
+  payload: PushPayload,
+  options?: { alsoEndpoint?: string | null }
 ): Promise<number> {
   if (!ensureVapid()) return 0;
+
+  const unique = new Map<string, StoredSubscription>();
+
+  if (options?.alsoEndpoint?.trim()) {
+    const byEndpoint = await prisma.pushSubscription.findUnique({
+      where: { endpoint: options.alsoEndpoint.trim() },
+    });
+    if (byEndpoint) unique.set(byEndpoint.endpoint, byEndpoint);
+  }
 
   const or: Array<{ phone?: string; email?: string }> = [];
 
@@ -132,17 +159,15 @@ export async function sendPushToCustomer(
     or.push({ email: email.trim() });
   }
 
-  if (or.length === 0) return 0;
-
-  const subs = await prisma.pushSubscription.findMany({
-    where: {
-      role: "customer",
-      OR: or,
-    },
-  });
-
-  // Deduplicate by endpoint
-  const unique = new Map(subs.map((s) => [s.endpoint, s]));
+  if (or.length > 0) {
+    const subs = await prisma.pushSubscription.findMany({
+      where: {
+        role: "customer",
+        OR: or,
+      },
+    });
+    for (const sub of subs) unique.set(sub.endpoint, sub);
+  }
 
   let sent = 0;
   for (const sub of unique.values()) {

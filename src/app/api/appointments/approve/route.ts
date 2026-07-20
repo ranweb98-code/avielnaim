@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  void sendPushToCustomer(updated.customerPhone, updated.customerEmail, {
+  await sendPushToCustomer(updated.customerPhone, updated.customerEmail, {
     title: "התור אושר",
     body: `${updated.serviceName} · ${updated.date} בשעה ${updated.time}`,
     url: "/",
