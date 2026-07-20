@@ -1187,7 +1187,8 @@ input[type="date"] {
   flex-direction: column;
   min-height: 0;
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  animation: ui-fade-up 0.4s ease-out 0.05s both;
+  /* Opacity-only: transform here breaks position:fixed descendants */
+  animation: ui-fade-in 0.35s ease-out;
 }
 
 .admin-shell__header {
@@ -1487,14 +1488,15 @@ input[type="date"] {
   background: color-mix(in srgb, var(--accent-yellow) 12%, transparent);
 }
 
-/* Fixed to the viewport bottom (like a toolbar), not the page end */
+/* Fixed to the viewport bottom (portaled to body) — stays visible while scrolling */
 .admin-cal__slot-confirm-dock {
   position: fixed;
-  inset-inline: 0.75rem;
+  left: 0.75rem;
+  right: 0.75rem;
   bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
-  z-index: 60;
+  z-index: 200;
   pointer-events: auto;
-  animation: ui-sheet-up 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: ui-fade-in 0.2s ease-out;
 }
 
 .admin-cal__slot-pick-bar {
@@ -1866,6 +1868,13 @@ input[type="date"] {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Keep start–end times LTR inside RTL Hebrew labels */
+.admin-cal-block__time-range {
+  direction: ltr;
+  unicode-bidi: isolate;
+  display: inline-block;
 }
 
 .admin-appt-detail {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import {
@@ -61,10 +62,19 @@ const MIN_BLOCK_HEIGHT = 44;
 const SLOT_STEP = 5;
 const DRAG_THRESHOLD_PX = 8;
 
-function formatBlockLabel(appt: AdminCalendarAppointment): string {
+function BlockLabel({ appt }: { appt: AdminCalendarAppointment }) {
   const startMin = timeToMinutes(appt.time);
   const end = minutesToTime(startMin + appt.serviceDuration);
-  return `${appt.customerName} ${appt.time} - ${end} ${appt.serviceName}`;
+
+  return (
+    <>
+      {appt.customerName}{" "}
+      <span className="admin-cal-block__time-range" dir="ltr">
+        {appt.time} - {end}
+      </span>{" "}
+      {appt.serviceName}
+    </>
+  );
 }
 
 function snapToStep(minutes: number): number {
@@ -116,6 +126,7 @@ export function AdminDayCalendar({
   const [pendingRescheduleSlot, setPendingRescheduleSlot] =
     useState<PendingRescheduleSlot | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [liveNowMinutes, setLiveNowMinutes] = useState<number | null>(null);
   const today = formatJerusalemDate();
   const isToday = isTodayInJerusalem(date);
@@ -125,6 +136,10 @@ export function AdminDayCalendar({
     isToday && liveNowMinutes !== null
       ? minutesToTime(liveNowMinutes)
       : null;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     setPendingCreateSlot(null);
@@ -391,8 +406,17 @@ export function AdminDayCalendar({
     onConfirm: () => void,
     onDismiss: () => void
   ) {
-    return (
-      <div className="admin-cal__slot-confirm-dock" role="dialog" aria-label="אישור שעה">
+    if (!mounted) return null;
+
+    // Portal to body so position:fixed is relative to the viewport.
+    // Ancestors like .admin-shell keep a transform from entrance animation,
+    // which otherwise traps fixed elements at the page bottom.
+    return createPortal(
+      <div
+        className="admin-cal__slot-confirm-dock"
+        role="dialog"
+        aria-label="אישור שעה"
+      >
         <div className="admin-cal__slot-pick-bar">
           <span className="admin-cal__slot-pick-time">{time}</span>
           <button
@@ -413,7 +437,8 @@ export function AdminDayCalendar({
             <X className="h-4 w-4" />
           </button>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
@@ -625,12 +650,16 @@ export function AdminDayCalendar({
                   }}
                 >
                   <span className="admin-cal-block__text">
-                    {isDragging && dragPreviewMinutes !== null
-                      ? formatBlockLabel({
-                          ...appt,
-                          time: minutesToTime(dragPreviewMinutes),
-                        })
-                      : formatBlockLabel(appt)}
+                    <BlockLabel
+                      appt={
+                        isDragging && dragPreviewMinutes !== null
+                          ? {
+                              ...appt,
+                              time: minutesToTime(dragPreviewMinutes),
+                            }
+                          : appt
+                      }
+                    />
                   </span>
                 </button>
               );
