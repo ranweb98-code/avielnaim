@@ -386,25 +386,15 @@ export function AdminDayCalendar({
     }
   }
 
-  function renderSlotPickBar(
-    slot: { time: string; top: number; height?: number },
-    barTop: number,
+  function renderSlotConfirmDock(
+    time: string,
     onConfirm: () => void,
-    onDismiss: () => void,
-    key: string
+    onDismiss: () => void
   ) {
     return (
-      <div
-        key={key}
-        className="admin-cal__slot-pick"
-        style={{
-          top: barTop,
-          height: PICK_BAR_HEIGHT,
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="admin-cal__slot-confirm-dock" role="dialog" aria-label="אישור שעה">
         <div className="admin-cal__slot-pick-bar">
-          <span className="admin-cal__slot-pick-time">{slot.time}</span>
+          <span className="admin-cal__slot-pick-time">{time}</span>
           <button
             type="button"
             className="admin-cal__slot-pick-confirm"
@@ -576,32 +566,6 @@ export function AdminDayCalendar({
               />
             )}
 
-            {pendingCreateSlot &&
-              renderSlotPickBar(
-                pendingCreateSlot,
-                pendingCreateSlot.top,
-                () => confirmCreateSlot(pendingCreateSlot.time),
-                () => setPendingCreateSlot(null),
-                `create-bar-${pendingCreateSlot.time}`
-              )}
-
-            {pendingRescheduleSlot &&
-              renderSlotPickBar(
-                pendingRescheduleSlot,
-                pendingRescheduleSlot.top +
-                  Math.max(
-                    0,
-                    (pendingRescheduleSlot.height - PICK_BAR_HEIGHT) / 2
-                  ),
-                () =>
-                  void confirmRescheduleSlot(
-                    pendingRescheduleSlot.id,
-                    pendingRescheduleSlot.time
-                  ),
-                () => setPendingRescheduleSlot(null),
-                `move-bar-${pendingRescheduleSlot.time}`
-              )}
-
             {isToday &&
               nowMinutes !== null &&
               nowMinutes >= startMinutes &&
@@ -675,6 +639,24 @@ export function AdminDayCalendar({
         </div>
       </div>
       </div>
+
+      {pendingCreateSlot &&
+        renderSlotConfirmDock(
+          pendingCreateSlot.time,
+          () => confirmCreateSlot(pendingCreateSlot.time),
+          () => setPendingCreateSlot(null)
+        )}
+
+      {pendingRescheduleSlot &&
+        renderSlotConfirmDock(
+          pendingRescheduleSlot.time,
+          () =>
+            void confirmRescheduleSlot(
+              pendingRescheduleSlot.id,
+              pendingRescheduleSlot.time
+            ),
+          () => setPendingRescheduleSlot(null)
+        )}
     </>
   );
 }
