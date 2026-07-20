@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Lock } from "lucide-react";
+import { Home, Lock } from "lucide-react";
 import { Button } from "@/components/Button";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { GlassCard } from "@/components/GlassCard";
@@ -49,6 +49,8 @@ export function AdminLoginForm() {
   return (
     <>
       <PageHero
+        showBack
+        backHref="/?public=1"
         bottomContent={
           <div className="text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-accent-yellow/20">
@@ -65,7 +67,7 @@ export function AdminLoginForm() {
         }
       />
       <div className="site-container py-8">
-        <div className="mx-auto w-full max-w-md">
+        <div className="mx-auto w-full max-w-md space-y-4">
           <GlassCard>
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && <ErrorMessage message={error} />}
@@ -90,6 +92,18 @@ export function AdminLoginForm() {
               </Button>
             </form>
           </GlassCard>
+
+          <Button
+            type="button"
+            variant="secondary"
+            className="w-full"
+            onClick={() => {
+              window.location.assign("/?public=1");
+            }}
+          >
+            <Home className="h-4 w-4" />
+            חזרה למסך הבית
+          </Button>
         </div>
       </div>
     </>
