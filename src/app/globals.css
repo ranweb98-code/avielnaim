@@ -675,10 +675,21 @@ main.page-shell:has([data-admin]) {
   padding-top: env(safe-area-inset-top, 0px);
 }
 
+.bottom-nav-dock {
+  /* Full-width fixed dock — avoids iOS standalone bugs with transform on fixed */
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  padding-inline: 1rem;
+}
+
 .bottom-nav-floating {
-  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
   width: fit-content;
-  max-width: calc(100% - 2rem);
+  max-width: 100%;
   background: color-mix(in srgb, var(--bg-card) 95%, transparent);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
@@ -688,8 +699,8 @@ main.page-shell:has([data-admin]) {
 }
 
 @media (display-mode: standalone) {
-  .bottom-nav-floating {
-    bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  .bottom-nav-dock {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
   }
 }
 

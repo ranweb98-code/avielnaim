@@ -136,7 +136,7 @@ export function NotificationPermissionGate() {
               loading={busy}
               onClick={() => void enableNotifications()}
             >
-              אפשרי התראות
+              אפשר התראות
             </Button>
           </>
         )}

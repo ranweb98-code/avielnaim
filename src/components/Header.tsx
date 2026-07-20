@@ -100,40 +100,45 @@ export function BottomNav() {
 
   return (
     <nav
-      className={cn(
-        "bottom-nav-floating fixed left-1/2 z-40 transition-all duration-300 ease-out md:hidden",
-        visible
-          ? "-translate-x-1/2 translate-y-0 opacity-100"
-          : "pointer-events-none -translate-x-1/2 translate-y-8 opacity-0"
-      )}
+      className="bottom-nav-dock fixed inset-x-0 z-40 md:hidden"
       aria-label="ניווט ראשי"
       aria-hidden={!visible}
     >
-      <div className="flex items-center justify-center gap-1 px-2 py-1.5">
-        {links.map(({ href, label, icon: Icon }) => {
-          const active =
-            href === "/"
-              ? pathname === "/"
-              : pathname === href || pathname.startsWith(`${href}/`);
+      <div
+        className={cn(
+          "bottom-nav-floating pointer-events-auto transition-all duration-300 ease-out",
+          visible
+            ? "translate-y-0 opacity-100"
+            : "pointer-events-none translate-y-3 opacity-0"
+        )}
+      >
+        <div className="flex items-center justify-center gap-1 px-2 py-1.5">
+          {links.map(({ href, label, icon: Icon }) => {
+            const active =
+              href === "/"
+                ? pathname === "/"
+                : pathname === href || pathname.startsWith(`${href}/`);
 
-          return (
-            <Link
-              key={href}
-              href={href}
-              prefetch
-              aria-label={label}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "flex min-h-11 min-w-11 items-center justify-center rounded-2xl px-4 py-2 transition-all duration-200",
-                active
-                  ? "bg-accent-yellow/15 text-accent-yellow"
-                  : "text-text-secondary hover:bg-white/5 hover:text-text-primary"
-              )}
-            >
-              <Icon className="h-5 w-5" aria-hidden />
-            </Link>
-          );
-        })}
+            return (
+              <Link
+                key={href}
+                href={href}
+                prefetch
+                aria-label={label}
+                aria-current={active ? "page" : undefined}
+                tabIndex={visible ? undefined : -1}
+                className={cn(
+                  "flex min-h-11 min-w-11 items-center justify-center rounded-2xl px-4 py-2 transition-all duration-200",
+                  active
+                    ? "bg-accent-yellow/15 text-accent-yellow"
+                    : "text-text-secondary hover:bg-white/5 hover:text-text-primary"
+                )}
+              >
+                <Icon className="h-5 w-5" aria-hidden />
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );
