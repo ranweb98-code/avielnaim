@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Download, Share, X } from "lucide-react";
 import { Button } from "./Button";
 import { GlassCard } from "./GlassCard";
+import { ensurePushSubscription } from "@/lib/push-client";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -21,7 +22,8 @@ export function InstallPrompt() {
 
     const isStandalone =
       window.matchMedia("(display-mode: standalone)").matches ||
-      ("standalone" in navigator && (navigator as Navigator & { standalone?: boolean }).standalone);
+      ("standalone" in navigator &&
+        (navigator as Navigator & { standalone?: boolean }).standalone);
 
     if (isStandalone) return;
 
@@ -62,8 +64,12 @@ export function InstallPrompt() {
                 className="flex-1"
                 onClick={async () => {
                   await deferredPrompt.prompt();
+                  const choice = await deferredPrompt.userChoice;
                   setDeferredPrompt(null);
                   setDismissed(true);
+                  if (choice.outcome === "accepted") {
+                    void ensurePushSubscription({ role: "customer" });
+                  }
                 }}
               >
                 התקן

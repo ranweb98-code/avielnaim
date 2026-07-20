@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { addHours } from "date-fns";
 import { deleteOldAppointments } from "@/lib/cleanup";
 import { sendReminderEmail } from "@/lib/email";
+import { sendPushToCustomer } from "@/lib/push";
 import { prisma } from "@/lib/prisma";
 import { getSetting } from "@/lib/settings";
 import { parseJerusalemDateTime } from "@/lib/timezone";
@@ -48,19 +49,34 @@ export async function GET(request: NextRequest) {
   let sent = 0;
 
   for (const appt of appointments) {
-    if (!appt.customerEmail) continue;
-
     const apptDateTime = parseJerusalemDateTime(appt.date, appt.time);
 
     if (apptDateTime >= windowStart && apptDateTime <= windowEnd) {
-      await sendReminderEmail({
-        customerEmail: appt.customerEmail,
-        customerName: appt.customerName,
-        serviceName: appt.serviceName,
-        date: appt.date,
-        time: appt.time,
-        hoursBefore: reminderHours,
-      });
+      const tasks: Promise<unknown>[] = [];
+
+      if (appt.customerEmail) {
+        tasks.push(
+          sendReminderEmail({
+            customerEmail: appt.customerEmail,
+            customerName: appt.customerName,
+            serviceName: appt.serviceName,
+            date: appt.date,
+            time: appt.time,
+            hoursBefore: reminderHours,
+          })
+        );
+      }
+
+      tasks.push(
+        sendPushToCustomer(appt.customerPhone, appt.customerEmail, {
+          title: "תזכורת לתור",
+          body: `${appt.serviceName} מחר/בקרוב · ${appt.date} בשעה ${appt.time}`,
+          url: "/",
+          tag: `appt-reminder-${appt.id}`,
+        })
+      );
+
+      await Promise.allSettled(tasks);
 
       await prisma.appointment.update({
         where: { id: appt.id },

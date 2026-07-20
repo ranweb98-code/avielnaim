@@ -19,6 +19,7 @@ export const appointmentCreateSchema = z.object({
     ),
   notes: z.string().optional(),
   inspoIds: z.array(z.number().int()).optional().default([]),
+  pushEndpoint: z.string().url().optional().nullable(),
 });
 
 export const appointmentUpdateSchema = z

@@ -29,6 +29,11 @@ npm run dev
 | `NEXT_PUBLIC_BASE_URL` | URL בסיס |
 | `REMINDER_HOURS_BEFORE` | שעות לפני תזכורת (ברירת מחדל: 24) |
 | `ENABLE_CRON` | `true` להפעלת cron |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | מפתח VAPID ציבורי (חובה ב-Build ב-Vercel) |
+| `VAPID_PRIVATE_KEY` | מפתח VAPID פרטי (שרת בלבד) |
+| `VAPID_SUBJECT` | למשל `mailto:owner@example.com` |
+
+יצירת מפתחות: `npx web-push generate-vapid-keys --json`
 
 ## מסכים
 
@@ -50,6 +55,8 @@ npm run dev
 - `manifest.webmanifest` בעברית RTL
 - Service worker (Serwist) + דף `/offline`
 - פרומפט "הוסף למסך הבית"
+- Web Push: מסך הרשאות רק ב-standalone (אפליקציה מותקנת)
+- אחרי הוספת VAPID ב-Vercel — חובה Redeploy ל-Production
 
 ## פרודקשן (Vercel + GitHub)
 
@@ -61,6 +68,7 @@ npm run dev
    - `NEXT_PUBLIC_BASE_URL` — כתובת האתר (למשל `https://avielnaim.vercel.app`)
    - `ENABLE_CRON` — `true`
    - `OWNER_EMAIL`, `EMAIL_FROM` — לאימיילים (`Aviel Naim <...>`)
+   - `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` — להתראות Push (ואז Redeploy)
 3. אחרי Neon: `npm run db:push && npm run db:seed` (מקומית עם `.env.local` מ-`vercel env pull`)
 4. Deploy — cron מוגדר ב-`vercel.json` (פעם ביום ב-Hobby)
 5. כל חישובי זמן ב-Asia/Jerusalem

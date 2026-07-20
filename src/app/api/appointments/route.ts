@@ -7,6 +7,11 @@ import {
   sendCustomerSelfBookingEmail,
   sendOwnerNewAppointmentEmail,
 } from "@/lib/email";
+import {
+  linkPushEndpointToCustomer,
+  sendPushToCustomer,
+  sendPushToOwners,
+} from "@/lib/push";
 import { prisma } from "@/lib/prisma";
 import { appointmentCreateSchema } from "@/lib/schemas";
 import { getSetting } from "@/lib/settings";
@@ -74,6 +79,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    await linkPushEndpointToCustomer(
+      data.pushEndpoint,
+      appointment.customerPhone,
+      appointment.customerEmail
+    );
+
     const emailTasks: Promise<unknown>[] = [
       sendOwnerNewAppointmentEmail({
         appointmentId: appointment.id,
@@ -97,10 +108,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    void Promise.allSettled(emailTasks).then((emailResults) => {
-      for (const result of emailResults) {
+    const pushTasks: Promise<unknown>[] = [
+      sendPushToOwners({
+        title: "תור חדש",
+        body: `${appointment.customerName} · ${appointment.serviceName} · ${appointment.date} ${appointment.time}`,
+        url: "/admin",
+        tag: `appt-new-${appointment.id}`,
+      }),
+      sendPushToCustomer(appointment.customerPhone, appointment.customerEmail, {
+        title: "התור נקלט",
+        body: `בקשת התור ל-${appointment.date} בשעה ${appointment.time} התקבלה וממתינה לאישור`,
+        url: "/",
+        tag: `appt-pending-${appointment.id}`,
+      }),
+    ];
+
+    void Promise.allSettled([...emailTasks, ...pushTasks]).then((results) => {
+      for (const result of results) {
         if (result.status === "rejected") {
-          console.error("Email task rejected:", result.reason);
+          console.error("Notify task rejected:", result.reason);
         }
       }
     });

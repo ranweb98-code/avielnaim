@@ -2,10 +2,66 @@ import { NextRequest, NextResponse } from "next/server";
 import { isSlotAvailable } from "@/lib/availability";
 import { isAuthenticated } from "@/lib/auth";
 import { sendCustomerConfirmationEmail } from "@/lib/email";
+import { sendPushToCustomer } from "@/lib/push";
 import { prisma } from "@/lib/prisma";
 import { appointmentUpdateSchema } from "@/lib/schemas";
 
 type RouteParams = { params: Promise<{ id: string }> };
+
+function statusPushPayload(appointment: {
+  id: number;
+  status: string;
+  serviceName: string;
+  date: string;
+  time: string;
+}) {
+  if (appointment.status === "confirmed") {
+    return {
+      title: "התור אושר",
+      body: `${appointment.serviceName} · ${appointment.date} בשעה ${appointment.time}`,
+      url: "/",
+      tag: `appt-confirmed-${appointment.id}`,
+    };
+  }
+  if (appointment.status === "cancelled") {
+    return {
+      title: "התור בוטל",
+      body: `${appointment.serviceName} · ${appointment.date} בשעה ${appointment.time}`,
+      url: "/",
+      tag: `appt-cancelled-${appointment.id}`,
+    };
+  }
+  return null;
+}
+
+async function notifyStatusChange(appointment: {
+  id: number;
+  status: string;
+  serviceName: string;
+  date: string;
+  time: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
+}) {
+  await sendCustomerConfirmationEmail({
+    customerEmail: appointment.customerEmail,
+    customerName: appointment.customerName,
+    serviceName: appointment.serviceName,
+    date: appointment.date,
+    time: appointment.time,
+    status: appointment.status as "pending" | "confirmed" | "cancelled",
+  });
+
+  const payload = statusPushPayload(appointment);
+  if (payload) {
+    await sendPushToCustomer(
+      appointment.customerPhone,
+      appointment.customerEmail,
+      payload
+    );
+  }
+}
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const authed = await isAuthenticated();
@@ -43,6 +99,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const targetServiceId = data.serviceId ?? existing.serviceId;
     const targetDate = data.date ?? existing.date;
     const targetTime = data.time ?? existing.time;
+    const previousStatus = existing.status;
 
     if (data.date || data.time || data.serviceId) {
       const service = await prisma.service.findFirst({
@@ -81,15 +138,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         },
       });
 
-      if (data.status !== undefined) {
-        await sendCustomerConfirmationEmail({
-          customerEmail: appointment.customerEmail,
-          customerName: appointment.customerName,
-          serviceName: appointment.serviceName,
-          date: appointment.date,
-          time: appointment.time,
-          status: appointment.status,
-        });
+      if (
+        data.status !== undefined &&
+        data.status !== previousStatus
+      ) {
+        void notifyStatusChange(appointment).catch((err) =>
+          console.error("Status notify failed:", err)
+        );
       }
 
       return NextResponse.json({ appointment });
@@ -103,15 +158,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       },
     });
 
-    if (data.status !== undefined) {
-      await sendCustomerConfirmationEmail({
-        customerEmail: appointment.customerEmail,
-        customerName: appointment.customerName,
-        serviceName: appointment.serviceName,
-        date: appointment.date,
-        time: appointment.time,
-        status: appointment.status,
-      });
+    if (data.status !== undefined && data.status !== previousStatus) {
+      void notifyStatusChange(appointment).catch((err) =>
+        console.error("Status notify failed:", err)
+      );
     }
 
     return NextResponse.json({ appointment });

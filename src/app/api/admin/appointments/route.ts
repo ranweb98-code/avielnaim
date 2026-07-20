@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { isSlotAvailable } from "@/lib/availability";
 import { upsertCustomerFromBooking } from "@/lib/customers";
 import { sendCustomerAdminBookingEmail } from "@/lib/email";
+import {
+  linkPushEndpointToCustomer,
+  sendPushToCustomer,
+} from "@/lib/push";
 import { prisma } from "@/lib/prisma";
 import { appointmentCreateSchema } from "@/lib/schemas";
 import { formatInspoIds } from "@/lib/utils";
@@ -72,6 +76,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    await linkPushEndpointToCustomer(
+      data.pushEndpoint,
+      appointment.customerPhone,
+      appointment.customerEmail
+    );
+
     if (appointment.customerEmail) {
       await sendCustomerAdminBookingEmail({
         appointmentId: appointment.id,
@@ -81,6 +91,17 @@ export async function POST(request: NextRequest) {
         time: appointment.time,
       });
     }
+
+    void sendPushToCustomer(
+      appointment.customerPhone,
+      appointment.customerEmail,
+      {
+        title: "נקבע לך תור",
+        body: `${appointment.serviceName} · ${appointment.date} בשעה ${appointment.time}`,
+        url: "/",
+        tag: `appt-admin-${appointment.id}`,
+      }
+    ).catch((err) => console.error("Admin booking push failed:", err));
 
     return NextResponse.json({ appointment }, { status: 201 });
   } catch (error) {

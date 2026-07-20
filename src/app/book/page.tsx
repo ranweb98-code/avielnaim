@@ -17,6 +17,7 @@ import type { OccupiedBlock } from "@/lib/availability";
 import { fetchWithCache, getCachedData } from "@/lib/fetch-cache";
 import { formatJerusalemDate } from "@/lib/timezone";
 import { BUSINESS_NAME, toWhatsAppUrl } from "@/lib/utils";
+import { getStoredPushEndpoint } from "@/lib/push-client";
 
 const PUBLIC_CACHE_KEY = "public-api";
 
@@ -180,6 +181,7 @@ export default function BookPage() {
           customerEmail: email.trim() || undefined,
           notes: styleNotes.trim() || undefined,
           inspoIds: [],
+          pushEndpoint: getStoredPushEndpoint() || undefined,
         }),
       });
 

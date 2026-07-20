@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Frank_Ruhl_Libre, Kaushan_Script, Rubik } from "next/font/google";
 import { BottomNav, Header } from "@/components/Header";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { NotificationPermissionGate } from "@/components/NotificationPermissionGate";
 import { SerwistRegister } from "@/components/SerwistRegister";
 import { getSetting } from "@/lib/settings";
 import "./globals.css";
@@ -64,6 +65,7 @@ export default async function RootLayout({
         <BottomNav />
         <InstallPrompt />
         <SerwistRegister />
+        <NotificationPermissionGate />
       </body>
     </html>
   );

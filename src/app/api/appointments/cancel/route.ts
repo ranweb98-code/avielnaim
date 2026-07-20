@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyCancelToken } from "@/lib/cancel-token";
+import { sendPushToCustomer } from "@/lib/push";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
@@ -37,10 +38,17 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  await prisma.appointment.update({
+  const updated = await prisma.appointment.update({
     where: { id: appointmentId },
     data: { status: "cancelled" },
   });
+
+  void sendPushToCustomer(updated.customerPhone, updated.customerEmail, {
+    title: "התור בוטל",
+    body: `${updated.serviceName} · ${updated.date} בשעה ${updated.time}`,
+    url: "/",
+    tag: `appt-cancelled-${updated.id}`,
+  }).catch((err) => console.error("Cancel push failed:", err));
 
   return NextResponse.json({
     success: true,

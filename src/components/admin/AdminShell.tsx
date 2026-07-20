@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, LogOut, Menu, Settings, Users, X } from "lucide-react";
+import { OwnerPushSetup } from "@/components/OwnerPushSetup";
 import { BUSINESS_NAME } from "@/lib/utils";
 
 type AdminShellProps = {
@@ -109,6 +110,7 @@ export function AdminShell({ children }: AdminShellProps) {
 
   return (
     <div data-admin className="admin-layout">
+      <OwnerPushSetup />
       <div className="admin-layout__frame">
         <header className="admin-shell__header">
           <button

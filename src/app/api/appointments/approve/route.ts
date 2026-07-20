@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyApproveToken } from "@/lib/cancel-token";
 import { sendCustomerConfirmationEmail } from "@/lib/email";
+import { sendPushToCustomer } from "@/lib/push";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
@@ -61,6 +62,13 @@ export async function GET(request: NextRequest) {
       status: "confirmed",
     });
   }
+
+  void sendPushToCustomer(updated.customerPhone, updated.customerEmail, {
+    title: "התור אושר",
+    body: `${updated.serviceName} · ${updated.date} בשעה ${updated.time}`,
+    url: "/",
+    tag: `appt-confirmed-${updated.id}`,
+  }).catch((err) => console.error("Approve push failed:", err));
 
   return NextResponse.json({
     success: true,

@@ -8,11 +8,22 @@ const withSerwist = withSerwistInit({
 });
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["pg", "@prisma/adapter-pg"],
+  serverExternalPackages: ["pg", "@prisma/adapter-pg", "web-push"],
   images: {
     formats: ["image/avif", "image/webp"],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+  },
+  async headers() {
+    return [
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+    ];
   },
 };
 
