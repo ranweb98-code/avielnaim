@@ -373,32 +373,31 @@ export function AdminAppointmentSheet({
               </div>
             </label>
 
-            <div className="admin-sheet-form__row admin-sheet-form__row--schedule">
-              <label className="admin-sheet-field">
-                <span className="admin-sheet-field__label">שעת התחלה</span>
-                <input
-                  type="time"
-                  className="admin-sheet-field__input"
-                  dir="ltr"
-                  value={editTime}
-                  disabled={loading}
-                  onChange={(e) => setEditTime(e.target.value)}
-                  aria-label="שעת התחלה"
-                />
-              </label>
-              <div className="admin-sheet-field">
-                <span className="admin-sheet-field__label">משך (דק׳)</span>
-                <button
-                  type="button"
-                  className="admin-sheet-field__input admin-sheet-field__input--button"
-                  dir="ltr"
-                  disabled={loading}
-                  onClick={() => setShowDurationPicker(true)}
-                  aria-label="בחירת משך שירות"
-                >
-                  {editDuration} דק׳
-                </button>
-              </div>
+            <label className="admin-sheet-field">
+              <span className="admin-sheet-field__label">שעת התחלה</span>
+              <input
+                type="time"
+                className="admin-sheet-field__input admin-sheet-field__input--time"
+                dir="ltr"
+                value={editTime}
+                disabled={loading}
+                onChange={(e) => setEditTime(e.target.value)}
+                aria-label="שעת התחלה"
+              />
+            </label>
+
+            <div className="admin-sheet-field">
+              <span className="admin-sheet-field__label">משך השירות</span>
+              <button
+                type="button"
+                className="admin-sheet-field__input admin-sheet-field__input--button"
+                dir="ltr"
+                disabled={loading}
+                onClick={() => setShowDurationPicker(true)}
+                aria-label="בחירת משך שירות"
+              >
+                {editDuration} דק׳
+              </button>
             </div>
 
             {scheduleDirty && (

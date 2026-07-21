@@ -2694,12 +2694,23 @@ input[type="date"] {
   font-variant-numeric: tabular-nums;
 }
 
+.admin-sheet-field__input--time {
+  display: block;
+  /* iOS native time control overflows narrow columns — keep it contained */
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.admin-sheet-field__input--time::-webkit-calendar-picker-indicator {
+  opacity: 0.7;
+}
+
 .admin-sheet-field__input--button {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   cursor: pointer;
-  text-align: center;
+  text-align: start;
 }
 
 .admin-sheet-field__input--button:disabled {
@@ -2726,11 +2737,6 @@ input[type="date"] {
 
 .admin-sheet-form__row > * {
   min-width: 0;
-}
-
-.admin-sheet-form__row--schedule {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 0.875rem;
 }
 
 .admin-sheet-form__row--thirds {
