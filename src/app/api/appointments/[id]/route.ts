@@ -1,3 +1,4 @@
+import { timeToMinutes } from "@/lib/timezone";
 import { NextRequest, NextResponse } from "next/server";
 import { isSlotAvailable } from "@/lib/availability";
 import { isAuthenticated } from "@/lib/auth";
@@ -100,8 +101,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const targetDate = data.date ?? existing.date;
     const targetTime = data.time ?? existing.time;
     const previousStatus = existing.status;
+    const scheduleChanged = Boolean(
+      data.date || data.time || data.serviceId || data.serviceDuration
+    );
 
-    if (data.date || data.time || data.serviceId) {
+    if (scheduleChanged) {
       const service = await prisma.service.findFirst({
         where: { id: targetServiceId, active: true },
       });
@@ -110,6 +114,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         return NextResponse.json({ error: "שירות לא נמצא" }, { status: 404 });
       }
 
+      const targetDuration =
+        data.serviceDuration ??
+        (data.serviceId ? service.durationMin : existing.serviceDuration);
+
+      // Availability uses catalog duration; customized duration still checked via overlap below
       const available = await isSlotAvailable(
         targetDate,
         targetTime,
@@ -117,11 +126,33 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         { excludeAppointmentId: appointmentId, skipAdvanceCheck: true }
       );
 
-      if (!available) {
+      if (!available && (data.date || data.time || data.serviceId)) {
         return NextResponse.json(
           { error: "השעה שנבחרה אינה זמינה" },
           { status: 409 }
         );
+      }
+
+      if (data.serviceDuration !== undefined) {
+        const start = timeToMinutes(targetTime);
+        const end = start + targetDuration;
+        const others = await prisma.appointment.findMany({
+          where: {
+            date: targetDate,
+            status: { in: ["pending", "confirmed"] },
+            id: { not: appointmentId },
+          },
+        });
+        for (const other of others) {
+          const otherStart = timeToMinutes(other.time);
+          const otherEnd = otherStart + other.serviceDuration;
+          if (start < otherEnd && end > otherStart) {
+            return NextResponse.json(
+              { error: "המשך החדש חופף לתור אחר" },
+              { status: 409 }
+            );
+          }
+        }
       }
 
       const appointment = await prisma.appointment.update({
@@ -132,9 +163,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           date: targetDate,
           time: targetTime,
           serviceId: service.id,
-          serviceName: service.name,
-          serviceDuration: service.durationMin,
-          servicePrice: service.price,
+          serviceName: data.serviceId ? service.name : existing.serviceName,
+          serviceDuration: targetDuration,
+          servicePrice: data.serviceId ? service.price : existing.servicePrice,
         },
       });
 

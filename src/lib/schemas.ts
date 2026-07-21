@@ -34,6 +34,7 @@ export const appointmentUpdateSchema = z
       .regex(/^\d{2}:\d{2}$/)
       .optional(),
     serviceId: z.number().int().positive().optional(),
+    serviceDuration: z.number().int().positive().max(480).optional(),
     notes: z.string().nullable().optional(),
   })
   .refine(
@@ -42,6 +43,7 @@ export const appointmentUpdateSchema = z
       data.date !== undefined ||
       data.time !== undefined ||
       data.serviceId !== undefined ||
+      data.serviceDuration !== undefined ||
       data.notes !== undefined,
     { message: "לא נשלחו שדות לעדכון" }
   );

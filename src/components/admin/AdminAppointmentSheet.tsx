@@ -40,6 +40,10 @@ type AdminAppointmentSheetProps = {
   onDelete: (id: number) => void | Promise<void>;
   onSaveNotes: (id: number, notes: string) => void;
   onStartCalendarReschedule: (id: number) => void;
+  onUpdateSchedule: (
+    id: number,
+    data: { time?: string; serviceDuration?: number }
+  ) => void | Promise<void>;
 };
 
 function formatDisplayDate(date: string) {
@@ -55,12 +59,6 @@ function whatsAppUrl(phone: string) {
   return `https://wa.me/${normalized}`;
 }
 
-function formatDuration(minutes: number) {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-}
-
 export function AdminAppointmentSheet({
   appointment,
   loading = false,
@@ -70,8 +68,11 @@ export function AdminAppointmentSheet({
   onDelete,
   onSaveNotes,
   onStartCalendarReschedule,
+  onUpdateSchedule,
 }: AdminAppointmentSheetProps) {
   const [notes, setNotes] = useState("");
+  const [editTime, setEditTime] = useState("");
+  const [editDuration, setEditDuration] = useState(0);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -98,14 +99,19 @@ export function AdminAppointmentSheet({
   useEffect(() => {
     if (!appointment) return;
     setNotes(appointment.notes ?? "");
+    setEditTime(appointment.time);
+    setEditDuration(appointment.serviceDuration);
   }, [appointment]);
 
   const endTime = useMemo(() => {
-    if (!appointment) return "";
-    return minutesToTime(
-      timeToMinutes(appointment.time) + appointment.serviceDuration
-    );
-  }, [appointment]);
+    if (!editTime) return "";
+    return minutesToTime(timeToMinutes(editTime) + editDuration);
+  }, [editTime, editDuration]);
+
+  const scheduleDirty =
+    Boolean(appointment) &&
+    (editTime !== appointment!.time ||
+      editDuration !== appointment!.serviceDuration);
 
   if (!appointment) return null;
 
@@ -232,22 +238,59 @@ export function AdminAppointmentSheet({
             </label>
             <label className="admin-sheet-field">
               <span className="admin-sheet-field__label">שעת התחלה</span>
-              <div className="admin-sheet-field__value">{appointment.time}</div>
+              <input
+                type="time"
+                className="admin-sheet-field__input"
+                dir="ltr"
+                value={editTime}
+                disabled={loading}
+                onChange={(e) => setEditTime(e.target.value)}
+                aria-label="שעת התחלה"
+              />
             </label>
             <label className="admin-sheet-field">
-              <span className="admin-sheet-field__label">משך השירות</span>
-              <div className="admin-sheet-field__value">
-                {formatDuration(appointment.serviceDuration)}
-              </div>
+              <span className="admin-sheet-field__label">משך השירות (דק׳)</span>
+              <input
+                type="number"
+                className="admin-sheet-field__input"
+                dir="ltr"
+                min={5}
+                max={480}
+                step={5}
+                value={editDuration}
+                disabled={loading}
+                onChange={(e) => {
+                  const next = parseInt(e.target.value, 10);
+                  if (!Number.isNaN(next)) setEditDuration(next);
+                }}
+                aria-label="משך השירות בדקות"
+              />
             </label>
           </div>
+
+          {scheduleDirty && (
+            <Button
+              className="w-full"
+              loading={loading}
+              onClick={() => {
+                const payload: { time?: string; serviceDuration?: number } = {};
+                if (editTime !== appointment.time) payload.time = editTime;
+                if (editDuration !== appointment.serviceDuration) {
+                  payload.serviceDuration = editDuration;
+                }
+                void onUpdateSchedule(appointment.id, payload);
+              }}
+            >
+              שמור שעה ומשך
+            </Button>
+          )}
 
           <label className="admin-sheet-field">
             <span className="admin-sheet-field__label">שירותים</span>
             <div className="admin-sheet-service-row">
               <span>{appointment.serviceName}</span>
-              <span className="text-sm text-text-muted">
-                {appointment.time} - {endTime}
+              <span className="text-sm text-text-muted" dir="ltr">
+                {editTime} - {endTime}
               </span>
             </div>
           </label>

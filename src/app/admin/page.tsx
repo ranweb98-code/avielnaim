@@ -370,6 +370,10 @@ export default function AdminPage() {
         onDelete={deleteAppointment}
         onSaveNotes={(id, notes) => patchAppointment(id, { notes })}
         onStartCalendarReschedule={startCalendarReschedule}
+        onUpdateSchedule={async (id, data) => {
+          const ok = await patchAppointment(id, data);
+          if (ok) await load();
+        }}
       />
 
       <AdminCreateAppointmentModal

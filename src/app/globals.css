@@ -2686,6 +2686,16 @@ input[type="date"] {
   font-size: 0.9375rem;
 }
 
+.admin-sheet-field__input {
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-sheet-field__input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent-yellow) 55%, var(--border-subtle));
+}
+
 .admin-sheet-field__value {
   display: flex;
   align-items: center;
