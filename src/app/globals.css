@@ -2688,7 +2688,23 @@ input[type="date"] {
 
 .admin-sheet-field__input {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   font-variant-numeric: tabular-nums;
+}
+
+.admin-sheet-field__input--button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  text-align: center;
+}
+
+.admin-sheet-field__input--button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .admin-sheet-field__input:focus {
@@ -2712,8 +2728,109 @@ input[type="date"] {
   min-width: 0;
 }
 
+.admin-sheet-form__row--schedule {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.875rem;
+}
+
 .admin-sheet-form__row--thirds {
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.625rem;
+}
+
+.admin-duration-wheel {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 220;
+  border-radius: 1.25rem 1.25rem 0 0;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-nav);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  animation: ui-sheet-up 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.admin-duration-wheel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.admin-duration-wheel__title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.admin-duration-wheel__cancel,
+.admin-duration-wheel__done {
+  border: none;
+  background: transparent;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 2.5rem;
+  padding-inline: 0.25rem;
+}
+
+.admin-duration-wheel__cancel {
+  color: var(--text-secondary);
+}
+
+.admin-duration-wheel__done {
+  color: var(--accent-yellow);
+}
+
+.admin-duration-wheel__stage {
+  position: relative;
+  height: 220px;
+  overflow: hidden;
+}
+
+.admin-duration-wheel__highlight {
+  position: absolute;
+  inset-inline: 1rem;
+  top: 50%;
+  height: 44px;
+  margin-top: -22px;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--accent-yellow) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-yellow) 35%, transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.admin-duration-wheel__list {
+  height: 100%;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.admin-duration-wheel__spacer {
+  flex-shrink: 0;
+}
+
+.admin-duration-wheel__item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 1.125rem;
+  font-variant-numeric: tabular-nums;
+  scroll-snap-align: center;
+  cursor: pointer;
+}
+
+.admin-duration-wheel__item--active {
+  color: var(--text-primary);
+  font-weight: 700;
 }
 
 .admin-sheet-phone {
