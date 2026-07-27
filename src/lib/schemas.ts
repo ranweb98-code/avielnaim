@@ -36,6 +36,11 @@ export const appointmentUpdateSchema = z
     serviceId: z.number().int().positive().optional(),
     serviceDuration: z.number().int().positive().max(480).optional(),
     notes: z.string().nullable().optional(),
+    customerPhone: z
+      .string()
+      .min(9, "מספר טלפון לא תקין")
+      .regex(/^[\d\-+()\s]+$/, "מספר טלפון לא תקין")
+      .optional(),
   })
   .refine(
     (data) =>
@@ -44,9 +49,17 @@ export const appointmentUpdateSchema = z
       data.time !== undefined ||
       data.serviceId !== undefined ||
       data.serviceDuration !== undefined ||
-      data.notes !== undefined,
+      data.notes !== undefined ||
+      data.customerPhone !== undefined,
     { message: "לא נשלחו שדות לעדכון" }
   );
+
+export const blockedTimeSlotSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  startTime: z.string().regex(/^\d{2}:\d{2}$/),
+  endTime: z.string().regex(/^\d{2}:\d{2}$/),
+  reason: z.string().optional(),
+});
 
 export const availabilityQuerySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),

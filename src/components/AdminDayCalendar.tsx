@@ -21,6 +21,13 @@ export type AdminCalendarAppointment = {
   status: "pending" | "confirmed" | "cancelled";
 };
 
+type BlockedSlot = {
+  id: number;
+  startTime: string;
+  endTime: string;
+  reason: string | null;
+};
+
 type AdminDayCalendarProps = {
   date: string;
   appointments: AdminCalendarAppointment[];
@@ -32,6 +39,7 @@ type AdminDayCalendarProps = {
   rescheduleTargetId?: number | null;
   rescheduleMode?: boolean;
   isClosedDay?: boolean;
+  blockedSlotsRefresh?: number;
 };
 
 type DragState = {
@@ -117,6 +125,7 @@ export function AdminDayCalendar({
   rescheduleTargetId = null,
   rescheduleMode = false,
   isClosedDay = false,
+  blockedSlotsRefresh = 0,
 }: AdminDayCalendarProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const didDragRef = useRef(false);
@@ -128,6 +137,7 @@ export function AdminDayCalendar({
   const [confirming, setConfirming] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [liveNowMinutes, setLiveNowMinutes] = useState<number | null>(null);
+  const [blockedSlots, setBlockedSlots] = useState<BlockedSlot[]>([]);
   const today = formatJerusalemDate();
   const isToday = isTodayInJerusalem(date);
   const isPastDay = date < today;
@@ -145,6 +155,21 @@ export function AdminDayCalendar({
     setPendingCreateSlot(null);
     setPendingRescheduleSlot(null);
   }, [date]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/admin/blocked-slots?date=${encodeURIComponent(date)}`)
+      .then((res) => (res.ok ? res.json() : { blockedSlots: [] }))
+      .then((data) => {
+        if (!cancelled) setBlockedSlots(data.blockedSlots ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setBlockedSlots([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [date, blockedSlotsRefresh]);
 
   useEffect(() => {
     if (!rescheduleTargetId) {
@@ -214,10 +239,21 @@ export function AdminDayCalendar({
     ? appointments.find((appt) => appt.id === drag.id)
     : null;
 
+  function isBlockedAt(minutes: number, duration = SLOT_STEP): boolean {
+    const end = minutes + duration;
+    for (const block of blockedSlots) {
+      const blockStart = timeToMinutes(block.startTime);
+      const blockEnd = timeToMinutes(block.endTime);
+      if (rangesOverlap(minutes, end, blockStart, blockEnd)) return true;
+    }
+    return false;
+  }
+
   function isSlotBookable(minutes: number): boolean {
     if (isClosedDay || isPastDay) return false;
     if (minutes < startMinutes || minutes >= endMinutes - SLOT_STEP) return false;
-    return minutes >= minBookableMinutes;
+    if (minutes < minBookableMinutes) return false;
+    return !isBlockedAt(minutes);
   }
 
   function hasConflict(
@@ -232,6 +268,7 @@ export function AdminDayCalendar({
       const apptEnd = apptStart + appt.serviceDuration;
       if (rangesOverlap(minutes, end, apptStart, apptEnd)) return true;
     }
+    if (isBlockedAt(minutes, duration)) return true;
     return false;
   }
 
@@ -604,6 +641,36 @@ export function AdminDayCalendar({
                   )}
                 </div>
               )}
+
+            {blockedSlots.map((block) => {
+              const blockStart = timeToMinutes(block.startTime);
+              const blockEnd = timeToMinutes(block.endTime);
+              const top = (blockStart - startMinutes) * PX_PER_MINUTE;
+              const height = Math.max(
+                (blockEnd - blockStart) * PX_PER_MINUTE,
+                MIN_BLOCK_HEIGHT
+              );
+
+              return (
+                <div
+                  key={block.id}
+                  className="admin-cal-block admin-cal-block--blocked"
+                  style={{ top, height }}
+                  aria-label={
+                    block.reason
+                      ? `שעות חסומות: ${block.reason}`
+                      : "שעות חסומות"
+                  }
+                >
+                  <span className="admin-cal-block__text">
+                    {block.reason || "חסום"}
+                    <span className="admin-cal-block__time-range" dir="ltr">
+                      {block.startTime} - {block.endTime}
+                    </span>
+                  </span>
+                </div>
+              );
+            })}
 
             {appointments.map((appt) => {
               const baseTop =

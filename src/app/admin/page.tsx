@@ -5,6 +5,7 @@ import {
   AdminAppointmentSheet,
   type AdminSheetAppointment,
 } from "@/components/admin/AdminAppointmentSheet";
+import { AdminBlockedHours } from "@/components/admin/AdminBlockedHours";
 import {
   AdminDayCalendar,
   type AdminCalendarAppointment,
@@ -28,6 +29,7 @@ import {
 type Appointment = AdminCalendarAppointment &
   AdminSheetAppointment & {
     inspoIds: string;
+    customerId?: number | null;
   };
 
 type WorkingHour = {
@@ -41,6 +43,7 @@ type Service = {
   id: number;
   name: string;
   durationMin: number;
+  price: number;
 };
 
 const PUBLIC_CACHE_KEY = "public-api";
@@ -58,6 +61,7 @@ export default function AdminPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createInitialTime, setCreateInitialTime] = useState("");
   const [rescheduleId, setRescheduleId] = useState<number | null>(null);
+  const [blockedSlotsRefresh, setBlockedSlotsRefresh] = useState(0);
 
   const load = useCallback(async () => {
     setError("");
@@ -341,10 +345,18 @@ export default function AdminPage() {
             </div>
           )}
 
+          <div className="px-4 pb-2">
+            <AdminBlockedHours
+              date={selectedDate}
+              onChanged={() => setBlockedSlotsRefresh((n) => n + 1)}
+            />
+          </div>
+
           <AdminDayCalendar
             date={selectedDate}
             appointments={dayAppointments}
             workingHours={dayWorkingHours}
+            blockedSlotsRefresh={blockedSlotsRefresh}
             selectedId={selectedId}
             onSelect={setSelectedId}
             onSlotClick={openCreateAtTime}
@@ -358,6 +370,7 @@ export default function AdminPage() {
 
       <AdminAppointmentSheet
         appointment={selectedAppt}
+        services={services}
         loading={updating}
         onClose={() => setSelectedId(null)}
         onConfirm={(id) => patchAppointment(id, { status: "confirmed" })}
@@ -372,6 +385,14 @@ export default function AdminPage() {
         onStartCalendarReschedule={startCalendarReschedule}
         onUpdateSchedule={async (id, data) => {
           const ok = await patchAppointment(id, data);
+          if (ok) await load();
+        }}
+        onUpdatePhone={async (id, phone) => {
+          const ok = await patchAppointment(id, { customerPhone: phone });
+          if (ok) await load();
+        }}
+        onSwitchService={async (id, serviceId) => {
+          const ok = await patchAppointment(id, { serviceId });
           if (ok) await load();
         }}
       />

@@ -2,24 +2,32 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeftRight,
   Check,
   CreditCard,
   MessageCircle,
   Pencil,
+  Phone,
   Trash2,
   X,
 } from "lucide-react";
 import { Button } from "@/components/Button";
+import { ServiceCarousel } from "@/components/ServiceCarousel";
 import { Textarea } from "@/components/Input";
 import { cn } from "@/lib/cn";
+import {
+  filterAdminBookingServices,
+  toTelUrl,
+  toWhatsAppUrl,
+} from "@/lib/services";
 import { minutesToTime, timeToMinutes } from "@/lib/timezone";
 
 export type AdminSheetAppointment = {
   id: number;
   serviceId: number;
+  customerId?: number | null;
   customerName: string;
   customerPhone: string;
   customerEmail: string;
@@ -31,8 +39,16 @@ export type AdminSheetAppointment = {
   status: "pending" | "confirmed" | "cancelled";
 };
 
+type ServiceOption = {
+  id: number;
+  name: string;
+  durationMin: number;
+  price?: number;
+};
+
 type AdminAppointmentSheetProps = {
   appointment: AdminSheetAppointment | null;
+  services?: ServiceOption[];
   loading?: boolean;
   onClose: () => void;
   onConfirm: (id: number) => void;
@@ -44,6 +60,8 @@ type AdminAppointmentSheetProps = {
     id: number,
     data: { time?: string; serviceDuration?: number }
   ) => void | Promise<void>;
+  onUpdatePhone: (id: number, phone: string) => void | Promise<void>;
+  onSwitchService: (id: number, serviceId: number) => void | Promise<void>;
 };
 
 const DURATION_OPTIONS = Array.from({ length: 36 }, (_, i) => (i + 1) * 5); // 5..180
@@ -52,14 +70,6 @@ const WHEEL_ITEM_HEIGHT = 44;
 function formatDisplayDate(date: string) {
   const [y, m, d] = date.split("-");
   return `${d}/${m}/${y}`;
-}
-
-function whatsAppUrl(phone: string) {
-  const digits = phone.replace(/\D/g, "");
-  const normalized = digits.startsWith("0")
-    ? `972${digits.slice(1)}`
-    : digits;
-  return `https://wa.me/${normalized}`;
 }
 
 function DurationWheelPicker({
@@ -90,7 +100,6 @@ function DurationWheelPicker({
     if (!el) return;
     const index = DURATION_OPTIONS.indexOf(selected);
     if (index < 0) return;
-    // Initial align only — avoid fighting finger scroll
     el.scrollTop = index * WHEEL_ITEM_HEIGHT;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -184,6 +193,7 @@ function DurationWheelPicker({
 
 export function AdminAppointmentSheet({
   appointment,
+  services = [],
   loading = false,
   onClose,
   onConfirm,
@@ -192,12 +202,17 @@ export function AdminAppointmentSheet({
   onSaveNotes,
   onStartCalendarReschedule,
   onUpdateSchedule,
+  onUpdatePhone,
+  onSwitchService,
 }: AdminAppointmentSheetProps) {
+  const router = useRouter();
   const [notes, setNotes] = useState("");
+  const [editPhone, setEditPhone] = useState("");
   const [editTime, setEditTime] = useState("");
   const [editDuration, setEditDuration] = useState(0);
   const [showDurationPicker, setShowDurationPicker] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showPhoneConfirm, setShowPhoneConfirm] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -208,6 +223,7 @@ export function AdminAppointmentSheet({
     if (!appointment) {
       setShowDeleteConfirm(false);
       setShowDurationPicker(false);
+      setShowPhoneConfirm(false);
     }
   }, [appointment]);
 
@@ -224,6 +240,7 @@ export function AdminAppointmentSheet({
   useEffect(() => {
     if (!appointment) return;
     setNotes(appointment.notes ?? "");
+    setEditPhone(appointment.customerPhone);
     setEditTime(appointment.time);
     setEditDuration(appointment.serviceDuration);
   }, [appointment]);
@@ -237,6 +254,33 @@ export function AdminAppointmentSheet({
     Boolean(appointment) &&
     (editTime !== appointment!.time ||
       editDuration !== appointment!.serviceDuration);
+
+  const phoneDirty =
+    Boolean(appointment) && editPhone.trim() !== appointment!.customerPhone;
+
+  const haircutServices = useMemo(
+    () =>
+      filterAdminBookingServices(services).map((s) => ({
+        id: s.id,
+        name: s.name,
+        durationMin: s.durationMin,
+        price: "price" in s ? (s.price as number) : 0,
+        description: null,
+      })),
+    [services]
+  );
+
+  function goToCustomerEdit() {
+    if (!appointment) return;
+    onClose();
+    if (appointment.customerId) {
+      router.push(`/admin/customers?edit=${appointment.customerId}`);
+      return;
+    }
+    router.push(
+      `/admin/customers?q=${encodeURIComponent(appointment.customerPhone)}`
+    );
+  }
 
   if (!appointment) return null;
 
@@ -292,9 +336,65 @@ export function AdminAppointmentSheet({
         )
       : null;
 
+  const phoneConfirmDialog =
+    showPhoneConfirm && mounted
+      ? createPortal(
+          <>
+            <button
+              type="button"
+              className="admin-move-confirm-backdrop"
+              aria-label="סגור"
+              disabled={loading}
+              onClick={() => !loading && setShowPhoneConfirm(false)}
+            />
+            <div
+              className="admin-move-confirm-modal"
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="admin-phone-confirm-title"
+            >
+              <p
+                id="admin-phone-confirm-title"
+                className="admin-move-confirm-modal__text"
+              >
+                לעדכן את המספר ל-<strong dir="ltr">{editPhone.trim()}</strong>?
+                <br />
+                <span className="text-sm text-text-muted">
+                  המספר יתעדכן גם בכרטיס הלקוח ובכל התורים שלו
+                </span>
+              </p>
+              <div className="admin-move-confirm-modal__actions">
+                <button
+                  type="button"
+                  className="admin-cal__confirm-btn admin-cal__confirm-btn--yes"
+                  disabled={loading}
+                  onClick={() => {
+                    void Promise.resolve(
+                      onUpdatePhone(appointment.id, editPhone.trim())
+                    ).then(() => setShowPhoneConfirm(false));
+                  }}
+                >
+                  {loading ? "שומר..." : "כן, עדכן"}
+                </button>
+                <button
+                  type="button"
+                  className="admin-cal__confirm-btn admin-cal__confirm-btn--no"
+                  disabled={loading}
+                  onClick={() => setShowPhoneConfirm(false)}
+                >
+                  ביטול
+                </button>
+              </div>
+            </div>
+          </>,
+          document.body
+        )
+      : null;
+
   return (
     <>
       {deleteConfirmDialog}
+      {phoneConfirmDialog}
       {showDurationPicker && (
         <DurationWheelPicker
           value={editDuration}
@@ -316,7 +416,13 @@ export function AdminAppointmentSheet({
           <div className="admin-sheet__handle" aria-hidden />
           <div className="admin-sheet__header">
             <div className="min-w-0">
-              <h2 className="admin-sheet__title">{appointment.customerName}</h2>
+              <button
+                type="button"
+                className="admin-sheet__title admin-sheet__title--link"
+                onClick={goToCustomerEdit}
+              >
+                {appointment.customerName}
+              </button>
               {appointment.status === "cancelled" && (
                 <p className="admin-sheet__status">
                   {appointment.notes === "הברזה" ? "הברזה" : "בוטל"}
@@ -334,12 +440,24 @@ export function AdminAppointmentSheet({
           </div>
 
           <div className="admin-sheet__body">
-            <label className="admin-sheet-field">
-              <span className="admin-sheet-field__label">שם</span>
-              <div className="admin-sheet-field__value">
-                {appointment.customerName}
-              </div>
-            </label>
+            <div className="admin-sheet-contact-actions">
+              <a
+                href={toWhatsAppUrl(appointment.customerPhone)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="admin-sheet-contact-btn admin-sheet-contact-btn--whatsapp"
+              >
+                <MessageCircle className="h-5 w-5" />
+                <span>WhatsApp</span>
+              </a>
+              <a
+                href={toTelUrl(appointment.customerPhone)}
+                className="admin-sheet-contact-btn admin-sheet-contact-btn--call"
+              >
+                <Phone className="h-5 w-5" />
+                <span>התקשר</span>
+              </a>
+            </div>
 
             <Textarea
               label="הערות לקוח/ה"
@@ -351,20 +469,28 @@ export function AdminAppointmentSheet({
             <div className="admin-sheet-phone">
               <label className="admin-sheet-field admin-sheet-field--grow">
                 <span className="admin-sheet-field__label">מספר נייד</span>
-                <div className="admin-sheet-field__value" dir="ltr">
-                  {appointment.customerPhone}
-                </div>
+                <input
+                  type="tel"
+                  className="admin-sheet-field__input"
+                  dir="ltr"
+                  value={editPhone}
+                  disabled={loading}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  aria-label="מספר נייד"
+                />
               </label>
-              <a
-                href={whatsAppUrl(appointment.customerPhone)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="admin-sheet-whatsapp"
-                aria-label="WhatsApp"
-              >
-                <MessageCircle className="h-5 w-5" />
-              </a>
             </div>
+
+            {phoneDirty && (
+              <Button
+                variant="secondary"
+                className="w-full"
+                loading={loading}
+                onClick={() => setShowPhoneConfirm(true)}
+              >
+                שמור מספר
+              </Button>
+            )}
 
             <label className="admin-sheet-field">
               <span className="admin-sheet-field__label">תאריך</span>
@@ -420,15 +546,31 @@ export function AdminAppointmentSheet({
               </Button>
             )}
 
-            <label className="admin-sheet-field">
-              <span className="admin-sheet-field__label">שירותים</span>
-              <div className="admin-sheet-service-row">
-                <span>{appointment.serviceName}</span>
-                <span className="text-sm text-text-muted" dir="ltr">
-                  {editTime} - {endTime}
-                </span>
-              </div>
-            </label>
+            {haircutServices.length > 0 && appointment.status !== "cancelled" && (
+              <ServiceCarousel
+                services={haircutServices}
+                selectedId={appointment.serviceId}
+                onSelect={(id) => {
+                  if (id !== appointment.serviceId) {
+                    void onSwitchService(appointment.id, id);
+                  }
+                }}
+                disabled={loading}
+                label="סוג תספורת"
+              />
+            )}
+
+            {appointment.status === "cancelled" && (
+              <label className="admin-sheet-field">
+                <span className="admin-sheet-field__label">שירותים</span>
+                <div className="admin-sheet-service-row">
+                  <span>{appointment.serviceName}</span>
+                  <span className="text-sm text-text-muted" dir="ltr">
+                    {editTime} - {endTime}
+                  </span>
+                </div>
+              </label>
+            )}
 
             {notes !== (appointment.notes ?? "") && (
               <Button
@@ -442,13 +584,14 @@ export function AdminAppointmentSheet({
             )}
 
             <div className="admin-sheet-actions">
-              <Link
-                href={`/admin/customers?q=${encodeURIComponent(appointment.customerPhone)}`}
+              <button
+                type="button"
                 className="admin-sheet-action"
+                onClick={goToCustomerEdit}
               >
                 <CreditCard className="h-5 w-5" />
-                <span>כרטיס</span>
-              </Link>
+                <span>לקוח</span>
+              </button>
               <button
                 type="button"
                 className="admin-sheet-action"

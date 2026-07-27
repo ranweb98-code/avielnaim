@@ -17,7 +17,30 @@ export type OccupiedBlock = {
   start: string;
   durationMin: number;
   label?: string;
+  blocked?: boolean;
 };
+
+async function getBlockedTimeSlots(date: string) {
+  return prisma.blockedTimeSlot.findMany({
+    where: { date },
+    orderBy: { startTime: "asc" },
+  });
+}
+
+function slotOverlapsBlockedRange(
+  slotStart: number,
+  slotEnd: number,
+  blockedRanges: Array<{ startTime: string; endTime: string }>
+): boolean {
+  for (const block of blockedRanges) {
+    const blockStart = timeToMinutes(block.startTime);
+    const blockEnd = timeToMinutes(block.endTime);
+    if (rangesOverlap(slotStart, slotEnd, blockStart, blockEnd)) {
+      return true;
+    }
+  }
+  return false;
+}
 
 export type DaySchedule = {
   slots: string[];
@@ -101,19 +124,35 @@ export async function getDaySchedule(
     },
   });
 
+  const blockedSlots = await getBlockedTimeSlots(date);
+
   const serviceDuration = service.durationMin;
 
-  const occupied: OccupiedBlock[] = appointments.map((appt) => ({
-    start: appt.time,
-    durationMin: appt.serviceDuration,
-    ...(options?.includeOccupiedLabels
-      ? { label: `${appt.customerName} · ${appt.serviceName}` }
-      : {}),
-  }));
+  const occupied: OccupiedBlock[] = [
+    ...appointments.map((appt) => ({
+      start: appt.time,
+      durationMin: appt.serviceDuration,
+      ...(options?.includeOccupiedLabels
+        ? { label: `${appt.customerName} · ${appt.serviceName}` }
+        : {}),
+    })),
+    ...blockedSlots.map((block) => ({
+      start: block.startTime,
+      durationMin: timeToMinutes(block.endTime) - timeToMinutes(block.startTime),
+      blocked: true,
+      ...(options?.includeOccupiedLabels
+        ? { label: block.reason ? `חסום · ${block.reason}` : "חסום" }
+        : {}),
+    })),
+  ];
 
   let availableSlots = allSlots.filter((slot) => {
     const slotStart = timeToMinutes(slot);
     const slotEnd = slotStart + serviceDuration;
+
+    if (slotOverlapsBlockedRange(slotStart, slotEnd, blockedSlots)) {
+      return false;
+    }
 
     for (const appt of appointments) {
       const apptStart = timeToMinutes(appt.time);
@@ -175,6 +214,9 @@ export async function isSlotAvailable(
   const whEnd = timeToMinutes(workingHours.endTime);
 
   if (start < whStart || end > whEnd) return false;
+
+  const blockedSlots = await getBlockedTimeSlots(date);
+  if (slotOverlapsBlockedRange(start, end, blockedSlots)) return false;
 
   const timeStep = await getBookingTimeStep();
   if (start % timeStep !== 0) return false;

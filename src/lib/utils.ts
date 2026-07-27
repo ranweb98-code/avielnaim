@@ -41,6 +41,12 @@ export function formatDuration(minutes: number): string {
   return `${minutes} דק'`;
 }
 
+/** Builds a tel: link from a local IL phone number. */
+export function toTelUrl(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  return `tel:${digits}`;
+}
+
 /** Builds a wa.me link from a local IL phone number or international digits. */
 export function toWhatsAppUrl(phone: string, message?: string): string {
   const digits = phone.replace(/\D/g, "");

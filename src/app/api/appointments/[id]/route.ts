@@ -6,6 +6,7 @@ import { sendCustomerConfirmationEmail } from "@/lib/email";
 import { sendPushToCustomer } from "@/lib/push";
 import { prisma } from "@/lib/prisma";
 import { appointmentUpdateSchema } from "@/lib/schemas";
+import { syncCustomerPhone } from "@/lib/sync-customer-phone";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -160,6 +161,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         data: {
           ...(data.status !== undefined ? { status: data.status } : {}),
           ...(data.notes !== undefined ? { notes: data.notes } : {}),
+          ...(data.customerPhone !== undefined
+            ? { customerPhone: data.customerPhone.trim() }
+            : {}),
           date: targetDate,
           time: targetTime,
           serviceId: service.id,
@@ -168,6 +172,25 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           servicePrice: data.serviceId ? service.price : existing.servicePrice,
         },
       });
+
+      if (data.customerPhone !== undefined && existing.customerId) {
+        const sync = await syncCustomerPhone(
+          existing.customerId,
+          data.customerPhone,
+          existing.customerId
+        );
+        if ("error" in sync) {
+          return NextResponse.json({ error: sync.error }, { status: 409 });
+        }
+      } else if (data.customerPhone !== undefined) {
+        await prisma.appointment.updateMany({
+          where: {
+            customerPhone: existing.customerPhone,
+            customerName: existing.customerName,
+          },
+          data: { customerPhone: data.customerPhone.trim() },
+        });
+      }
 
       if (
         data.status !== undefined &&
@@ -186,8 +209,30 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       data: {
         ...(data.status !== undefined ? { status: data.status } : {}),
         ...(data.notes !== undefined ? { notes: data.notes } : {}),
+        ...(data.customerPhone !== undefined
+          ? { customerPhone: data.customerPhone.trim() }
+          : {}),
       },
     });
+
+    if (data.customerPhone !== undefined && existing.customerId) {
+      const sync = await syncCustomerPhone(
+        existing.customerId,
+        data.customerPhone,
+        existing.customerId
+      );
+      if ("error" in sync) {
+        return NextResponse.json({ error: sync.error }, { status: 409 });
+      }
+    } else if (data.customerPhone !== undefined) {
+      await prisma.appointment.updateMany({
+        where: {
+          customerPhone: existing.customerPhone,
+          customerName: existing.customerName,
+        },
+        data: { customerPhone: data.customerPhone.trim() },
+      });
+    }
 
     if (data.status !== undefined && data.status !== previousStatus) {
       await notifyStatusChange(appointment).catch((err) =>

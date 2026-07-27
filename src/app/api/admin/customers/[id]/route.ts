@@ -3,6 +3,7 @@ import { isAuthenticated } from "@/lib/auth";
 import { formatCustomerName, storeFullName } from "@/lib/customers";
 import { prisma } from "@/lib/prisma";
 import { customerUpdateSchema } from "@/lib/schemas";
+import { syncCustomerPhone } from "@/lib/sync-customer-phone";
 
 async function requireAdmin() {
   const authed = await isAuthenticated();
@@ -75,17 +76,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const data = parsed.data;
 
     if (data.phone) {
-      const duplicate = await prisma.customer.findFirst({
-        where: {
-          phone: data.phone.trim(),
-          NOT: { id: customerId },
-        },
-      });
-      if (duplicate) {
-        return NextResponse.json(
-          { error: "מספר טלפון כבר בשימוש" },
-          { status: 409 }
-        );
+      const sync = await syncCustomerPhone(customerId, data.phone, customerId);
+      if ("error" in sync) {
+        return NextResponse.json({ error: sync.error }, { status: 409 });
       }
     }
 
@@ -95,13 +88,27 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         ...(data.fullName !== undefined
           ? storeFullName(data.fullName)
           : {}),
-        ...(data.phone !== undefined ? { phone: data.phone.trim() } : {}),
         ...(data.email !== undefined ? { email: data.email } : {}),
         ...(data.notes !== undefined
           ? { notes: data.notes?.trim() || null }
           : {}),
       },
     });
+
+    if (data.fullName !== undefined) {
+      const fullName = formatCustomerName(customer.firstName, customer.lastName);
+      await prisma.appointment.updateMany({
+        where: { customerId },
+        data: { customerName: fullName },
+      });
+    }
+
+    if (data.email !== undefined) {
+      await prisma.appointment.updateMany({
+        where: { customerId },
+        data: { customerEmail: data.email },
+      });
+    }
 
     return NextResponse.json({ customer });
   } catch (error) {

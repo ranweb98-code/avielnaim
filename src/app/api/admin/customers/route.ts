@@ -3,6 +3,7 @@ import { isAuthenticated } from "@/lib/auth";
 import { formatCustomerName, searchCustomers, storeFullName } from "@/lib/customers";
 import { prisma } from "@/lib/prisma";
 import { customerCreateSchema } from "@/lib/schemas";
+import { formatJerusalemDate } from "@/lib/timezone";
 
 async function requireAdmin() {
   const authed = await isAuthenticated();
@@ -18,6 +19,34 @@ export async function GET(request: NextRequest) {
 
   const q = request.nextUrl.searchParams.get("q") ?? "";
   const customers = await searchCustomers(q);
+  const today = formatJerusalemDate();
+
+  const upcomingAppointments = await prisma.appointment.findMany({
+    where: {
+      customerId: { in: customers.map((c) => c.id) },
+      status: { in: ["pending", "confirmed"] },
+      date: { gte: today },
+    },
+    orderBy: [{ date: "asc" }, { time: "asc" }],
+    select: {
+      id: true,
+      customerId: true,
+      date: true,
+      time: true,
+      serviceName: true,
+      status: true,
+    },
+  });
+
+  const upcomingByCustomer = new Map<
+    number,
+    (typeof upcomingAppointments)[number]
+  >();
+  for (const appt of upcomingAppointments) {
+    if (appt.customerId && !upcomingByCustomer.has(appt.customerId)) {
+      upcomingByCustomer.set(appt.customerId, appt);
+    }
+  }
 
   return NextResponse.json({
     customers: customers.map((c) => ({
@@ -29,6 +58,7 @@ export async function GET(request: NextRequest) {
       email: c.email,
       notes: c.notes,
       appointmentCount: c._count.appointments,
+      upcomingAppointment: upcomingByCustomer.get(c.id) ?? null,
       createdAt: c.createdAt,
       updatedAt: c.updatedAt,
     })),

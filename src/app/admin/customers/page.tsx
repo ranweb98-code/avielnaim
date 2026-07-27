@@ -7,7 +7,9 @@ import {
   ChevronDown,
   ChevronUp,
   Download,
+  MessageCircle,
   Pencil,
+  Phone,
   Plus,
   Search,
   Trash2,
@@ -22,6 +24,7 @@ import { GlassCard } from "@/components/GlassCard";
 import { Input, Textarea } from "@/components/Input";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { cn } from "@/lib/cn";
+import { toTelUrl, toWhatsAppUrl } from "@/lib/utils";
 
 type CustomerListItem = {
   id: number;
@@ -32,6 +35,13 @@ type CustomerListItem = {
   email: string;
   notes: string | null;
   appointmentCount: number;
+  upcomingAppointment: {
+    id: number;
+    date: string;
+    time: string;
+    serviceName: string;
+    status: "pending" | "confirmed" | "cancelled";
+  } | null;
 };
 
 type AppointmentHistoryItem = {
@@ -100,7 +110,9 @@ function AdminCustomersContent() {
   const [form, setForm] = useState<CustomerForm>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const openedEditRef = useRef<number | null>(null);
 
   const loadCustomers = useCallback(async (search: string) => {
     setLoading(true);
@@ -125,6 +137,46 @@ function AdminCustomersContent() {
     const q = searchParams.get("q");
     if (q) setQuery(q);
   }, [searchParams]);
+
+  useEffect(() => {
+    const editParam = searchParams.get("edit");
+    if (!editParam || loading) return;
+
+    const editId = parseInt(editParam, 10);
+    if (Number.isNaN(editId) || openedEditRef.current === editId) return;
+
+    async function openEditById() {
+      const found = customers.find((c) => c.id === editId);
+      if (found) {
+        openedEditRef.current = editId;
+        openEditModal(found);
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/admin/customers/${editId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const customer = data.customer;
+        openedEditRef.current = editId;
+        openEditModal({
+          id: customer.id,
+          firstName: customer.firstName,
+          lastName: customer.lastName,
+          fullName: customer.fullName,
+          phone: customer.phone,
+          email: customer.email,
+          notes: customer.notes,
+          appointmentCount: customer.appointments?.length ?? 0,
+          upcomingAppointment: null,
+        });
+      } catch {
+        /* ignore */
+      }
+    }
+
+    void openEditById();
+  }, [searchParams, customers, loading]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -182,6 +234,7 @@ function AdminCustomersContent() {
         return;
       }
       setModalOpen(false);
+      setShowSaveConfirm(false);
       setSuccess(editingId ? "הלקוח עודכן" : "הלקוח נוסף");
       setDetailCache((prev) => {
         const next = { ...prev };
@@ -194,6 +247,14 @@ function AdminCustomersContent() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function requestSaveCustomer() {
+    if (editingId) {
+      setShowSaveConfirm(true);
+      return;
+    }
+    void saveCustomer();
   }
 
   async function deleteCustomer(id: number) {
@@ -406,8 +467,35 @@ function AdminCustomersContent() {
                       <p className="mt-1 text-xs text-text-muted">
                         {customer.appointmentCount} תורים
                       </p>
+                      {customer.upcomingAppointment && (
+                        <p className="mt-1 text-xs text-accent-yellow">
+                          בתור: {customer.upcomingAppointment.date} ·{" "}
+                          {customer.upcomingAppointment.time} ·{" "}
+                          {customer.upcomingAppointment.serviceName}
+                        </p>
+                      )}
                     </div>
                     <div className="flex shrink-0 gap-1">
+                      {customer.upcomingAppointment && (
+                        <>
+                          <a
+                            href={toWhatsAppUrl(customer.phone)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="rounded-xl p-2 text-green-500 hover:bg-green-500/10"
+                            aria-label="WhatsApp"
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                          </a>
+                          <a
+                            href={toTelUrl(customer.phone)}
+                            className="rounded-xl p-2 text-text-secondary hover:bg-bg-card-hover"
+                            aria-label="התקשר"
+                          >
+                            <Phone className="h-4 w-4" />
+                          </a>
+                        </>
+                      )}
                       <button
                         type="button"
                         className="rounded-xl p-2 text-text-secondary hover:bg-bg-card-hover"
@@ -529,9 +617,51 @@ function AdminCustomersContent() {
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
                 rows={3}
               />
-              <Button className="w-full" loading={saving} onClick={saveCustomer}>
+              <Button className="w-full" loading={saving} onClick={requestSaveCustomer}>
                 {editingId ? "שמור שינויים" : "הוסף לקוח"}
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSaveConfirm && (
+        <div className="admin-modal-overlay" role="alertdialog" aria-modal="true">
+          <button
+            type="button"
+            className="admin-sheet-backdrop"
+            aria-label="סגור"
+            onClick={() => setShowSaveConfirm(false)}
+          />
+          <div className="admin-move-confirm-modal admin-move-confirm-modal--inline">
+            <p className="admin-move-confirm-modal__text">
+              לאשר את השינויים בכרטיס הלקוח?
+              {form.phone && (
+                <>
+                  <br />
+                  <span className="text-sm text-text-muted">
+                    שינוי מספר יתעדכן גם בכל התורים של הלקוח
+                  </span>
+                </>
+              )}
+            </p>
+            <div className="admin-move-confirm-modal__actions">
+              <button
+                type="button"
+                className="admin-cal__confirm-btn admin-cal__confirm-btn--yes"
+                disabled={saving}
+                onClick={() => void saveCustomer()}
+              >
+                {saving ? "שומר..." : "כן, שמור"}
+              </button>
+              <button
+                type="button"
+                className="admin-cal__confirm-btn admin-cal__confirm-btn--no"
+                disabled={saving}
+                onClick={() => setShowSaveConfirm(false)}
+              >
+                ביטול
+              </button>
             </div>
           </div>
         </div>

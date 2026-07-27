@@ -6,12 +6,17 @@ import { Button } from "@/components/Button";
 import { ContactPickerButton } from "@/components/ContactPickerButton";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { Input, Textarea } from "@/components/Input";
+import { ServiceCarousel } from "@/components/ServiceCarousel";
 import { TimeSlotGrid } from "@/components/TimeSlotGrid";
 import { cn } from "@/lib/cn";
 import { isIOSDevice } from "@/lib/device";
 import {
   type PickedContact,
 } from "@/lib/contact-picker";
+import {
+  filterAdminBookingServices,
+  findHaircutService,
+} from "@/lib/services";
 import { formatJerusalemDate, parseJerusalemDate } from "@/lib/timezone";
 import { format } from "date-fns";
 
@@ -86,9 +91,14 @@ export function AdminCreateAppointmentModal({
     fetch("/api/public")
       .then((r) => r.json())
       .then((data) => {
-        setServices(data.services ?? []);
-        if (data.services?.length > 0) {
-          setServiceId(data.services[0].id);
+        const allServices: Service[] = data.services ?? [];
+        const bookingServices = filterAdminBookingServices(allServices);
+        setServices(bookingServices);
+        const defaultService = findHaircutService(bookingServices);
+        if (defaultService) {
+          setServiceId(defaultService.id);
+        } else if (bookingServices.length > 0) {
+          setServiceId(bookingServices[0].id);
         }
         setDate(initialDate ?? formatJerusalemDate());
         setTime(initialTime ?? "");
@@ -365,25 +375,15 @@ export function AdminCreateAppointmentModal({
                 )}
               </label>
 
-              <label className="admin-sheet-field">
-                <span className="admin-sheet-field__label">שירותים</span>
-                <select
-                  className="admin-sheet-field__input"
-                  value={serviceId ?? ""}
-                  onChange={(e) => {
-                    setServiceId(Number(e.target.value));
-                  }}
-                >
-                  {services.map((service) => (
-                    <option key={service.id} value={service.id}>
-                      {service.name}
-                    </option>
-                  ))}
-                </select>
-                {formErrors.service && (
-                  <span className="text-sm text-red-400">{formErrors.service}</span>
-                )}
-              </label>
+              <ServiceCarousel
+                services={services}
+                selectedId={serviceId}
+                onSelect={setServiceId}
+                label="סוג תספורת"
+              />
+              {formErrors.service && (
+                <span className="text-sm text-red-400">{formErrors.service}</span>
+              )}
 
               <div>
                 <span className="admin-sheet-field__label">לקוח/ה</span>
