@@ -213,6 +213,8 @@ export function AdminAppointmentSheet({
   const [showDurationPicker, setShowDurationPicker] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showPhoneConfirm, setShowPhoneConfirm] = useState(false);
+  const [showServiceConfirm, setShowServiceConfirm] = useState(false);
+  const [pendingServiceId, setPendingServiceId] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -224,6 +226,8 @@ export function AdminAppointmentSheet({
       setShowDeleteConfirm(false);
       setShowDurationPicker(false);
       setShowPhoneConfirm(false);
+      setShowServiceConfirm(false);
+      setPendingServiceId(null);
     }
   }, [appointment]);
 
@@ -280,6 +284,16 @@ export function AdminAppointmentSheet({
     router.push(
       `/admin/customers?q=${encodeURIComponent(appointment.customerPhone)}`
     );
+  }
+
+  const pendingService = pendingServiceId
+    ? haircutServices.find((s) => s.id === pendingServiceId)
+    : null;
+
+  function requestServiceSwitch(serviceId: number) {
+    if (!appointment || serviceId === appointment.serviceId) return;
+    setPendingServiceId(serviceId);
+    setShowServiceConfirm(true);
   }
 
   if (!appointment) return null;
@@ -391,10 +405,73 @@ export function AdminAppointmentSheet({
         )
       : null;
 
+  const serviceConfirmDialog =
+    showServiceConfirm && pendingService && mounted
+      ? createPortal(
+          <>
+            <button
+              type="button"
+              className="admin-move-confirm-backdrop"
+              aria-label="סגור"
+              disabled={loading}
+              onClick={() => {
+                if (loading) return;
+                setShowServiceConfirm(false);
+                setPendingServiceId(null);
+              }}
+            />
+            <div
+              className="admin-move-confirm-modal"
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="admin-service-confirm-title"
+            >
+              <p
+                id="admin-service-confirm-title"
+                className="admin-move-confirm-modal__text"
+              >
+                להחליף את השירות מ-<strong>{appointment.serviceName}</strong>{" "}
+                ל-<strong>{pendingService.name}</strong>?
+              </p>
+              <div className="admin-move-confirm-modal__actions">
+                <button
+                  type="button"
+                  className="admin-cal__confirm-btn admin-cal__confirm-btn--yes"
+                  disabled={loading}
+                  onClick={() => {
+                    void Promise.resolve(
+                      onSwitchService(appointment.id, pendingService.id)
+                    ).then(() => {
+                      setShowServiceConfirm(false);
+                      setPendingServiceId(null);
+                    });
+                  }}
+                >
+                  {loading ? "מעדכן..." : "כן, החלף"}
+                </button>
+                <button
+                  type="button"
+                  className="admin-cal__confirm-btn admin-cal__confirm-btn--no"
+                  disabled={loading}
+                  onClick={() => {
+                    setShowServiceConfirm(false);
+                    setPendingServiceId(null);
+                  }}
+                >
+                  ביטול
+                </button>
+              </div>
+            </div>
+          </>,
+          document.body
+        )
+      : null;
+
   return (
     <>
       {deleteConfirmDialog}
       {phoneConfirmDialog}
+      {serviceConfirmDialog}
       {showDurationPicker && (
         <DurationWheelPicker
           value={editDuration}
@@ -550,12 +627,8 @@ export function AdminAppointmentSheet({
               <ServiceCarousel
                 services={haircutServices}
                 selectedId={appointment.serviceId}
-                onSelect={(id) => {
-                  if (id !== appointment.serviceId) {
-                    void onSwitchService(appointment.id, id);
-                  }
-                }}
-                disabled={loading}
+                onSelect={requestServiceSwitch}
+                disabled={loading || showServiceConfirm}
                 label="סוג תספורת"
               />
             )}
