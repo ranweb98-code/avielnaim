@@ -35,6 +35,12 @@ type Service = {
   price: number;
 };
 
+type SlotFit = {
+  maxFitDuration: number;
+  catalogDuration: number;
+  fitsFully: boolean;
+};
+
 type AdminCreateAppointmentModalProps = {
   open: boolean;
   initialDate?: string;
@@ -77,6 +83,9 @@ export function AdminCreateAppointmentModal({
   >([]);
   const [showCustomerResults, setShowCustomerResults] = useState(false);
   const [useNativeTimePicker, setUseNativeTimePicker] = useState(false);
+  const [slotFit, setSlotFit] = useState<SlotFit | null>(null);
+  const [slotFitLoading, setSlotFitLoading] = useState(false);
+  const [showReducedConfirm, setShowReducedConfirm] = useState(false);
 
   useEffect(() => {
     setUseNativeTimePicker(isIOSDevice());
@@ -109,6 +118,8 @@ export function AdminCreateAppointmentModal({
         setCustomerQuery("");
         setFormErrors({});
         setError("");
+        setSlotFit(null);
+        setShowReducedConfirm(false);
       })
       .catch(() => setError("שגיאה בטעינת נתונים"))
       .finally(() => setLoading(false));
@@ -208,6 +219,34 @@ export function AdminCreateAppointmentModal({
     }, 0);
   }
 
+  useEffect(() => {
+    if (!open || !date || !serviceId || !time) {
+      setSlotFit(null);
+      return;
+    }
+
+    let cancelled = false;
+    setSlotFitLoading(true);
+
+    fetch(
+      `/api/admin/slot-fit?date=${encodeURIComponent(date)}&serviceId=${serviceId}&time=${encodeURIComponent(time)}`
+    )
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled) setSlotFit(data);
+      })
+      .catch(() => {
+        if (!cancelled) setSlotFit(null);
+      })
+      .finally(() => {
+        if (!cancelled) setSlotFitLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, date, serviceId, time]);
+
   function validateForm() {
     const errors: Record<string, string> = {};
     if (!serviceId) errors.service = "יש לבחור שירות";
@@ -222,27 +261,32 @@ export function AdminCreateAppointmentModal({
     return Object.keys(errors).length === 0;
   }
 
-  async function submit() {
+  async function createAppointment(durationOverride?: number) {
     if (!serviceId || !date || !time) return;
-    if (!validateForm()) return;
 
     setSubmitting(true);
     setError("");
 
     try {
+      const payload: Record<string, unknown> = {
+        serviceId,
+        date,
+        time,
+        customerName: name,
+        customerPhone: phone,
+        customerEmail: email.trim() || undefined,
+        notes: notes.trim() || undefined,
+        inspoIds: [],
+      };
+
+      if (durationOverride !== undefined) {
+        payload.serviceDuration = durationOverride;
+      }
+
       const res = await fetch("/api/admin/appointments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          serviceId,
-          date,
-          time,
-          customerName: name,
-          customerPhone: phone,
-          customerEmail: email.trim() || undefined,
-          notes: notes.trim() || undefined,
-          inspoIds: [],
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -260,8 +304,32 @@ export function AdminCreateAppointmentModal({
       setError("שגיאה ביצירת התור");
     } finally {
       setSubmitting(false);
+      setShowReducedConfirm(false);
     }
   }
+
+  async function submit() {
+    if (!serviceId || !date || !time) return;
+    if (!validateForm()) return;
+
+    if (slotFit && !slotFit.fitsFully) {
+      if (slotFit.maxFitDuration < 5) {
+        setError("אין מספיק זמן לקביעת תור במועד זה");
+        return;
+      }
+      setShowReducedConfirm(true);
+      return;
+    }
+
+    await createAppointment();
+  }
+
+  async function confirmReducedDuration() {
+    if (!slotFit) return;
+    await createAppointment(slotFit.maxFitDuration);
+  }
+
+  const selectedService = services.find((s) => s.id === serviceId) ?? null;
 
   if (!open) return null;
 
@@ -271,6 +339,7 @@ export function AdminCreateAppointmentModal({
       : timeSlots;
 
   return (
+    <>
     <div className="admin-modal-overlay" role="dialog" aria-modal="true">
       <div className="admin-modal admin-modal--calmark">
         <div className="admin-modal__header">
@@ -373,6 +442,16 @@ export function AdminCreateAppointmentModal({
                     {formErrors.time}
                   </span>
                 )}
+                {slotFit &&
+                  !slotFitLoading &&
+                  !slotFit.fitsFully &&
+                  slotFit.maxFitDuration >= 5 && (
+                    <p className="mt-2 text-sm text-amber-600">
+                      אין מספיק זמן ל{selectedService?.name ?? "שירות"} (
+                      {slotFit.catalogDuration} דק&apos;). ניתן לקבוע תור של{" "}
+                      {slotFit.maxFitDuration} דק&apos; בלבד.
+                    </p>
+                  )}
               </label>
 
               <ServiceCarousel
@@ -483,7 +562,7 @@ export function AdminCreateAppointmentModal({
           <Button
             className="mt-5 w-full"
             loading={submitting}
-            disabled={!serviceId || !date || !time}
+            disabled={!serviceId || !date || !time || slotFitLoading}
             onClick={submit}
           >
             שמירה
@@ -491,5 +570,51 @@ export function AdminCreateAppointmentModal({
         </div>
       </div>
     </div>
+
+    {showReducedConfirm && slotFit && (
+      <div
+        className="admin-modal-overlay"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="reduced-duration-title"
+      >
+        <button
+          type="button"
+          className="admin-sheet-backdrop"
+          aria-label="סגור"
+          onClick={() => setShowReducedConfirm(false)}
+        />
+        <div className="admin-move-confirm-modal admin-move-confirm-modal--inline">
+          <p
+            id="reduced-duration-title"
+            className="admin-move-confirm-modal__text"
+          >
+            אין מספיק זמן ל
+            {selectedService?.name ?? "שירות"} ({slotFit.catalogDuration}{" "}
+            דק&apos;). ניתן לקבוע תור של {slotFit.maxFitDuration} דק&apos;
+            בלבד. האם אתה בטוח?
+          </p>
+          <div className="admin-move-confirm-modal__actions">
+            <button
+              type="button"
+              className="admin-cal__confirm-btn admin-cal__confirm-btn--yes"
+              disabled={submitting}
+              onClick={() => void confirmReducedDuration()}
+            >
+              {submitting ? "..." : "כן, קבע תור"}
+            </button>
+            <button
+              type="button"
+              className="admin-cal__confirm-btn admin-cal__confirm-btn--no"
+              disabled={submitting}
+              onClick={() => setShowReducedConfirm(false)}
+            >
+              ביטול
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

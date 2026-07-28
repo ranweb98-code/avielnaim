@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isSlotAvailable } from "@/lib/availability";
+import {
+  getAdminSlotFit,
+  isAdminSlotAvailable,
+  isSlotAvailable,
+} from "@/lib/availability";
 import { upsertCustomerFromBooking } from "@/lib/customers";
 import { sendCustomerAdminBookingEmail } from "@/lib/email";
 import {
@@ -7,9 +11,10 @@ import {
   sendPushToCustomer,
 } from "@/lib/push";
 import { prisma } from "@/lib/prisma";
-import { appointmentCreateSchema } from "@/lib/schemas";
+import { adminAppointmentCreateSchema } from "@/lib/schemas";
 import { formatInspoIds } from "@/lib/utils";
 import { isAuthenticated } from "@/lib/auth";
+import { MIN_APPOINTMENT_DURATION } from "@/lib/scheduling";
 
 async function requireAdmin() {
   const authed = await isAuthenticated();
@@ -25,7 +30,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const parsed = appointmentCreateSchema.safeParse(body);
+    const parsed = adminAppointmentCreateSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -44,13 +49,75 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "שירות לא נמצא" }, { status: 404 });
     }
 
-    const available = await isSlotAvailable(data.date, data.time, data.serviceId);
-    if (!available) {
+    const fit = await getAdminSlotFit(data.date, data.time, data.serviceId);
+    if (!fit) {
+      return NextResponse.json({ error: "שירות לא נמצא" }, { status: 404 });
+    }
+
+    const requestedDuration = data.serviceDuration ?? service.durationMin;
+
+    if (fit.maxFitDuration < MIN_APPOINTMENT_DURATION) {
       return NextResponse.json(
-        { error: "השעה שנבחרה אינה זמינה" },
+        { error: "אין מספיק זמן לקביעת תור במועד זה" },
         { status: 409 }
       );
     }
+
+    if (fit.fitsFully) {
+      if (requestedDuration !== service.durationMin) {
+        return NextResponse.json(
+          { error: "משך התור אינו תואם לשירות הנבחר" },
+          { status: 400 }
+        );
+      }
+
+      const available = await isSlotAvailable(
+        data.date,
+        data.time,
+        data.serviceId,
+        { skipAdvanceCheck: true }
+      );
+      if (!available) {
+        const adminAvailable = await isAdminSlotAvailable(
+          data.date,
+          data.time,
+          data.serviceId,
+          service.durationMin
+        );
+        if (!adminAvailable) {
+          return NextResponse.json(
+            { error: "השעה שנבחרה אינה זמינה" },
+            { status: 409 }
+          );
+        }
+      }
+    } else {
+      if (requestedDuration !== fit.maxFitDuration) {
+        return NextResponse.json(
+          {
+            error: `אין מספיק זמן לשירות (${service.durationMin} דק'). ניתן לקבוע תור של ${fit.maxFitDuration} דק' בלבד`,
+            maxFitDuration: fit.maxFitDuration,
+            catalogDuration: fit.catalogDuration,
+          },
+          { status: 409 }
+        );
+      }
+
+      const adminAvailable = await isAdminSlotAvailable(
+        data.date,
+        data.time,
+        data.serviceId,
+        requestedDuration
+      );
+      if (!adminAvailable) {
+        return NextResponse.json(
+          { error: "השעה שנבחרה אינה זמינה" },
+          { status: 409 }
+        );
+      }
+    }
+
+    const appointmentDuration = requestedDuration;
 
     const customer = await upsertCustomerFromBooking({
       name: data.customerName,
@@ -62,7 +129,7 @@ export async function POST(request: NextRequest) {
       data: {
         serviceId: service.id,
         serviceName: service.name,
-        serviceDuration: service.durationMin,
+        serviceDuration: appointmentDuration,
         servicePrice: service.price,
         date: data.date,
         time: data.time,

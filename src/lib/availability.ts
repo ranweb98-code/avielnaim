@@ -8,10 +8,20 @@ import {
   timeToMinutes,
 } from "@/lib/timezone";
 
+import {
+  buildOccupiedRanges,
+  collectGapStartSlots,
+  getMaxFitDurationFromRanges,
+  MIN_APPOINTMENT_DURATION,
+  type OccupiedRange,
+} from "@/lib/scheduling";
+
 const BOOKING_TIME_STEP = 5;
 const MIN_ADVANCE_MINUTES = 30;
 
-export { BOOKING_TIME_STEP };
+export { BOOKING_TIME_STEP, MIN_APPOINTMENT_DURATION };
+export type { OccupiedRange } from "@/lib/scheduling";
+export { findGapStartAt } from "@/lib/scheduling";
 
 export type OccupiedBlock = {
   start: string;
@@ -243,4 +253,157 @@ export async function isSlotAvailable(
   }
 
   return true;
+}
+
+type DayContext = {
+  whStart: number;
+  whEnd: number;
+  appointments: Array<{ id: number; time: string; serviceDuration: number }>;
+  blockedSlots: Array<{ startTime: string; endTime: string }>;
+};
+
+async function getDayContext(
+  date: string,
+  options?: { excludeAppointmentId?: number }
+): Promise<DayContext | null> {
+  const blocked = await prisma.blockedDate.findUnique({ where: { date } });
+  if (blocked) return null;
+
+  const dayOfWeek = getJerusalemDayOfWeek(date);
+  const workingHours = await prisma.workingHours.findUnique({
+    where: { dayOfWeek },
+  });
+
+  if (!workingHours || !workingHours.isOpen) return null;
+
+  const appointments = await prisma.appointment.findMany({
+    where: {
+      date,
+      status: { in: ["pending", "confirmed"] },
+      ...(options?.excludeAppointmentId
+        ? { id: { not: options.excludeAppointmentId } }
+        : {}),
+    },
+  });
+
+  const blockedSlots = await getBlockedTimeSlots(date);
+
+  return {
+    whStart: timeToMinutes(workingHours.startTime),
+    whEnd: timeToMinutes(workingHours.endTime),
+    appointments,
+    blockedSlots,
+  };
+}
+
+function getMaxFitDurationFromContext(
+  startMinutes: number,
+  ctx: DayContext
+): number {
+  if (startMinutes < ctx.whStart || startMinutes >= ctx.whEnd) return 0;
+
+  const occupied = buildOccupiedRangesFromContext(ctx);
+  return getMaxFitDurationFromRanges(startMinutes, ctx.whEnd, occupied);
+}
+
+function buildOccupiedRangesFromContext(ctx: DayContext): OccupiedRange[] {
+  return buildOccupiedRanges(
+    ctx.whStart,
+    ctx.whEnd,
+    ctx.appointments,
+    ctx.blockedSlots
+  );
+}
+
+export async function getMaxFitDuration(
+  date: string,
+  time: string,
+  serviceId: number,
+  options?: { excludeAppointmentId?: number }
+): Promise<number> {
+  const ctx = await getDayContext(date, options);
+  if (!ctx) return 0;
+
+  const service = await prisma.service.findFirst({
+    where: { id: serviceId, active: true },
+  });
+  if (!service) return 0;
+
+  return getMaxFitDurationFromContext(timeToMinutes(time), ctx);
+}
+
+export async function getAdminSlotFit(
+  date: string,
+  time: string,
+  serviceId: number,
+  options?: { excludeAppointmentId?: number }
+): Promise<{
+  maxFitDuration: number;
+  catalogDuration: number;
+  fitsFully: boolean;
+} | null> {
+  const service = await prisma.service.findFirst({
+    where: { id: serviceId, active: true },
+  });
+  if (!service) return null;
+
+  const maxFitDuration = await getMaxFitDuration(date, time, serviceId, options);
+  return {
+    maxFitDuration,
+    catalogDuration: service.durationMin,
+    fitsFully: maxFitDuration >= service.durationMin,
+  };
+}
+
+export async function isAdminSlotAvailable(
+  date: string,
+  time: string,
+  serviceId: number,
+  duration: number,
+  options?: { excludeAppointmentId?: number }
+): Promise<boolean> {
+  const ctx = await getDayContext(date, options);
+  if (!ctx) return false;
+
+  const start = timeToMinutes(time);
+  const end = start + duration;
+
+  if (start < ctx.whStart || end > ctx.whEnd) return false;
+  if (duration < MIN_APPOINTMENT_DURATION) return false;
+
+  if (slotOverlapsBlockedRange(start, end, ctx.blockedSlots)) return false;
+
+  for (const appt of ctx.appointments) {
+    const apptStart = timeToMinutes(appt.time);
+    const apptEnd = apptStart + appt.serviceDuration;
+    if (rangesOverlap(start, end, apptStart, apptEnd)) return false;
+  }
+
+  const maxFit = getMaxFitDurationFromContext(start, ctx);
+  return duration <= maxFit;
+}
+
+function collectAdminGapStartSlots(ctx: DayContext, minDuration: number): string[] {
+  const occupied = buildOccupiedRangesFromContext(ctx);
+  return collectGapStartSlots(ctx.whStart, ctx.whEnd, occupied, minDuration);
+}
+
+export async function getAdminDaySchedule(
+  date: string,
+  serviceId: number,
+  options?: { includeOccupiedLabels?: boolean }
+): Promise<DaySchedule> {
+  const base = await getDaySchedule(date, serviceId, options);
+  if (base.isClosed || !base.workingHours) return base;
+
+  const ctx = await getDayContext(date);
+  if (!ctx) return base;
+
+  const gapStarts = collectAdminGapStartSlots(ctx, MIN_APPOINTMENT_DURATION);
+
+  const merged = [...new Set([...base.slots, ...gapStarts])].sort(
+    (a, b) => timeToMinutes(a) - timeToMinutes(b)
+  );
+
+  return { ...base, slots: merged };
 }

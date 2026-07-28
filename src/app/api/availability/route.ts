@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDaySchedule } from "@/lib/availability";
+import { getDaySchedule, getAdminDaySchedule } from "@/lib/availability";
 import { isAuthenticated } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { availabilityQuerySchema } from "@/lib/schemas";
@@ -29,9 +29,13 @@ export async function GET(request: NextRequest) {
   }
 
   const authed = await isAuthenticated();
-  const schedule = await getDaySchedule(date, serviceId, {
-    includeOccupiedLabels: authed,
-  });
+  const schedule = authed
+    ? await getAdminDaySchedule(date, serviceId, {
+        includeOccupiedLabels: true,
+      })
+    : await getDaySchedule(date, serviceId, {
+        includeOccupiedLabels: false,
+      });
 
   return NextResponse.json({
     ...schedule,
