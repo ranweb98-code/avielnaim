@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { findGapStartAt, type OccupiedRange } from "@/lib/scheduling";
 import {
   formatJerusalemDate,
   getJerusalemTimeMinutes,
@@ -85,24 +86,59 @@ function BlockLabel({ appt }: { appt: AdminCalendarAppointment }) {
   );
 }
 
+function buildCalendarOccupiedRanges(
+  appointments: AdminCalendarAppointment[],
+  blockedSlots: BlockedSlot[],
+  startMinutes: number,
+  endMinutes: number,
+  excludeId?: number
+): OccupiedRange[] {
+  const ranges: OccupiedRange[] = [];
+
+  for (const appt of appointments) {
+    if (appt.id === excludeId || appt.status === "cancelled") continue;
+    const apptStart = timeToMinutes(appt.time);
+    ranges.push({
+      start: apptStart,
+      end: apptStart + appt.serviceDuration,
+    });
+  }
+
+  for (const block of blockedSlots) {
+    ranges.push({
+      start: timeToMinutes(block.startTime),
+      end: timeToMinutes(block.endTime),
+    });
+  }
+
+  ranges.sort((a, b) => a.start - b.start);
+  return ranges;
+}
+
+function resolveSlotMinutes(
+  clientY: number,
+  canvasEl: HTMLDivElement,
+  startMinutes: number,
+  endMinutes: number,
+  occupiedRanges: OccupiedRange[]
+): number {
+  const canvasTop = canvasEl.getBoundingClientRect().top;
+  const y = clientY - canvasTop;
+  const raw = startMinutes + y / PX_PER_MINUTE;
+
+  const gapStart = findGapStartAt(raw, occupiedRanges, startMinutes, endMinutes);
+  if (gapStart !== null) return gapStart;
+
+  const snapped = snapToStep(raw);
+  return Math.max(startMinutes, Math.min(endMinutes - SLOT_STEP, snapped));
+}
+
 function snapToStep(minutes: number): number {
   return Math.round(minutes / SLOT_STEP) * SLOT_STEP;
 }
 
 function nextBookableMinute(nowMinutes: number): number {
   return Math.ceil(nowMinutes / SLOT_STEP) * SLOT_STEP;
-}
-
-function minutesFromPointer(
-  clientY: number,
-  canvasTop: number,
-  startMinutes: number,
-  endMinutes: number
-): number {
-  const y = clientY - canvasTop;
-  const raw = startMinutes + y / PX_PER_MINUTE;
-  const snapped = snapToStep(raw);
-  return Math.max(startMinutes, Math.min(endMinutes - SLOT_STEP, snapped));
 }
 
 function rangesOverlap(
@@ -288,11 +324,19 @@ export function AdminDayCalendar({
   }
 
   function slotFromPointer(clientY: number, canvasEl: HTMLDivElement): number {
-    return minutesFromPointer(
-      clientY,
-      canvasEl.getBoundingClientRect().top,
+    const occupiedRanges = buildCalendarOccupiedRanges(
+      appointments,
+      blockedSlots,
       startMinutes,
-      endMinutes
+      endMinutes,
+      rescheduleTargetId ?? undefined
+    );
+    return resolveSlotMinutes(
+      clientY,
+      canvasEl,
+      startMinutes,
+      endMinutes,
+      occupiedRanges
     );
   }
 

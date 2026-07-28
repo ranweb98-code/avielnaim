@@ -22,6 +22,10 @@ export const appointmentCreateSchema = z.object({
   pushEndpoint: z.string().url().optional().nullable(),
 });
 
+export const adminAppointmentCreateSchema = appointmentCreateSchema.extend({
+  serviceDuration: z.number().int().positive().max(480).optional(),
+});
+
 export const appointmentUpdateSchema = z
   .object({
     status: z.enum(["pending", "confirmed", "cancelled"]).optional(),
