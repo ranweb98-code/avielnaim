@@ -4,7 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { findGapStartAt, type OccupiedRange } from "@/lib/scheduling";
+import {
+  resolveBookableClickMinutes,
+  type OccupiedRange,
+} from "@/lib/scheduling";
 import {
   formatJerusalemDate,
   getJerusalemTimeMinutes,
@@ -126,11 +129,13 @@ function resolveSlotMinutes(
   const y = clientY - canvasTop;
   const raw = startMinutes + y / PX_PER_MINUTE;
 
-  const gapStart = findGapStartAt(raw, occupiedRanges, startMinutes, endMinutes);
-  if (gapStart !== null) return gapStart;
-
-  const snapped = snapToStep(raw);
-  return Math.max(startMinutes, Math.min(endMinutes - SLOT_STEP, snapped));
+  return resolveBookableClickMinutes(
+    raw,
+    occupiedRanges,
+    startMinutes,
+    endMinutes,
+    SLOT_STEP
+  );
 }
 
 function snapToStep(minutes: number): number {
