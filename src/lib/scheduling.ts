@@ -65,6 +65,39 @@ export function findGapStartAt(
   return null;
 }
 
+/**
+ * Resolve a calendar click to a bookable start time.
+ * Default: snap to the grid step at the click position.
+ * Special case: if the click is within `step` minutes after a previous
+ * appointment/block ends, snap to that end so booking can start immediately after.
+ */
+export function resolveBookableClickMinutes(
+  rawMinutes: number,
+  occupiedRanges: OccupiedRange[],
+  whStart: number,
+  whEnd: number,
+  step: number
+): number {
+  const snapped = Math.round(rawMinutes / step) * step;
+  const clamped = Math.max(whStart, Math.min(whEnd - step, snapped));
+
+  const gapStart = findGapStartAt(
+    rawMinutes,
+    occupiedRanges,
+    whStart,
+    whEnd
+  );
+  if (gapStart === null) return clamped;
+
+  // Only "stick" to the previous appointment end when the click is near it.
+  // Otherwise a long empty morning would always select opening time.
+  if (rawMinutes - gapStart <= step) {
+    return gapStart;
+  }
+
+  return clamped;
+}
+
 export function getMaxFitDurationFromRanges(
   startMinutes: number,
   whEnd: number,
