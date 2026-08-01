@@ -26,6 +26,7 @@ function formatAdminDateLabel(dateStr: string) {
 }
 
 const ADMIN_CREATE_PHONE_INPUT_ID = "admin-create-phone";
+const ADMIN_CREATE_NAME_INPUT_ID = "admin-create-name";
 
 type Service = {
   id: number;
@@ -64,7 +65,6 @@ export function AdminCreateAppointmentModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [tab, setTab] = useState<"details" | "extra">("details");
-  const [showNewCustomer, setShowNewCustomer] = useState(false);
 
   const [serviceId, setServiceId] = useState<number | null>(null);
   const [date, setDate] = useState(formatJerusalemDate());
@@ -96,7 +96,6 @@ export function AdminCreateAppointmentModal({
 
     setLoading(true);
     setTab("details");
-    setShowNewCustomer(false);
     fetch("/api/public")
       .then((r) => r.json())
       .then((data) => {
@@ -198,7 +197,6 @@ export function AdminCreateAppointmentModal({
     setEmail(customer.email);
     setCustomerQuery(customer.fullName);
     setShowCustomerResults(false);
-    setShowNewCustomer(true);
   }
 
   function applyPickedContact(contact: PickedContact) {
@@ -207,15 +205,13 @@ export function AdminCreateAppointmentModal({
     if (contact.email) setEmail(contact.email);
     setCustomerQuery(contact.name || contact.phone);
     setShowCustomerResults(false);
-    setShowNewCustomer(true);
   }
 
   function handleIOSContactFallback() {
-    setShowNewCustomer(true);
     window.setTimeout(() => {
-      const phoneInput = document.getElementById(ADMIN_CREATE_PHONE_INPUT_ID);
-      phoneInput?.focus();
-      phoneInput?.scrollIntoView({ block: "center", behavior: "smooth" });
+      const nameInput = document.getElementById(ADMIN_CREATE_NAME_INPUT_ID);
+      nameInput?.focus();
+      nameInput?.scrollIntoView({ block: "center", behavior: "smooth" });
     }, 0);
   }
 
@@ -471,17 +467,22 @@ export function AdminCreateAppointmentModal({
                   onPicked={applyPickedContact}
                   onIOSFallback={handleIOSContactFallback}
                 />
-                <div className="admin-create-customer-row mt-2">
+                <form
+                  className="mt-2 space-y-3"
+                  autoComplete="on"
+                  onSubmit={(e) => e.preventDefault()}
+                >
+                <div className="admin-create-customer-row">
                   <div className="admin-create-customer-search">
                     <input
                       className="admin-sheet-field__input w-full"
-                      value={customerQuery || name}
-                      onChange={(e) => {
-                        setCustomerQuery(e.target.value);
-                        setName(e.target.value);
-                      }}
+                      value={customerQuery}
+                      onChange={(e) => setCustomerQuery(e.target.value)}
                       placeholder="חיפוש לקוח..."
-                      autoComplete="name"
+                      autoComplete="off"
+                      name="customer-search"
+                      type="search"
+                      enterKeyHint="search"
                     />
                     {showCustomerResults && customerResults.length > 0 && (
                       <div className="customer-search-results">
@@ -505,22 +506,30 @@ export function AdminCreateAppointmentModal({
                     type="button"
                     className="admin-create-add-btn"
                     aria-label="לקוח חדש"
-                    onClick={() => setShowNewCustomer((v) => !v)}
+                    onClick={() => {
+                      setCustomerQuery("");
+                      setName("");
+                      setPhone("");
+                      setEmail("");
+                      setShowCustomerResults(false);
+                      document
+                        .getElementById(ADMIN_CREATE_NAME_INPUT_ID)
+                        ?.focus();
+                    }}
                   >
                     <Plus className="h-5 w-5" />
                   </button>
                 </div>
-              </div>
 
-              {(showNewCustomer || phone || name) && (
-                <div className="space-y-3">
                   <Input
+                    id={ADMIN_CREATE_NAME_INPUT_ID}
                     label="שם מלא"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    onInput={(e) => setName(e.currentTarget.value)}
                     error={formErrors.name}
                     autoComplete="name"
-                    name="customer-name"
+                    name="name"
                   />
                   <Input
                     id={ADMIN_CREATE_PHONE_INPUT_ID}
@@ -529,27 +538,30 @@ export function AdminCreateAppointmentModal({
                     inputMode="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
+                    onInput={(e) => setPhone(e.currentTarget.value)}
                     error={formErrors.phone}
                     dir="ltr"
                     className="text-left"
-                    autoComplete="tel"
-                    name="customer-phone"
+                    autoComplete="tel-national"
+                    name="tel"
                   />
-                </div>
-              )}
+                  <Input
+                    label="אימייל (אופציונלי)"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onInput={(e) => setEmail(e.currentTarget.value)}
+                    error={formErrors.email}
+                    autoComplete="email"
+                    name="email"
+                    dir="ltr"
+                    className="text-left"
+                  />
+                </form>
+              </div>
             </div>
           ) : (
             <div className="space-y-3">
-              <Input
-                label="אימייל (אופציונלי)"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                error={formErrors.email}
-                autoComplete="email"
-                dir="ltr"
-                className="text-left"
-              />
               <Textarea
                 label="הערות"
                 value={notes}
