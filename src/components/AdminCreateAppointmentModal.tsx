@@ -18,6 +18,7 @@ import {
   findHaircutService,
 } from "@/lib/services";
 import { formatJerusalemDate, parseJerusalemDate } from "@/lib/timezone";
+import { ensureIsraeliLocalPhone } from "@/lib/phone";
 import { format } from "date-fns";
 
 function formatAdminDateLabel(dateStr: string) {
@@ -26,6 +27,45 @@ function formatAdminDateLabel(dateStr: string) {
 }
 
 const ADMIN_CREATE_PHONE_INPUT_ID = "admin-create-phone";
+const ADMIN_CREATE_NAME_INPUT_ID = "admin-create-name";
+const ADMIN_CREATE_CONTACT_FORM_ID = "admin-create-contact-form";
+
+function readAdminCreateContactInput(id: string) {
+  return document.getElementById(id) as HTMLInputElement | null;
+}
+
+function fillAdminCreateContactFields(fields: {
+  name: string;
+  phone: string;
+  email?: string;
+}) {
+  const normalizedPhone = ensureIsraeliLocalPhone(fields.phone);
+  const nameEl = readAdminCreateContactInput(ADMIN_CREATE_NAME_INPUT_ID);
+  const phoneEl = readAdminCreateContactInput(ADMIN_CREATE_PHONE_INPUT_ID);
+  const emailEl = document.querySelector<HTMLInputElement>(
+    `#${ADMIN_CREATE_CONTACT_FORM_ID} input[name="email"]`
+  );
+  if (nameEl) nameEl.value = fields.name;
+  if (phoneEl) phoneEl.value = normalizedPhone;
+  if (emailEl && fields.email) emailEl.value = fields.email;
+}
+
+function readAdminCreateContactFields(fallback: {
+  name: string;
+  phone: string;
+  email: string;
+}) {
+  const nameEl = readAdminCreateContactInput(ADMIN_CREATE_NAME_INPUT_ID);
+  const phoneEl = readAdminCreateContactInput(ADMIN_CREATE_PHONE_INPUT_ID);
+  const emailEl = document.querySelector<HTMLInputElement>(
+    `#${ADMIN_CREATE_CONTACT_FORM_ID} input[name="email"]`
+  );
+  return {
+    name: (nameEl?.value ?? fallback.name).trim(),
+    phone: ensureIsraeliLocalPhone(phoneEl?.value ?? fallback.phone),
+    email: (emailEl?.value ?? fallback.email).trim(),
+  };
+}
 
 type Service = {
   id: number;
@@ -64,7 +104,6 @@ export function AdminCreateAppointmentModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [tab, setTab] = useState<"details" | "extra">("details");
-  const [showNewCustomer, setShowNewCustomer] = useState(false);
 
   const [serviceId, setServiceId] = useState<number | null>(null);
   const [date, setDate] = useState(formatJerusalemDate());
@@ -86,6 +125,7 @@ export function AdminCreateAppointmentModal({
   const [slotFit, setSlotFit] = useState<SlotFit | null>(null);
   const [slotFitLoading, setSlotFitLoading] = useState(false);
   const [showReducedConfirm, setShowReducedConfirm] = useState(false);
+  const [contactFormGeneration, setContactFormGeneration] = useState(0);
 
   useEffect(() => {
     setUseNativeTimePicker(isIOSDevice());
@@ -94,9 +134,9 @@ export function AdminCreateAppointmentModal({
   useEffect(() => {
     if (!open) return;
 
+    setContactFormGeneration((g) => g + 1);
     setLoading(true);
     setTab("details");
-    setShowNewCustomer(false);
     fetch("/api/public")
       .then((r) => r.json())
       .then((data) => {
@@ -193,29 +233,42 @@ export function AdminCreateAppointmentModal({
     phone: string;
     email: string;
   }) {
+    const normalizedPhone = ensureIsraeliLocalPhone(customer.phone);
     setName(customer.fullName);
-    setPhone(customer.phone);
+    setPhone(normalizedPhone);
     setEmail(customer.email);
     setCustomerQuery(customer.fullName);
     setShowCustomerResults(false);
-    setShowNewCustomer(true);
+    requestAnimationFrame(() => {
+      fillAdminCreateContactFields({
+        name: customer.fullName,
+        phone: normalizedPhone,
+        email: customer.email,
+      });
+    });
   }
 
   function applyPickedContact(contact: PickedContact) {
+    const normalizedPhone = ensureIsraeliLocalPhone(contact.phone);
     setName(contact.name);
-    setPhone(contact.phone);
+    setPhone(normalizedPhone);
     if (contact.email) setEmail(contact.email);
-    setCustomerQuery(contact.name || contact.phone);
+    setCustomerQuery(contact.name || normalizedPhone);
     setShowCustomerResults(false);
-    setShowNewCustomer(true);
+    requestAnimationFrame(() => {
+      fillAdminCreateContactFields({
+        name: contact.name,
+        phone: normalizedPhone,
+        email: contact.email,
+      });
+    });
   }
 
   function handleIOSContactFallback() {
-    setShowNewCustomer(true);
     window.setTimeout(() => {
-      const phoneInput = document.getElementById(ADMIN_CREATE_PHONE_INPUT_ID);
-      phoneInput?.focus();
-      phoneInput?.scrollIntoView({ block: "center", behavior: "smooth" });
+      const nameInput = document.getElementById(ADMIN_CREATE_NAME_INPUT_ID);
+      nameInput?.focus();
+      nameInput?.scrollIntoView({ block: "center", behavior: "smooth" });
     }, 0);
   }
 
@@ -248,13 +301,23 @@ export function AdminCreateAppointmentModal({
   }, [open, date, serviceId, time]);
 
   function validateForm() {
+    const contact = readAdminCreateContactFields({ name, phone, email });
+    setName(contact.name);
+    setPhone(contact.phone);
+    setEmail(contact.email);
+
     const errors: Record<string, string> = {};
     if (!serviceId) errors.service = "יש לבחור שירות";
     if (!date) errors.date = "יש לבחור תאריך";
     if (!time) errors.time = "יש לבחור שעה";
-    if (name.length < 2) errors.name = "שם חייב להכיל לפחות 2 תווים";
-    if (phone.length < 9) errors.phone = "מספר טלפון לא תקין";
-    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    if (contact.name.length < 2) errors.name = "שם חייב להכיל לפחות 2 תווים";
+    if (contact.phone.replace(/\D/g, "").length < 10) {
+      errors.phone = "מספר טלפון לא תקין";
+    }
+    if (
+      contact.email &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.email)
+    ) {
       errors.email = "כתובת אימייל לא תקינה";
     }
     setFormErrors(errors);
@@ -264,6 +327,11 @@ export function AdminCreateAppointmentModal({
   async function createAppointment(durationOverride?: number) {
     if (!serviceId || !date || !time) return;
 
+    const contact = readAdminCreateContactFields({ name, phone, email });
+    setName(contact.name);
+    setPhone(contact.phone);
+    setEmail(contact.email);
+
     setSubmitting(true);
     setError("");
 
@@ -272,9 +340,9 @@ export function AdminCreateAppointmentModal({
         serviceId,
         date,
         time,
-        customerName: name,
-        customerPhone: phone,
-        customerEmail: email.trim() || undefined,
+        customerName: contact.name,
+        customerPhone: contact.phone,
+        customerEmail: contact.email || undefined,
         notes: notes.trim() || undefined,
         inspoIds: [],
       };
@@ -471,17 +539,23 @@ export function AdminCreateAppointmentModal({
                   onPicked={applyPickedContact}
                   onIOSFallback={handleIOSContactFallback}
                 />
-                <div className="admin-create-customer-row mt-2">
+                <form
+                  id={ADMIN_CREATE_CONTACT_FORM_ID}
+                  className="mt-2 space-y-3"
+                  autoComplete="on"
+                  onSubmit={(e) => e.preventDefault()}
+                >
+                <div className="admin-create-customer-row">
                   <div className="admin-create-customer-search">
                     <input
                       className="admin-sheet-field__input w-full"
-                      value={customerQuery || name}
-                      onChange={(e) => {
-                        setCustomerQuery(e.target.value);
-                        setName(e.target.value);
-                      }}
+                      value={customerQuery}
+                      onChange={(e) => setCustomerQuery(e.target.value)}
                       placeholder="חיפוש לקוח..."
-                      autoComplete="name"
+                      autoComplete="off"
+                      name="customer-search"
+                      type="search"
+                      enterKeyHint="search"
                     />
                     {showCustomerResults && customerResults.length > 0 && (
                       <div className="customer-search-results">
@@ -505,51 +579,74 @@ export function AdminCreateAppointmentModal({
                     type="button"
                     className="admin-create-add-btn"
                     aria-label="לקוח חדש"
-                    onClick={() => setShowNewCustomer((v) => !v)}
+                    onClick={() => {
+                      setCustomerQuery("");
+                      setName("");
+                      setPhone("");
+                      setEmail("");
+                      setShowCustomerResults(false);
+                      fillAdminCreateContactFields({
+                        name: "",
+                        phone: "",
+                        email: "",
+                      });
+                      document
+                        .getElementById(ADMIN_CREATE_NAME_INPUT_ID)
+                        ?.focus();
+                    }}
                   >
                     <Plus className="h-5 w-5" />
                   </button>
                 </div>
-              </div>
 
-              {(showNewCustomer || phone || name) && (
-                <div className="space-y-3">
                   <Input
+                    key={`admin-create-name-${contactFormGeneration}`}
+                    id={ADMIN_CREATE_NAME_INPUT_ID}
                     label="שם מלא"
-                    value={name}
+                    defaultValue=""
                     onChange={(e) => setName(e.target.value)}
                     error={formErrors.name}
                     autoComplete="name"
-                    name="customer-name"
+                    name="name"
                   />
                   <Input
+                    key={`admin-create-phone-${contactFormGeneration}`}
                     id={ADMIN_CREATE_PHONE_INPUT_ID}
                     label="טלפון"
                     type="tel"
                     inputMode="tel"
-                    value={phone}
+                    defaultValue=""
                     onChange={(e) => setPhone(e.target.value)}
+                    onBlur={(e) => {
+                      const normalized = ensureIsraeliLocalPhone(
+                        e.currentTarget.value
+                      );
+                      e.currentTarget.value = normalized;
+                      setPhone(normalized);
+                    }}
                     error={formErrors.phone}
                     dir="ltr"
                     className="text-left"
                     autoComplete="tel"
-                    name="customer-phone"
+                    name="tel"
                   />
-                </div>
-              )}
+                  <Input
+                    key={`admin-create-email-${contactFormGeneration}`}
+                    label="אימייל (אופציונלי)"
+                    type="email"
+                    defaultValue=""
+                    onChange={(e) => setEmail(e.target.value)}
+                    error={formErrors.email}
+                    autoComplete="email"
+                    name="email"
+                    dir="ltr"
+                    className="text-left"
+                  />
+                </form>
+              </div>
             </div>
           ) : (
             <div className="space-y-3">
-              <Input
-                label="אימייל (אופציונלי)"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                error={formErrors.email}
-                autoComplete="email"
-                dir="ltr"
-                className="text-left"
-              />
               <Textarea
                 label="הערות"
                 value={notes}

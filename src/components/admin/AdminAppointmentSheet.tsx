@@ -23,6 +23,16 @@ import {
   toWhatsAppUrl,
 } from "@/lib/services";
 import { minutesToTime, timeToMinutes } from "@/lib/timezone";
+import { ensureIsraeliLocalPhone } from "@/lib/phone";
+
+const ADMIN_SHEET_PHONE_INPUT_ID = "admin-sheet-phone-input";
+
+function readAdminSheetPhoneInput(fallback: string) {
+  const el = document.getElementById(
+    ADMIN_SHEET_PHONE_INPUT_ID
+  ) as HTMLInputElement | null;
+  return ensureIsraeliLocalPhone(el?.value ?? fallback);
+}
 
 export type AdminSheetAppointment = {
   id: number;
@@ -244,7 +254,7 @@ export function AdminAppointmentSheet({
   useEffect(() => {
     if (!appointment) return;
     setNotes(appointment.notes ?? "");
-    setEditPhone(appointment.customerPhone);
+    setEditPhone(ensureIsraeliLocalPhone(appointment.customerPhone));
     setEditTime(appointment.time);
     setEditDuration(appointment.serviceDuration);
   }, [appointment]);
@@ -260,7 +270,11 @@ export function AdminAppointmentSheet({
       editDuration !== appointment!.serviceDuration);
 
   const phoneDirty =
-    Boolean(appointment) && editPhone.trim() !== appointment!.customerPhone;
+    Boolean(appointment) &&
+    (() => {
+      const stored = ensureIsraeliLocalPhone(appointment!.customerPhone);
+      return readAdminSheetPhoneInput(stored) !== stored;
+    })();
 
   const haircutServices = useMemo(
     () =>
@@ -297,6 +311,10 @@ export function AdminAppointmentSheet({
   }
 
   if (!appointment) return null;
+
+  const normalizedCustomerPhone = ensureIsraeliLocalPhone(
+    appointment.customerPhone
+  );
 
   const deleteConfirmDialog =
     showDeleteConfirm && mounted
@@ -384,7 +402,10 @@ export function AdminAppointmentSheet({
                   disabled={loading}
                   onClick={() => {
                     void Promise.resolve(
-                      onUpdatePhone(appointment.id, editPhone.trim())
+                      onUpdatePhone(
+                        appointment.id,
+                        readAdminSheetPhoneInput(editPhone)
+                      )
                     ).then(() => setShowPhoneConfirm(false));
                   }}
                 >
@@ -519,7 +540,7 @@ export function AdminAppointmentSheet({
           <div className="admin-sheet__body">
             <div className="admin-sheet-contact-actions">
               <a
-                href={toWhatsAppUrl(appointment.customerPhone)}
+                href={toWhatsAppUrl(normalizedCustomerPhone)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="admin-sheet-contact-btn admin-sheet-contact-btn--whatsapp"
@@ -528,7 +549,7 @@ export function AdminAppointmentSheet({
                 <span>WhatsApp</span>
               </a>
               <a
-                href={toTelUrl(appointment.customerPhone)}
+                href={toTelUrl(normalizedCustomerPhone)}
                 className="admin-sheet-contact-btn admin-sheet-contact-btn--call"
               >
                 <Phone className="h-5 w-5" />
@@ -547,12 +568,23 @@ export function AdminAppointmentSheet({
               <label className="admin-sheet-field admin-sheet-field--grow">
                 <span className="admin-sheet-field__label">מספר נייד</span>
                 <input
+                  key={`${appointment.id}-${normalizedCustomerPhone}`}
+                  id={ADMIN_SHEET_PHONE_INPUT_ID}
                   type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
                   className="admin-sheet-field__input"
                   dir="ltr"
-                  value={editPhone}
+                  defaultValue={normalizedCustomerPhone}
                   disabled={loading}
                   onChange={(e) => setEditPhone(e.target.value)}
+                  onBlur={(e) => {
+                    const normalized = ensureIsraeliLocalPhone(
+                      e.currentTarget.value
+                    );
+                    e.currentTarget.value = normalized;
+                    setEditPhone(normalized);
+                  }}
                   aria-label="מספר נייד"
                 />
               </label>
@@ -563,7 +595,10 @@ export function AdminAppointmentSheet({
                 variant="secondary"
                 className="w-full"
                 loading={loading}
-                onClick={() => setShowPhoneConfirm(true)}
+                onClick={() => {
+                  setEditPhone(readAdminSheetPhoneInput(editPhone));
+                  setShowPhoneConfirm(true);
+                }}
               >
                 שמור מספר
               </Button>

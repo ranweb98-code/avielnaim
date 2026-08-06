@@ -1,3 +1,5 @@
+import { ensureIsraeliLocalPhone } from "@/lib/phone";
+
 export type PickedContact = {
   name: string;
   phone: string;
@@ -36,11 +38,7 @@ function getContactsManager(): ContactsManager | null {
 }
 
 function normalizePhone(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (digits.startsWith("972") && digits.length >= 11) {
-    return `0${digits.slice(3)}`;
-  }
-  return digits;
+  return ensureIsraeliLocalPhone(raw);
 }
 
 function isValidPhone(phone: string): boolean {

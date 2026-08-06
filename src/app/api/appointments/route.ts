@@ -13,6 +13,7 @@ import {
   sendPushToOwners,
 } from "@/lib/push";
 import { prisma } from "@/lib/prisma";
+import { ensureIsraeliLocalPhone } from "@/lib/phone";
 import { appointmentCreateSchema } from "@/lib/schemas";
 import { getSetting } from "@/lib/settings";
 import { formatInspoIds } from "@/lib/utils";
@@ -160,5 +161,10 @@ export async function GET() {
   const appointments = await prisma.appointment.findMany({
     orderBy: [{ date: "asc" }, { time: "asc" }],
   });
-  return NextResponse.json({ appointments });
+  return NextResponse.json({
+    appointments: appointments.map((appt) => ({
+      ...appt,
+      customerPhone: ensureIsraeliLocalPhone(appt.customerPhone),
+    })),
+  });
 }
