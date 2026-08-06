@@ -41,15 +41,17 @@ export function formatDuration(minutes: number): string {
   return `${minutes} דק'`;
 }
 
+import { ensureIsraeliLocalPhone } from "@/lib/phone";
+
 /** Builds a tel: link from a local IL phone number. */
 export function toTelUrl(phone: string): string {
-  const digits = phone.replace(/\D/g, "");
-  return `tel:${digits}`;
+  return `tel:${ensureIsraeliLocalPhone(phone)}`;
 }
 
 /** Builds a wa.me link from a local IL phone number or international digits. */
 export function toWhatsAppUrl(phone: string, message?: string): string {
-  const digits = phone.replace(/\D/g, "");
+  const local = ensureIsraeliLocalPhone(phone);
+  const digits = local.replace(/\D/g, "");
   let intl = digits;
   if (intl.startsWith("0")) {
     intl = `972${intl.slice(1)}`;

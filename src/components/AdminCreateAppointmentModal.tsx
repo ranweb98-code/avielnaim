@@ -18,6 +18,7 @@ import {
   findHaircutService,
 } from "@/lib/services";
 import { formatJerusalemDate, parseJerusalemDate } from "@/lib/timezone";
+import { ensureIsraeliLocalPhone } from "@/lib/phone";
 import { format } from "date-fns";
 
 function formatAdminDateLabel(dateStr: string) {
@@ -193,7 +194,7 @@ export function AdminCreateAppointmentModal({
     email: string;
   }) {
     setName(customer.fullName);
-    setPhone(customer.phone);
+    setPhone(ensureIsraeliLocalPhone(customer.phone));
     setEmail(customer.email);
     setCustomerQuery(customer.fullName);
     setShowCustomerResults(false);
@@ -201,7 +202,7 @@ export function AdminCreateAppointmentModal({
 
   function applyPickedContact(contact: PickedContact) {
     setName(contact.name);
-    setPhone(contact.phone);
+    setPhone(ensureIsraeliLocalPhone(contact.phone));
     if (contact.email) setEmail(contact.email);
     setCustomerQuery(contact.name || contact.phone);
     setShowCustomerResults(false);
@@ -249,7 +250,10 @@ export function AdminCreateAppointmentModal({
     if (!date) errors.date = "יש לבחור תאריך";
     if (!time) errors.time = "יש לבחור שעה";
     if (name.length < 2) errors.name = "שם חייב להכיל לפחות 2 תווים";
-    if (phone.length < 9) errors.phone = "מספר טלפון לא תקין";
+    const normalizedPhone = ensureIsraeliLocalPhone(phone);
+    if (normalizedPhone.replace(/\D/g, "").length < 10) {
+      errors.phone = "מספר טלפון לא תקין";
+    }
     if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       errors.email = "כתובת אימייל לא תקינה";
     }
@@ -264,12 +268,13 @@ export function AdminCreateAppointmentModal({
     setError("");
 
     try {
+      const normalizedPhone = ensureIsraeliLocalPhone(phone);
       const payload: Record<string, unknown> = {
         serviceId,
         date,
         time,
         customerName: name,
-        customerPhone: phone,
+        customerPhone: normalizedPhone,
         customerEmail: email.trim() || undefined,
         notes: notes.trim() || undefined,
         inspoIds: [],
@@ -539,6 +544,9 @@ export function AdminCreateAppointmentModal({
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     onInput={(e) => setPhone(e.currentTarget.value)}
+                    onBlur={(e) =>
+                      setPhone(ensureIsraeliLocalPhone(e.currentTarget.value))
+                    }
                     error={formErrors.phone}
                     dir="ltr"
                     className="text-left"

@@ -1,14 +1,19 @@
 import { z } from "zod";
+import { ensureIsraeliLocalPhone, phoneDigits } from "@/lib/phone";
+
+const customerPhoneField = z
+  .string()
+  .min(9, "מספר טלפון לא תקין")
+  .regex(/^[\d\-+()\s]+$/, "מספר טלפון לא תקין")
+  .transform(ensureIsraeliLocalPhone)
+  .refine((value) => phoneDigits(value).length >= 10, "מספר טלפון לא תקין");
 
 export const appointmentCreateSchema = z.object({
   serviceId: z.number().int().positive(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   time: z.string().regex(/^\d{2}:\d{2}$/),
   customerName: z.string().min(2, "שם חייב להכיל לפחות 2 תווים"),
-  customerPhone: z
-    .string()
-    .min(9, "מספר טלפון לא תקין")
-    .regex(/^[\d\-+()\s]+$/, "מספר טלפון לא תקין"),
+  customerPhone: customerPhoneField,
   customerEmail: z
     .string()
     .optional()
@@ -40,11 +45,7 @@ export const appointmentUpdateSchema = z
     serviceId: z.number().int().positive().optional(),
     serviceDuration: z.number().int().positive().max(480).optional(),
     notes: z.string().nullable().optional(),
-    customerPhone: z
-      .string()
-      .min(9, "מספר טלפון לא תקין")
-      .regex(/^[\d\-+()\s]+$/, "מספר טלפון לא תקין")
-      .optional(),
+    customerPhone: customerPhoneField.optional(),
   })
   .refine(
     (data) =>
@@ -128,10 +129,7 @@ export type AppointmentCreateInput = z.infer<typeof appointmentCreateSchema>;
 
 export const customerCreateSchema = z.object({
   fullName: z.string().min(2, "שם מלא חובה"),
-  phone: z
-    .string()
-    .min(9, "מספר טלפון לא תקין")
-    .regex(/^[\d\-+()\s]+$/, "מספר טלפון לא תקין"),
+  phone: customerPhoneField,
   email: z
     .string()
     .optional()

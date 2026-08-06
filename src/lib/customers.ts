@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { ensureIsraeliLocalPhone } from "@/lib/phone";
 
 export function normalizePhone(phone: string): string {
   return phone.replace(/[\s\-()+]/g, "").replace(/^0/, "972");
@@ -23,13 +24,14 @@ type UpsertBookingInput = {
 };
 
 export async function upsertCustomerFromBooking(input: UpsertBookingInput) {
-  const normalized = normalizePhone(input.phone);
+  const localPhone = ensureIsraeliLocalPhone(input.phone);
+  const normalized = normalizePhone(localPhone);
   const { firstName, lastName } = storeFullName(input.name);
   const email = input.email?.trim() ?? "";
 
   const existing = await prisma.customer.findFirst({
     where: {
-      OR: [{ phone: input.phone }, { phone: normalized }],
+      OR: [{ phone: localPhone }, { phone: normalized }, { phone: input.phone.trim() }],
     },
   });
 
@@ -39,7 +41,7 @@ export async function upsertCustomerFromBooking(input: UpsertBookingInput) {
       data: {
         firstName,
         lastName,
-        phone: input.phone.trim(),
+        phone: localPhone,
         ...(email ? { email } : {}),
       },
     });
@@ -49,7 +51,7 @@ export async function upsertCustomerFromBooking(input: UpsertBookingInput) {
     data: {
       firstName,
       lastName,
-      phone: input.phone.trim(),
+      phone: localPhone,
       email,
     },
   });

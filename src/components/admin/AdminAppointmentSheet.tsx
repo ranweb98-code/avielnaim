@@ -23,6 +23,7 @@ import {
   toWhatsAppUrl,
 } from "@/lib/services";
 import { minutesToTime, timeToMinutes } from "@/lib/timezone";
+import { ensureIsraeliLocalPhone } from "@/lib/phone";
 
 export type AdminSheetAppointment = {
   id: number;
@@ -244,7 +245,7 @@ export function AdminAppointmentSheet({
   useEffect(() => {
     if (!appointment) return;
     setNotes(appointment.notes ?? "");
-    setEditPhone(appointment.customerPhone);
+    setEditPhone(ensureIsraeliLocalPhone(appointment.customerPhone));
     setEditTime(appointment.time);
     setEditDuration(appointment.serviceDuration);
   }, [appointment]);
@@ -260,7 +261,9 @@ export function AdminAppointmentSheet({
       editDuration !== appointment!.serviceDuration);
 
   const phoneDirty =
-    Boolean(appointment) && editPhone.trim() !== appointment!.customerPhone;
+    Boolean(appointment) &&
+    ensureIsraeliLocalPhone(editPhone.trim()) !==
+      ensureIsraeliLocalPhone(appointment!.customerPhone);
 
   const haircutServices = useMemo(
     () =>
@@ -384,7 +387,7 @@ export function AdminAppointmentSheet({
                   disabled={loading}
                   onClick={() => {
                     void Promise.resolve(
-                      onUpdatePhone(appointment.id, editPhone.trim())
+                      onUpdatePhone(appointment.id, ensureIsraeliLocalPhone(editPhone.trim()))
                     ).then(() => setShowPhoneConfirm(false));
                   }}
                 >
@@ -553,6 +556,9 @@ export function AdminAppointmentSheet({
                   value={editPhone}
                   disabled={loading}
                   onChange={(e) => setEditPhone(e.target.value)}
+                  onBlur={(e) =>
+                    setEditPhone(ensureIsraeliLocalPhone(e.currentTarget.value))
+                  }
                   aria-label="מספר נייד"
                 />
               </label>
