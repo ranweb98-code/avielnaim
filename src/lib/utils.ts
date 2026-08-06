@@ -1,3 +1,5 @@
+import { ensureIsraeliLocalPhone, phoneDigits } from "@/lib/phone";
+
 export const BUSINESS_NAME = "Aviel Naim";
 
 export const DAY_NAMES = [
@@ -41,11 +43,20 @@ export function formatDuration(minutes: number): string {
   return `${minutes} דק'`;
 }
 
-import { ensureIsraeliLocalPhone } from "@/lib/phone";
-
-/** Builds a tel: link from a local IL phone number. */
+/** Builds a tel: link (E.164 +972…) for reliable dialing on iOS. */
 export function toTelUrl(phone: string): string {
-  return `tel:${ensureIsraeliLocalPhone(phone)}`;
+  const local = ensureIsraeliLocalPhone(phone);
+  const digits = phoneDigits(local);
+  if (digits.startsWith("0")) {
+    return `tel:+972${digits.slice(1)}`;
+  }
+  if (digits.startsWith("972")) {
+    return `tel:+${digits}`;
+  }
+  if (digits.length >= 9) {
+    return `tel:+972${digits.replace(/^0/, "")}`;
+  }
+  return `tel:${local}`;
 }
 
 /** Builds a wa.me link from a local IL phone number or international digits. */
