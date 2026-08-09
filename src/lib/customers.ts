@@ -99,20 +99,58 @@ export async function searchCustomers(query: string) {
     });
   }
 
-  const normalized = normalizePhone(q);
-  const localQ = normalizeIsraeliPhoneLocal(q);
+  const digits = phoneDigits(q);
+  const isPhoneSearch = digits.length >= 3;
+  const normalized = isPhoneSearch ? normalizePhone(q) : null;
+  const localQ = isPhoneSearch ? normalizeIsraeliPhoneLocal(q) : null;
+
+  const tokens = q.split(/\s+/).filter((t) => t.length >= 2);
+
+  const phoneClauses: Array<{ phone: { contains: string } }> = [];
+  if (isPhoneSearch) {
+    phoneClauses.push({ phone: { contains: q } });
+    if (localQ && localQ !== q) {
+      phoneClauses.push({ phone: { contains: localQ } });
+    }
+    if (
+      normalized &&
+      normalized !== q &&
+      normalized !== localQ &&
+      normalized.length > 0
+    ) {
+      phoneClauses.push({ phone: { contains: normalized } });
+    }
+  }
 
   return prisma.customer.findMany({
     where: {
       OR: [
-        { firstName: { contains: q, mode: "insensitive" } },
-        { lastName: { contains: q, mode: "insensitive" } },
-        { phone: { contains: q } },
-        ...(localQ !== q ? [{ phone: { contains: localQ } }] : []),
-        ...(normalized !== q && normalized !== localQ
-          ? [{ phone: { contains: normalized } }]
+        { firstName: { contains: q, mode: "insensitive" as const } },
+        { lastName: { contains: q, mode: "insensitive" as const } },
+        ...(tokens.length > 1
+          ? [
+              {
+                AND: tokens.map((token) => ({
+                  OR: [
+                    {
+                      firstName: {
+                        contains: token,
+                        mode: "insensitive" as const,
+                      },
+                    },
+                    {
+                      lastName: {
+                        contains: token,
+                        mode: "insensitive" as const,
+                      },
+                    },
+                  ],
+                })),
+              },
+            ]
           : []),
-        { email: { contains: q, mode: "insensitive" } },
+        ...phoneClauses,
+        { email: { contains: q, mode: "insensitive" as const } },
       ],
     },
     orderBy: [{ updatedAt: "desc" }],

@@ -135,12 +135,11 @@ export function AdminCreateAppointmentModal({
     const timer = setTimeout(async () => {
       try {
         const res = await fetch(
-          `/api/admin/customers?q=${encodeURIComponent(customerQuery)}`
+          `/api/admin/customers?q=${encodeURIComponent(customerQuery.trim())}`
         );
         if (!res.ok) return;
         const data = await res.json();
         setCustomerResults(data.customers ?? []);
-        setShowCustomerResults(true);
       } catch {
         /* ignore */
       }
@@ -478,13 +477,28 @@ export function AdminCreateAppointmentModal({
                       className="admin-sheet-field__input w-full"
                       value={customerQuery || name}
                       onChange={(e) => {
-                        setCustomerQuery(e.target.value);
-                        setName(e.target.value);
+                        const value = e.target.value;
+                        setCustomerQuery(value);
+                        setName(value);
+                        setShowCustomerResults(value.trim().length >= 2);
+                      }}
+                      onBlur={() => {
+                        window.setTimeout(() => setShowCustomerResults(false), 150);
+                      }}
+                      onFocus={() => {
+                        if (
+                          customerQuery.trim().length >= 2 &&
+                          customerResults.length > 0
+                        ) {
+                          setShowCustomerResults(true);
+                        }
                       }}
                       placeholder="חיפוש לקוח..."
                       autoComplete="name"
                     />
-                    {showCustomerResults && customerResults.length > 0 && (
+                    {showCustomerResults &&
+                      customerQuery.trim().length >= 2 &&
+                      (customerResults.length > 0 ? (
                       <div className="customer-search-results">
                         {customerResults.map((customer) => (
                           <button
@@ -500,7 +514,11 @@ export function AdminCreateAppointmentModal({
                           </button>
                         ))}
                       </div>
-                    )}
+                    ) : (
+                      <p className="mt-1 text-sm text-text-muted">
+                        לא נמצאו לקוחות
+                      </p>
+                    ))}
                   </div>
                   <button
                     type="button"
