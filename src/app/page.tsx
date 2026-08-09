@@ -6,7 +6,8 @@ import { PageHero } from "@/components/PageHero";
 import { isAuthenticated } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getSettingsMap } from "@/lib/settings";
-import { BUSINESS_NAME, DAY_NAMES, formatDuration, formatPrice } from "@/lib/utils";
+import { resolveBusinessName } from "@/lib/brand";
+import { DAY_NAMES, formatDuration, formatPrice } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -34,11 +35,12 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
   const phone = settings.businessPhone ?? "";
   const address = settings.businessAddress ?? "";
+  const businessName = resolveBusinessName(settings.businessName);
 
   return (
     <>
       <PageHero
-        businessName={BUSINESS_NAME}
+        businessName={businessName}
         bottomContent={
           <Link href="/book" className="block">
             <Button className="min-h-14 w-full text-base">
@@ -61,7 +63,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
         <div className="card-app flex items-center gap-4 p-4">
           <div className="flex min-w-0 flex-1 flex-col">
-            <p className="brand-name brand-name--card">{BUSINESS_NAME}</p>
+            <p className="brand-name brand-name--card">{businessName}</p>
             <div className="mt-1 flex items-center gap-1 text-sm text-text-secondary">
               <Star className="h-4 w-4 fill-accent-yellow text-accent-yellow" />
               <span>4.9</span>

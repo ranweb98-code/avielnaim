@@ -13,6 +13,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { adminAppointmentCreateSchema } from "@/lib/schemas";
 import { formatInspoIds } from "@/lib/utils";
+import { normalizeIsraeliPhoneLocal } from "@/lib/phone";
 import { isAuthenticated } from "@/lib/auth";
 import { MIN_APPOINTMENT_DURATION } from "@/lib/scheduling";
 
@@ -40,6 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     const data = parsed.data;
+    const customerPhone = normalizeIsraeliPhoneLocal(data.customerPhone);
 
     const service = await prisma.service.findFirst({
       where: { id: data.serviceId, active: true },
@@ -121,7 +123,7 @@ export async function POST(request: NextRequest) {
 
     const customer = await upsertCustomerFromBooking({
       name: data.customerName,
-      phone: data.customerPhone,
+      phone: customerPhone,
       email: data.customerEmail,
     });
 
@@ -135,7 +137,7 @@ export async function POST(request: NextRequest) {
         time: data.time,
         customerId: customer.id,
         customerName: data.customerName,
-        customerPhone: data.customerPhone,
+        customerPhone,
         customerEmail: data.customerEmail,
         notes: data.notes ?? null,
         inspoIds: formatInspoIds(data.inspoIds ?? []),

@@ -326,7 +326,7 @@ export default function AdminPage() {
           {rescheduleAppt && (
             <div className="admin-reschedule-banner">
               <p>
-                בחר שעה חדשה בלוח עבור{" "}
+                בחר יום ושעה חדשים בלוח עבור{" "}
                 <strong>{rescheduleAppt.customerName}</strong>
               </p>
               <button
@@ -362,6 +362,8 @@ export default function AdminPage() {
             onSlotClick={openCreateAtTime}
             onReschedule={handleDragReschedule}
             rescheduleTargetId={rescheduleId}
+            rescheduleTarget={rescheduleAppt}
+            rescheduleOriginalDate={rescheduleAppt?.date ?? null}
             rescheduleMode={Boolean(rescheduleId)}
             isClosedDay={isClosedDay}
           />

@@ -39,7 +39,7 @@ self.addEventListener("push", (event) => {
     data = { body: event.data?.text() ?? "" };
   }
 
-  const title = data.title ?? "Aviel Naim";
+  const title = data.title ?? process.env.NEXT_PUBLIC_BUSINESS_NAME ?? "קביעת תורים";
   const options: NotificationOptions = {
     body: data.body ?? "",
     icon: "/icons/icon-192.png",

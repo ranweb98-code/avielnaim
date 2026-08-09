@@ -7,6 +7,7 @@ import { sendPushToCustomer } from "@/lib/push";
 import { prisma } from "@/lib/prisma";
 import { appointmentUpdateSchema } from "@/lib/schemas";
 import { syncCustomerPhone } from "@/lib/sync-customer-phone";
+import { normalizeIsraeliPhoneLocal } from "@/lib/phone";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -98,6 +99,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     const data = parsed.data;
+    const customerPhoneNormalized =
+      data.customerPhone !== undefined
+        ? normalizeIsraeliPhoneLocal(data.customerPhone)
+        : undefined;
     const targetServiceId = data.serviceId ?? existing.serviceId;
     const targetDate = data.date ?? existing.date;
     const targetTime = data.time ?? existing.time;
@@ -161,8 +166,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         data: {
           ...(data.status !== undefined ? { status: data.status } : {}),
           ...(data.notes !== undefined ? { notes: data.notes } : {}),
-          ...(data.customerPhone !== undefined
-            ? { customerPhone: data.customerPhone.trim() }
+          ...(customerPhoneNormalized !== undefined
+            ? { customerPhone: customerPhoneNormalized }
             : {}),
           date: targetDate,
           time: targetTime,
@@ -173,22 +178,22 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         },
       });
 
-      if (data.customerPhone !== undefined && existing.customerId) {
+      if (customerPhoneNormalized !== undefined && existing.customerId) {
         const sync = await syncCustomerPhone(
           existing.customerId,
-          data.customerPhone,
+          customerPhoneNormalized,
           existing.customerId
         );
         if ("error" in sync) {
           return NextResponse.json({ error: sync.error }, { status: 409 });
         }
-      } else if (data.customerPhone !== undefined) {
+      } else if (customerPhoneNormalized !== undefined) {
         await prisma.appointment.updateMany({
           where: {
             customerPhone: existing.customerPhone,
             customerName: existing.customerName,
           },
-          data: { customerPhone: data.customerPhone.trim() },
+          data: { customerPhone: customerPhoneNormalized },
         });
       }
 
@@ -209,28 +214,28 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       data: {
         ...(data.status !== undefined ? { status: data.status } : {}),
         ...(data.notes !== undefined ? { notes: data.notes } : {}),
-        ...(data.customerPhone !== undefined
-          ? { customerPhone: data.customerPhone.trim() }
+        ...(customerPhoneNormalized !== undefined
+          ? { customerPhone: customerPhoneNormalized }
           : {}),
       },
     });
 
-    if (data.customerPhone !== undefined && existing.customerId) {
+    if (customerPhoneNormalized !== undefined && existing.customerId) {
       const sync = await syncCustomerPhone(
         existing.customerId,
-        data.customerPhone,
+        customerPhoneNormalized,
         existing.customerId
       );
       if ("error" in sync) {
         return NextResponse.json({ error: sync.error }, { status: 409 });
       }
-    } else if (data.customerPhone !== undefined) {
+    } else if (customerPhoneNormalized !== undefined) {
       await prisma.appointment.updateMany({
         where: {
           customerPhone: existing.customerPhone,
           customerName: existing.customerName,
         },
-        data: { customerPhone: data.customerPhone.trim() },
+        data: { customerPhone: customerPhoneNormalized },
       });
     }
 

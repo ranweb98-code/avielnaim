@@ -24,6 +24,7 @@ import { GlassCard } from "@/components/GlassCard";
 import { Input, Textarea } from "@/components/Input";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { cn } from "@/lib/cn";
+import { formatPhoneInputValue, normalizeIsraeliPhoneLocal } from "@/lib/phone";
 import { toTelUrl, toWhatsAppUrl } from "@/lib/utils";
 
 type CustomerListItem = {
@@ -226,7 +227,10 @@ function AdminCustomersContent() {
       const res = await fetch(url, {
         method: editingId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          phone: normalizeIsraeliPhoneLocal(form.phone),
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -599,7 +603,18 @@ function AdminCustomersContent() {
                 label="טלפון"
                 type="tel"
                 value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    phone: formatPhoneInputValue(e.target.value),
+                  })
+                }
+                onBlur={() =>
+                  setForm((f) => ({
+                    ...f,
+                    phone: normalizeIsraeliPhoneLocal(f.phone),
+                  }))
+                }
                 dir="ltr"
                 className="text-left"
               />

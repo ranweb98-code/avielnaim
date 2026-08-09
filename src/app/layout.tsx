@@ -4,6 +4,10 @@ import { BottomNav, Header } from "@/components/Header";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { NotificationPermissionGate } from "@/components/NotificationPermissionGate";
 import { SerwistRegister } from "@/components/SerwistRegister";
+import {
+  DEFAULT_BUSINESS_TAGLINE,
+  resolveBusinessName,
+} from "@/lib/brand";
 import { getSetting } from "@/lib/settings";
 import "./globals.css";
 
@@ -25,16 +29,18 @@ const brand = Kaushan_Script({
   weight: ["400"],
 });
 
-export const metadata: Metadata = {
-  title: "Aviel Naim | קביעת תורים",
-  description: "מספרת יוקרה — קביעת תורים online",
-  manifest: "/manifest.webmanifest",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
-    title: "Aviel Naim",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const businessName = resolveBusinessName(await getSetting("businessName"));
+  return {
+    title: `${businessName} | קביעת תורים`,
+    description: DEFAULT_BUSINESS_TAGLINE,
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "black-translucent",
+      title: businessName,
+    },
+  };
+}
 
 export async function generateViewport(): Promise<Viewport> {
   const theme = await getSetting("theme", "dark");
@@ -53,6 +59,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const theme = await getSetting("theme", "dark");
+  const businessName = resolveBusinessName(await getSetting("businessName"));
 
   return (
     <html lang="he" dir="rtl" data-theme={theme}>
@@ -60,7 +67,7 @@ export default async function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
       <body className={`${rubik.variable} ${frankRuhl.variable} ${brand.variable} antialiased`}>
-        <Header />
+        <Header businessName={businessName} />
         <main className="page-shell">{children}</main>
         <BottomNav />
         <InstallPrompt />

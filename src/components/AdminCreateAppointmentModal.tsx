@@ -18,6 +18,7 @@ import {
   findHaircutService,
 } from "@/lib/services";
 import { formatJerusalemDate, parseJerusalemDate } from "@/lib/timezone";
+import { formatPhoneInputValue, normalizeIsraeliPhoneLocal } from "@/lib/phone";
 import { format } from "date-fns";
 
 function formatAdminDateLabel(dateStr: string) {
@@ -273,7 +274,7 @@ export function AdminCreateAppointmentModal({
         date,
         time,
         customerName: name,
-        customerPhone: phone,
+        customerPhone: normalizeIsraeliPhoneLocal(phone),
         customerEmail: email.trim() || undefined,
         notes: notes.trim() || undefined,
         inspoIds: [],
@@ -528,7 +529,12 @@ export function AdminCreateAppointmentModal({
                     type="tel"
                     inputMode="tel"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) =>
+                      setPhone(formatPhoneInputValue(e.target.value))
+                    }
+                    onBlur={() =>
+                      setPhone((p) => normalizeIsraeliPhoneLocal(p))
+                    }
                     error={formErrors.phone}
                     dir="ltr"
                     className="text-left"

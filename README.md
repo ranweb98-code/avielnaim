@@ -2,6 +2,21 @@
 
 דמו מלא ועובד למערכת קביעת תורים למספרה/ספר, בעברית RTL, mobile-first PWA.
 
+## עותק נפרד לדמו / לקוח חדש (אין כפתור שכפול)
+
+GitHub ו-Vercel **לא** מספקים "שכפול פרויקט" אוטומטי שמנתק מאביאל. התהליך:
+
+1. **GitHub:** Repository → **Use this template** / **Duplicate** / fork ל-repo חדש.
+2. **Vercel:** **Add New Project** → ייבוא ה-repo החדש (לא אותו פרויקט Vercel של פרודקשן).
+3. **Neon:** מסד PostgreSQL **חדש** — `DATABASE_URL` נפרד (אחרת תורים ולקוחות משותפים).
+4. העתק `.env.example` ל-`.env` / הגדר משתנים ב-Vercel:
+   - `NEXT_PUBLIC_BUSINESS_NAME`, `SEED_*` — שם ופרטי העסק לעותק הזה
+   - `ADMIN_PASSWORD`, `AUTH_SECRET`, `NEXT_PUBLIC_BASE_URL` — חדשים לכל עותק
+5. `npm run db:push && npm run db:seed` **רק על DB של העותק** (seed מוחק נתונים).
+6. אייקונים/תמונות: `public/icons` (ואופציונלי hero) — אפשר לבקש בצ'אט להתאים לבעל עסק.
+
+פרודקשן של אביאל נשאר מבודד כל עוד לא משתפים איתו `DATABASE_URL` או URL.
+
 ## התחלה מהירה
 
 ```bash
@@ -19,6 +34,9 @@ npm run dev
 
 | משתנה | תיאור |
 |--------|--------|
+| `NEXT_PUBLIC_BUSINESS_NAME` | שם העסק בעותק (PWA, כותרות; ברירת מחדל: Aviel Naim) |
+| `NEXT_PUBLIC_BUSINESS_TAGLINE` | תיאור קצר ל-manifest |
+| `SEED_BUSINESS_NAME` / `SEED_BUSINESS_PHONE` / `SEED_BUSINESS_ADDRESS` / `SEED_OWNER_EMAIL` | ערכים ל-`npm run db:seed` (אופציונלי) |
 | `DATABASE_URL` | PostgreSQL (Neon): `postgresql://...` |
 | `ADMIN_PASSWORD` | סיסמת פאנל ניהול (ברירת מחדל: `barber2024`) |
 | `AUTH_SECRET` | מפתח לחתימת session |

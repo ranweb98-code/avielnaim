@@ -1,7 +1,14 @@
 import { prisma } from "@/lib/prisma";
+import { normalizeIsraeliPhoneLocal, phoneDigits } from "@/lib/phone";
 
+/** Canonical form for matching (972… without leading 0). */
 export function normalizePhone(phone: string): string {
-  return phone.replace(/[\s\-()+]/g, "").replace(/^0/, "972");
+  const local = normalizeIsraeliPhoneLocal(phone);
+  const digits = phoneDigits(local);
+  if (digits.startsWith("0")) {
+    return `972${digits.slice(1)}`;
+  }
+  return digits;
 }
 
 export function formatCustomerName(firstName: string, lastName: string): string {
@@ -23,13 +30,14 @@ type UpsertBookingInput = {
 };
 
 export async function upsertCustomerFromBooking(input: UpsertBookingInput) {
-  const normalized = normalizePhone(input.phone);
+  const storedPhone = normalizeIsraeliPhoneLocal(input.phone.trim());
+  const normalized = normalizePhone(storedPhone);
   const { firstName, lastName } = storeFullName(input.name);
   const email = input.email?.trim() ?? "";
 
   const existing = await prisma.customer.findFirst({
     where: {
-      OR: [{ phone: input.phone }, { phone: normalized }],
+      OR: [{ phone: storedPhone }, { phone: normalized }],
     },
   });
 
@@ -39,7 +47,7 @@ export async function upsertCustomerFromBooking(input: UpsertBookingInput) {
       data: {
         firstName,
         lastName,
-        phone: input.phone.trim(),
+        phone: storedPhone,
         ...(email ? { email } : {}),
       },
     });
@@ -49,7 +57,7 @@ export async function upsertCustomerFromBooking(input: UpsertBookingInput) {
     data: {
       firstName,
       lastName,
-      phone: input.phone.trim(),
+      phone: storedPhone,
       email,
     },
   });
@@ -92,6 +100,7 @@ export async function searchCustomers(query: string) {
   }
 
   const normalized = normalizePhone(q);
+  const localQ = normalizeIsraeliPhoneLocal(q);
 
   return prisma.customer.findMany({
     where: {
@@ -99,7 +108,10 @@ export async function searchCustomers(query: string) {
         { firstName: { contains: q, mode: "insensitive" } },
         { lastName: { contains: q, mode: "insensitive" } },
         { phone: { contains: q } },
-        ...(normalized !== q ? [{ phone: { contains: normalized } }] : []),
+        ...(localQ !== q ? [{ phone: { contains: localQ } }] : []),
+        ...(normalized !== q && normalized !== localQ
+          ? [{ phone: { contains: normalized } }]
+          : []),
         { email: { contains: q, mode: "insensitive" } },
       ],
     },

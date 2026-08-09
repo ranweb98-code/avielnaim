@@ -1,11 +1,12 @@
 import { prisma } from "@/lib/prisma";
+import { normalizeIsraeliPhoneLocal } from "@/lib/phone";
 
 async function syncCustomerPhone(
   customerId: number,
   phone: string,
   excludeCustomerId?: number
 ) {
-  const trimmed = phone.trim();
+  const trimmed = normalizeIsraeliPhoneLocal(phone.trim());
   const duplicate = await prisma.customer.findFirst({
     where: {
       phone: trimmed,

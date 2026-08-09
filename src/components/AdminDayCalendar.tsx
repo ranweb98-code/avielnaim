@@ -41,6 +41,9 @@ type AdminDayCalendarProps = {
   onSlotClick?: (time: string) => void;
   onReschedule?: (id: number, time: string) => void | Promise<void>;
   rescheduleTargetId?: number | null;
+  /** Appointment being moved — may be on another day than `date`. */
+  rescheduleTarget?: AdminCalendarAppointment | null;
+  rescheduleOriginalDate?: string | null;
   rescheduleMode?: boolean;
   isClosedDay?: boolean;
   blockedSlotsRefresh?: number;
@@ -164,6 +167,8 @@ export function AdminDayCalendar({
   onSlotClick,
   onReschedule,
   rescheduleTargetId = null,
+  rescheduleTarget = null,
+  rescheduleOriginalDate = null,
   rescheduleMode = false,
   isClosedDay = false,
   blockedSlotsRefresh = 0,
@@ -345,12 +350,22 @@ export function AdminDayCalendar({
     );
   }
 
+  function resolveRescheduleAppt(): AdminCalendarAppointment | null {
+    if (!rescheduleTargetId) return null;
+    return (
+      appointments.find((a) => a.id === rescheduleTargetId) ??
+      (rescheduleTarget?.id === rescheduleTargetId ? rescheduleTarget : null)
+    );
+  }
+
   function addPendingRescheduleSlot(
     appt: AdminCalendarAppointment,
     minutes: number,
     height: number
   ) {
-    if (minutes === timeToMinutes(appt.time)) return;
+    const sameDayAsOriginal =
+      !rescheduleOriginalDate || rescheduleOriginalDate === date;
+    if (sameDayAsOriginal && minutes === timeToMinutes(appt.time)) return;
     if (!isSlotBookable(minutes)) return;
 
     if (hasConflict(minutes, appt.serviceDuration, appt.id)) {
@@ -383,7 +398,7 @@ export function AdminDayCalendar({
     const minutes = slotFromPointer(clientY, canvasEl);
 
     if (rescheduleTargetId) {
-      const appt = appointments.find((a) => a.id === rescheduleTargetId);
+      const appt = resolveRescheduleAppt();
       if (!appt) return;
       const height = Math.max(
         appt.serviceDuration * PX_PER_MINUTE,
@@ -614,9 +629,7 @@ export function AdminDayCalendar({
               e.preventDefault();
               if (isSlotBookable(minBookableMinutes)) {
                 if (rescheduleTargetId) {
-                  const appt = appointments.find(
-                    (a) => a.id === rescheduleTargetId
-                  );
+                  const appt = resolveRescheduleAppt();
                   if (appt) {
                     addPendingRescheduleSlot(
                       appt,

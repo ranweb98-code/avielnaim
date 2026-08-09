@@ -1,4 +1,7 @@
-export const BUSINESS_NAME = "Aviel Naim";
+export {
+  DEFAULT_BUSINESS_NAME as BUSINESS_NAME,
+  resolveBusinessName,
+} from "@/lib/brand";
 
 export const DAY_NAMES = [
   "ראשון",

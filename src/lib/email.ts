@@ -6,6 +6,7 @@ import {
   getCancelUrl,
 } from "@/lib/cancel-token";
 import { getSetting } from "@/lib/settings";
+import { DEFAULT_BUSINESS_NAME, resolveBusinessName } from "@/lib/brand";
 import { BUSINESS_NAME } from "@/lib/utils";
 
 type EmailPayload = {
@@ -33,6 +34,10 @@ const BRAND_FONT =
   "'Kaushan Script', 'Segoe Script', 'Brush Script MT', cursive";
 const BODY_FONT = "Heebo, Arial, sans-serif";
 
+async function getBrandedBusinessName(): Promise<string> {
+  return resolveBusinessName(await getSetting("businessName"));
+}
+
 async function getOwnerEmail(): Promise<string> {
   const fromSetting = (await getSetting("ownerEmail", "")).trim();
   const fromEnv = (process.env.OWNER_EMAIL ?? "").trim();
@@ -42,7 +47,7 @@ async function getOwnerEmail(): Promise<string> {
 async function sendEmail(payload: EmailPayload): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
   const from =
-    process.env.EMAIL_FROM ?? "Aviel Naim <onboarding@resend.dev>";
+    process.env.EMAIL_FROM ?? `${DEFAULT_BUSINESS_NAME} <onboarding@resend.dev>`;
 
   if (!apiKey) {
     console.log("\n========== EMAIL PREVIEW ==========");
@@ -213,8 +218,7 @@ function cancelButtonHtml(cancelUrl: string): string {
 }
 
 async function businessDetailsCard(): Promise<string> {
-  const businessName =
-    (await getSetting("businessName", BUSINESS_NAME)) || BUSINESS_NAME;
+  const businessName = await getBrandedBusinessName();
   const phone = await getSetting("businessPhone", "");
   const address = await getSetting("businessAddress", "");
 
@@ -270,8 +274,7 @@ export async function sendOwnerNewAppointmentEmail(data: {
     return true;
   }
 
-  const businessName =
-    (await getSetting("businessName", BUSINESS_NAME)) || BUSINESS_NAME;
+  const businessName = await getBrandedBusinessName();
   const approveToken = await createApproveToken(data.appointmentId);
   const approveUrl = getApproveUrl(approveToken);
 
@@ -319,6 +322,8 @@ export async function sendCustomerSelfBookingEmail(data: {
     { label: "סטטוס", value: "ממתין לאישור" },
   ]);
 
+  const businessName = await getBrandedBusinessName();
+
   const html = emailLayout({
     heading: "התור שלך נקבע בהצלחה ✓",
     greeting: `שלום ${data.customerName},`,
@@ -329,7 +334,7 @@ export async function sendCustomerSelfBookingEmail(data: {
 
   return sendEmail({
     to: data.customerEmail,
-    subject: `התור שלך נקבע בהצלחה — ${BUSINESS_NAME}`,
+    subject: `התור שלך נקבע בהצלחה — ${businessName}`,
     html,
   });
 }
@@ -354,6 +359,8 @@ export async function sendCustomerAdminBookingEmail(data: {
     { label: "סטטוס", value: "מאושר" },
   ]);
 
+  const businessName = await getBrandedBusinessName();
+
   const html = emailLayout({
     heading: "נקבע עבורך תור",
     greeting: `שלום ${data.customerName},`,
@@ -364,7 +371,7 @@ export async function sendCustomerAdminBookingEmail(data: {
 
   return sendEmail({
     to: data.customerEmail,
-    subject: `נקבע עבורך תור — ${BUSINESS_NAME}`,
+    subject: `נקבע עבורך תור — ${businessName}`,
     html,
   });
 }
@@ -379,7 +386,7 @@ export async function sendCustomerConfirmationEmail(data: {
 }) {
   if (!data.customerEmail.trim()) return true;
 
-  const businessName = BUSINESS_NAME;
+  const businessName = await getBrandedBusinessName();
 
   let statusText = "ממתין לאישור";
   if (data.status === "confirmed") statusText = "מאושר";
@@ -420,7 +427,7 @@ export async function sendReminderEmail(data: {
 }) {
   if (!data.customerEmail.trim()) return true;
 
-  const businessName = BUSINESS_NAME;
+  const businessName = await getBrandedBusinessName();
   const phone = await getSetting("businessPhone", "");
   const address = await getSetting("businessAddress", "");
 
@@ -450,16 +457,19 @@ export async function sendReminderEmail(data: {
 
 /** Send a test email preview to verify Resend + template */
 export async function sendTestCustomerEmail(to: string): Promise<boolean> {
+  const businessName = await getBrandedBusinessName();
+  const baseUrl =
+    process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
   const html = buildCustomerSelfBookingPreviewHtml({
     customerName: "לקוח לדוגמה",
     date: "יום ראשון, 29 ביוני 2026",
     time: "14:30",
-    cancelUrl: `${process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "") ?? "https://avielnaim.vercel.app"}/cancel?token=test`,
+    cancelUrl: `${baseUrl}/cancel?token=test`,
   });
 
   return sendEmail({
     to,
-    subject: `[בדיקה] התור שלך נקבע — ${BUSINESS_NAME}`,
+    subject: `[בדיקה] התור שלך נקבע — ${businessName}`,
     html,
   });
 }

@@ -17,6 +17,7 @@ import type { OccupiedBlock } from "@/lib/availability";
 import { fetchWithCache, getCachedData } from "@/lib/fetch-cache";
 import { formatJerusalemDate } from "@/lib/timezone";
 import { BUSINESS_NAME, toWhatsAppUrl } from "@/lib/utils";
+import { formatPhoneInputValue, normalizeIsraeliPhoneLocal } from "@/lib/phone";
 import { getStoredPushEndpoint } from "@/lib/push-client";
 
 const PUBLIC_CACHE_KEY = "public-api";
@@ -28,6 +29,7 @@ type PublicData = {
   settings?: {
     bookingMode?: string;
     businessPhone?: string;
+    businessName?: string;
   };
 };
 
@@ -58,6 +60,7 @@ export default function BookPage() {
   const [blockedDates, setBlockedDates] = useState<string[]>([]);
   const [bookingMode, setBookingMode] = useState("self");
   const [businessPhone, setBusinessPhone] = useState("");
+  const [businessName, setBusinessName] = useState(BUSINESS_NAME);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -92,6 +95,7 @@ export default function BookPage() {
       setBlockedDates(data.blockedDates ?? []);
       setBookingMode(data.settings?.bookingMode ?? "self");
       setBusinessPhone(data.settings?.businessPhone ?? "");
+      setBusinessName(data.settings?.businessName?.trim() || BUSINESS_NAME);
       if (data.services?.length > 0) {
         setServiceId(data.services[0].id);
       }
@@ -177,7 +181,7 @@ export default function BookPage() {
           date,
           time,
           customerName: name,
-          customerPhone: phone,
+          customerPhone: normalizeIsraeliPhoneLocal(phone),
           customerEmail: email.trim() || undefined,
           notes: styleNotes.trim() || undefined,
           inspoIds: [],
@@ -207,7 +211,7 @@ export default function BookPage() {
     return (
       <>
         <PageHero
-          businessName={BUSINESS_NAME}
+          businessName={businessName}
           showBack
           backHref="/"
           bottomContent={
@@ -254,7 +258,7 @@ export default function BookPage() {
     return (
       <>
         <PageHero
-          businessName={BUSINESS_NAME}
+          businessName={businessName}
           showBack
           backHref="/"
           bottomContent={
@@ -314,7 +318,7 @@ export default function BookPage() {
   return (
     <>
       <PageHero
-        businessName={BUSINESS_NAME}
+        businessName={businessName}
         showBack
         backHref="/"
         imagePriority={false}
@@ -322,7 +326,7 @@ export default function BookPage() {
           <div>
             <span className="badge-gold">ספר מקצועי</span>
             <h1 className="brand-name brand-name--hero mt-3">
-              {BUSINESS_NAME}
+              {businessName}
             </h1>
             <div className="mt-2 flex items-center gap-1 text-sm text-white/80">
               <Star className="h-4 w-4 fill-accent-yellow text-accent-yellow" />
@@ -442,7 +446,10 @@ export default function BookPage() {
                 label="טלפון"
                 type="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) =>
+                  setPhone(formatPhoneInputValue(e.target.value))
+                }
+                onBlur={() => setPhone((p) => normalizeIsraeliPhoneLocal(p))}
                 error={formErrors.phone}
                 autoComplete="tel"
                 dir="ltr"

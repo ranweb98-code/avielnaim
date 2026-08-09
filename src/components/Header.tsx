@@ -7,7 +7,11 @@ import { Calendar, Home } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { BUSINESS_NAME } from "@/lib/utils";
 
-export function Header() {
+type HeaderProps = {
+  businessName?: string;
+};
+
+export function Header({ businessName = BUSINESS_NAME }: HeaderProps) {
   const pathname = usePathname();
   const isAdmin = pathname.startsWith("/admin");
   const isBook = pathname === "/book";
@@ -25,7 +29,7 @@ export function Header() {
     >
       <div className="site-container flex items-center justify-between py-3">
         <Link href="/" className="brand-lockup">
-          <span className="brand-lockup-name">{BUSINESS_NAME}</span>
+          <span className="brand-lockup-name">{businessName}</span>
         </Link>
 
         <nav

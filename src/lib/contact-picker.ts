@@ -35,12 +35,10 @@ function getContactsManager(): ContactsManager | null {
   return contacts && typeof contacts.select === "function" ? contacts : null;
 }
 
+import { normalizeIsraeliPhoneLocal } from "@/lib/phone";
+
 function normalizePhone(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (digits.startsWith("972") && digits.length >= 11) {
-    return `0${digits.slice(3)}`;
-  }
-  return digits;
+  return normalizeIsraeliPhoneLocal(raw);
 }
 
 function isValidPhone(phone: string): boolean {

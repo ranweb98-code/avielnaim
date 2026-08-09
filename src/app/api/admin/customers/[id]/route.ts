@@ -4,6 +4,7 @@ import { formatCustomerName, storeFullName } from "@/lib/customers";
 import { prisma } from "@/lib/prisma";
 import { customerUpdateSchema } from "@/lib/schemas";
 import { syncCustomerPhone } from "@/lib/sync-customer-phone";
+import { normalizeIsraeliPhoneLocal } from "@/lib/phone";
 
 async function requireAdmin() {
   const authed = await isAuthenticated();
@@ -74,9 +75,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     const data = parsed.data;
+    const phone =
+      data.phone !== undefined
+        ? normalizeIsraeliPhoneLocal(data.phone)
+        : undefined;
 
-    if (data.phone) {
-      const sync = await syncCustomerPhone(customerId, data.phone, customerId);
+    if (phone) {
+      const sync = await syncCustomerPhone(customerId, phone, customerId);
       if ("error" in sync) {
         return NextResponse.json({ error: sync.error }, { status: 409 });
       }

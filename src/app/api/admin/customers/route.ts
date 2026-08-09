@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
 import { formatCustomerName, searchCustomers, storeFullName } from "@/lib/customers";
 import { prisma } from "@/lib/prisma";
+import { normalizeIsraeliPhoneLocal } from "@/lib/phone";
 import { customerCreateSchema } from "@/lib/schemas";
 import { formatJerusalemDate } from "@/lib/timezone";
 
@@ -81,9 +82,10 @@ export async function POST(request: NextRequest) {
     }
 
     const data = parsed.data;
+    const phone = normalizeIsraeliPhoneLocal(data.phone.trim());
 
     const existing = await prisma.customer.findFirst({
-      where: { phone: data.phone.trim() },
+      where: { phone },
     });
     if (existing) {
       return NextResponse.json(
@@ -98,7 +100,7 @@ export async function POST(request: NextRequest) {
       data: {
         firstName,
         lastName,
-        phone: data.phone.trim(),
+        phone,
         email: data.email ?? "",
         notes: data.notes?.trim() || null,
       },

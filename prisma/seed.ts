@@ -1,4 +1,21 @@
+import dotenv from "dotenv";
 import { prisma } from "../src/lib/prisma";
+
+dotenv.config({ path: ".env" });
+dotenv.config({ path: ".env.local", override: true });
+
+const seedBusinessName =
+  process.env.SEED_BUSINESS_NAME?.trim() ||
+  process.env.NEXT_PUBLIC_BUSINESS_NAME?.trim() ||
+  "Aviel Naim";
+const seedPhone =
+  process.env.SEED_BUSINESS_PHONE?.trim() || "050-1234567";
+const seedAddress =
+  process.env.SEED_BUSINESS_ADDRESS?.trim() || "Rothschild 45, Tel Aviv";
+const seedOwnerEmail =
+  process.env.SEED_OWNER_EMAIL?.trim() ||
+  process.env.OWNER_EMAIL?.trim() ||
+  "owner@example.com";
 
 async function main() {
   await prisma.appointment.deleteMany();
@@ -73,10 +90,10 @@ async function main() {
   }
 
   const settings = [
-    { key: "businessName", value: "Aviel Naim" },
-    { key: "businessPhone", value: "050-1234567" },
-    { key: "businessAddress", value: "רothschild 45, Tel Aviv" },
-    { key: "ownerEmail", value: "owner@example.com" },
+    { key: "businessName", value: seedBusinessName },
+    { key: "businessPhone", value: seedPhone },
+    { key: "businessAddress", value: seedAddress },
+    { key: "ownerEmail", value: seedOwnerEmail },
     { key: "slotInterval", value: "30" },
     { key: "reminderHours", value: "24" },
     { key: "bookingMode", value: "self" },

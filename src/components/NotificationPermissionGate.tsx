@@ -10,6 +10,7 @@ import {
   notificationPermission,
   type EnsurePushResult,
 } from "@/lib/push-client";
+import { BUSINESS_NAME } from "@/lib/utils";
 
 type GateState =
   | "loading"
@@ -151,7 +152,7 @@ export function NotificationPermissionGate() {
                 ההתראות חסומות
               </h2>
               <p className="text-sm leading-relaxed text-text-secondary">
-                פתחו את הגדרות המכשיר ← התראות ← אפליקציית Aviel Naim, ואפשרו
+                פתחו את הגדרות המכשיר ← התראות ← אפליקציית {BUSINESS_NAME}, ואפשרו
                 התראות. אחר כך לחצו למטה.
               </p>
             </div>
@@ -167,7 +168,7 @@ export function NotificationPermissionGate() {
               </Button>
               <p className="flex items-center justify-center gap-1 text-xs text-text-muted">
                 <Settings className="h-3.5 w-3.5" />
-                iPhone: הגדרות ← התראות ← Aviel Naim
+                iPhone: הגדרות ← התראות ← {BUSINESS_NAME}
               </p>
             </div>
           </>

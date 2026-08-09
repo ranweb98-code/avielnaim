@@ -23,6 +23,7 @@ import {
   toWhatsAppUrl,
 } from "@/lib/services";
 import { minutesToTime, timeToMinutes } from "@/lib/timezone";
+import { formatPhoneInputValue, normalizeIsraeliPhoneLocal } from "@/lib/phone";
 
 export type AdminSheetAppointment = {
   id: number;
@@ -384,7 +385,7 @@ export function AdminAppointmentSheet({
                   disabled={loading}
                   onClick={() => {
                     void Promise.resolve(
-                      onUpdatePhone(appointment.id, editPhone.trim())
+                      onUpdatePhone(appointment.id, normalizeIsraeliPhoneLocal(editPhone.trim()))
                     ).then(() => setShowPhoneConfirm(false));
                   }}
                 >
@@ -552,7 +553,12 @@ export function AdminAppointmentSheet({
                   dir="ltr"
                   value={editPhone}
                   disabled={loading}
-                  onChange={(e) => setEditPhone(e.target.value)}
+                  onChange={(e) =>
+                    setEditPhone(formatPhoneInputValue(e.target.value))
+                  }
+                  onBlur={() =>
+                    setEditPhone((p) => normalizeIsraeliPhoneLocal(p))
+                  }
                   aria-label="מספר נייד"
                 />
               </label>
