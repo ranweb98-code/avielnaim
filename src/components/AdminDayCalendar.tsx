@@ -5,6 +5,8 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import {
+  getMaxFitDurationFromRanges,
+  MIN_APPOINTMENT_DURATION,
   resolveBookableClickMinutes,
   type OccupiedRange,
 } from "@/lib/scheduling";
@@ -39,7 +41,11 @@ type AdminDayCalendarProps = {
   selectedId: number | null;
   onSelect: (id: number) => void;
   onSlotClick?: (time: string) => void;
-  onReschedule?: (id: number, time: string) => void | Promise<void>;
+  onReschedule?: (
+    id: number,
+    time: string,
+    serviceDuration?: number
+  ) => void | Promise<void>;
   rescheduleTargetId?: number | null;
   /** Appointment being moved — may be on another day than `date`. */
   rescheduleTarget?: AdminCalendarAppointment | null;
@@ -68,6 +74,10 @@ type PendingRescheduleSlot = {
   time: string;
   top: number;
   height: number;
+  durationMinutes: number;
+  shortenedFrom?: number;
+  customerName: string;
+  serviceName: string;
 };
 
 const PICK_BAR_HEIGHT = 44;
@@ -181,6 +191,8 @@ export function AdminDayCalendar({
   const [pendingRescheduleSlot, setPendingRescheduleSlot] =
     useState<PendingRescheduleSlot | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [showReducedRescheduleConfirm, setShowReducedRescheduleConfirm] =
+    useState(false);
   const [mounted, setMounted] = useState(false);
   const [liveNowMinutes, setLiveNowMinutes] = useState<number | null>(null);
   const [blockedSlots, setBlockedSlots] = useState<BlockedSlot[]>([]);
@@ -302,20 +314,19 @@ export function AdminDayCalendar({
     return !isBlockedAt(minutes);
   }
 
-  function hasConflict(
-    minutes: number,
-    duration: number,
-    excludeId: number
-  ): boolean {
-    const end = minutes + duration;
-    for (const appt of appointments) {
-      if (appt.id === excludeId || appt.status === "cancelled") continue;
-      const apptStart = timeToMinutes(appt.time);
-      const apptEnd = apptStart + appt.serviceDuration;
-      if (rangesOverlap(minutes, end, apptStart, apptEnd)) return true;
-    }
-    if (isBlockedAt(minutes, duration)) return true;
-    return false;
+  function maxFitDurationAt(minutes: number, excludeId: number): number {
+    const occupied = buildCalendarOccupiedRanges(
+      appointments,
+      blockedSlots,
+      startMinutes,
+      endMinutes,
+      excludeId
+    );
+    return getMaxFitDurationFromRanges(minutes, endMinutes, occupied);
+  }
+
+  function floorDurationToStep(minutes: number): number {
+    return Math.floor(minutes / SLOT_STEP) * SLOT_STEP;
   }
 
   function topFromMinutes(minutes: number): number {
@@ -361,23 +372,44 @@ export function AdminDayCalendar({
   function addPendingRescheduleSlot(
     appt: AdminCalendarAppointment,
     minutes: number,
-    height: number
+    _height: number
   ) {
     const sameDayAsOriginal =
       !rescheduleOriginalDate || rescheduleOriginalDate === date;
     if (sameDayAsOriginal && minutes === timeToMinutes(appt.time)) return;
     if (!isSlotBookable(minutes)) return;
 
-    if (hasConflict(minutes, appt.serviceDuration, appt.id)) {
-      window.alert("השעה החדשה חופפת לתור אחר");
+    const maxFit = floorDurationToStep(maxFitDurationAt(minutes, appt.id));
+    if (maxFit < MIN_APPOINTMENT_DURATION) {
+      window.alert("אין מספיק זמן לתור במועד זה");
       return;
     }
 
+    const durationMinutes = Math.min(appt.serviceDuration, maxFit);
+    const shortenedFrom =
+      durationMinutes < appt.serviceDuration ? appt.serviceDuration : undefined;
+
     const time = minutesToTime(minutes);
     const top = topFromMinutes(minutes);
+    const previewHeight = Math.max(
+      durationMinutes * PX_PER_MINUTE,
+      MIN_BLOCK_HEIGHT
+    );
 
+    setShowReducedRescheduleConfirm(false);
     setPendingRescheduleSlot((prev) =>
-      prev?.time === time ? null : { id: appt.id, time, top, height }
+      prev?.time === time
+        ? null
+        : {
+            id: appt.id,
+            time,
+            top,
+            height: previewHeight,
+            durationMinutes,
+            shortenedFrom,
+            customerName: appt.customerName,
+            serviceName: appt.serviceName,
+          }
     );
   }
 
@@ -491,15 +523,31 @@ export function AdminDayCalendar({
     setPendingCreateSlot(null);
   }
 
-  async function confirmRescheduleSlot(id: number, time: string) {
+  async function confirmRescheduleSlot(
+    slot: PendingRescheduleSlot
+  ) {
     if (!onReschedule) return;
     setConfirming(true);
     try {
-      await onReschedule(id, time);
+      await onReschedule(
+        slot.id,
+        slot.time,
+        slot.shortenedFrom !== undefined ? slot.durationMinutes : undefined
+      );
       setPendingRescheduleSlot(null);
+      setShowReducedRescheduleConfirm(false);
     } finally {
       setConfirming(false);
     }
+  }
+
+  function requestRescheduleConfirm() {
+    if (!pendingRescheduleSlot) return;
+    if (pendingRescheduleSlot.shortenedFrom !== undefined) {
+      setShowReducedRescheduleConfirm(true);
+      return;
+    }
+    void confirmRescheduleSlot(pendingRescheduleSlot);
   }
 
   function renderSlotConfirmDock(
@@ -808,12 +856,65 @@ export function AdminDayCalendar({
       {pendingRescheduleSlot &&
         renderSlotConfirmDock(
           pendingRescheduleSlot.time,
-          () =>
-            void confirmRescheduleSlot(
-              pendingRescheduleSlot.id,
-              pendingRescheduleSlot.time
-            ),
-          () => setPendingRescheduleSlot(null)
+          () => requestRescheduleConfirm(),
+          () => {
+            setPendingRescheduleSlot(null);
+            setShowReducedRescheduleConfirm(false);
+          }
+        )}
+
+      {showReducedRescheduleConfirm &&
+        pendingRescheduleSlot &&
+        mounted &&
+        createPortal(
+          <>
+            <button
+              type="button"
+              className="admin-move-confirm-backdrop"
+              aria-label="סגור"
+              disabled={confirming}
+              onClick={() =>
+                !confirming && setShowReducedRescheduleConfirm(false)
+              }
+            />
+            <div
+              className="admin-move-confirm-modal admin-move-confirm-modal--inline"
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="admin-reschedule-short-title"
+            >
+              <p
+                id="admin-reschedule-short-title"
+                className="admin-move-confirm-modal__text"
+              >
+                אין מספיק זמן לתור המלא של{" "}
+                <strong>{pendingRescheduleSlot.customerName}</strong> (
+                {pendingRescheduleSlot.shortenedFrom} דק&apos;). ניתן לקבוע ב-
+                {pendingRescheduleSlot.time} תור של{" "}
+                {pendingRescheduleSlot.durationMinutes} דק&apos; בלבד (
+                {pendingRescheduleSlot.serviceName}). האם אתה בטוח?
+              </p>
+              <div className="admin-move-confirm-modal__actions">
+                <button
+                  type="button"
+                  className="admin-cal__confirm-btn admin-cal__confirm-btn--yes"
+                  disabled={confirming}
+                  onClick={() => void confirmRescheduleSlot(pendingRescheduleSlot)}
+                >
+                  {confirming ? "..." : "כן, העבר תור"}
+                </button>
+                <button
+                  type="button"
+                  className="admin-cal__confirm-btn admin-cal__confirm-btn--no"
+                  disabled={confirming}
+                  onClick={() => setShowReducedRescheduleConfirm(false)}
+                >
+                  ביטול
+                </button>
+              </div>
+            </div>
+          </>,
+          document.body
         )}
     </>
   );
