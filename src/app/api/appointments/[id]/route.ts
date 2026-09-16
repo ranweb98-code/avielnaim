@@ -1,6 +1,8 @@
-import { timeToMinutes } from "@/lib/timezone";
 import { NextRequest, NextResponse } from "next/server";
-import { isSlotAvailable } from "@/lib/availability";
+import {
+  getMaxFitDuration,
+  isAdminSlotAvailable,
+} from "@/lib/availability";
 import { isAuthenticated } from "@/lib/auth";
 import { sendCustomerConfirmationEmail } from "@/lib/email";
 import { sendPushToCustomer } from "@/lib/push";
@@ -124,41 +126,28 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         data.serviceDuration ??
         (data.serviceId ? service.durationMin : existing.serviceDuration);
 
-      // Availability uses catalog duration; customized duration still checked via overlap below
-      const available = await isSlotAvailable(
+      const adminAvailable = await isAdminSlotAvailable(
         targetDate,
         targetTime,
         targetServiceId,
-        { excludeAppointmentId: appointmentId, skipAdvanceCheck: true }
+        targetDuration,
+        { excludeAppointmentId: appointmentId }
       );
 
-      if (!available && (data.date || data.time || data.serviceId)) {
+      if (!adminAvailable && (data.date || data.time || data.serviceId)) {
+        const maxFitDuration = await getMaxFitDuration(
+          targetDate,
+          targetTime,
+          targetServiceId,
+          { excludeAppointmentId: appointmentId }
+        );
         return NextResponse.json(
-          { error: "השעה שנבחרה אינה זמינה" },
+          {
+            error: "השעה שנבחרה אינה זמינה",
+            maxFitDuration,
+          },
           { status: 409 }
         );
-      }
-
-      if (data.serviceDuration !== undefined) {
-        const start = timeToMinutes(targetTime);
-        const end = start + targetDuration;
-        const others = await prisma.appointment.findMany({
-          where: {
-            date: targetDate,
-            status: { in: ["pending", "confirmed"] },
-            id: { not: appointmentId },
-          },
-        });
-        for (const other of others) {
-          const otherStart = timeToMinutes(other.time);
-          const otherEnd = otherStart + other.serviceDuration;
-          if (start < otherEnd && end > otherStart) {
-            return NextResponse.json(
-              { error: "המשך החדש חופף לתור אחר" },
-              { status: 409 }
-            );
-          }
-        }
       }
 
       const appointment = await prisma.appointment.update({

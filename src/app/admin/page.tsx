@@ -259,15 +259,24 @@ export default function AdminPage() {
     setCreateInitialTime("");
   }
 
-  async function handleDragReschedule(id: number, time: string) {
+  async function handleDragReschedule(
+    id: number,
+    time: string,
+    serviceDuration?: number
+  ) {
     const appt = appointments.find((a) => a.id === id);
     if (!appt) return;
 
-    const ok = await patchAppointment(id, {
+    const body: Record<string, unknown> = {
       date: selectedDate,
       time,
       serviceId: appt.serviceId,
-    });
+    };
+    if (serviceDuration !== undefined) {
+      body.serviceDuration = serviceDuration;
+    }
+
+    const ok = await patchAppointment(id, body);
     if (ok) setRescheduleId(null);
   }
 
