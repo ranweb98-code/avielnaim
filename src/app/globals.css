@@ -1689,9 +1689,9 @@ input[type="date"] {
 .admin-move-confirm-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 130;
+  z-index: 210;
   border: none;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(0, 0, 0, 0.28);
   cursor: pointer;
   animation: ui-fade-in 0.2s ease-out;
 }
@@ -1757,7 +1757,7 @@ input[type="date"] {
   position: fixed;
   left: 50%;
   top: 50%;
-  z-index: 131;
+  z-index: 220;
   width: min(22rem, calc(100vw - 2rem));
   transform: translate(-50%, -50%);
   display: flex;
@@ -1769,6 +1769,7 @@ input[type="date"] {
   background: var(--bg-card);
   box-shadow: var(--shadow-nav);
   animation: ui-modal-in 0.22s ease-out;
+  pointer-events: auto;
 }
 
 .admin-move-confirm-modal__text {
@@ -3131,9 +3132,12 @@ input[type="date"] {
   position: fixed;
   inset-inline: 1.25rem;
   top: 50%;
-  transform: translateY(-50%);
-  z-index: 120;
-  margin: 0 auto;
+  left: 50%;
+  right: auto;
+  transform: translate(-50%, -50%);
+  z-index: 220;
+  margin: 0;
+  width: min(22rem, calc(100vw - 2.5rem));
   max-width: 22rem;
 }
 

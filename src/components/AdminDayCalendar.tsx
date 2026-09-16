@@ -854,6 +854,7 @@ export function AdminDayCalendar({
         )}
 
       {pendingRescheduleSlot &&
+        !showReducedRescheduleConfirm &&
         renderSlotConfirmDock(
           pendingRescheduleSlot.time,
           () => requestRescheduleConfirm(),
@@ -882,6 +883,8 @@ export function AdminDayCalendar({
               role="alertdialog"
               aria-modal="true"
               aria-labelledby="admin-reschedule-short-title"
+              onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
             >
               <p
                 id="admin-reschedule-short-title"
@@ -899,7 +902,11 @@ export function AdminDayCalendar({
                   type="button"
                   className="admin-cal__confirm-btn admin-cal__confirm-btn--yes"
                   disabled={confirming}
-                  onClick={() => void confirmRescheduleSlot(pendingRescheduleSlot)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    void confirmRescheduleSlot(pendingRescheduleSlot);
+                  }}
                 >
                   {confirming ? "..." : "כן, העבר תור"}
                 </button>
@@ -907,7 +914,11 @@ export function AdminDayCalendar({
                   type="button"
                   className="admin-cal__confirm-btn admin-cal__confirm-btn--no"
                   disabled={confirming}
-                  onClick={() => setShowReducedRescheduleConfirm(false)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowReducedRescheduleConfirm(false);
+                  }}
                 >
                   ביטול
                 </button>
