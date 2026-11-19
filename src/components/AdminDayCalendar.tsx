@@ -25,6 +25,7 @@ export type AdminCalendarAppointment = {
   time: string;
   serviceDuration: number;
   status: "pending" | "confirmed" | "cancelled";
+  notes?: string | null;
 };
 
 type BlockedSlot = {
@@ -84,8 +85,33 @@ const PICK_BAR_HEIGHT = 44;
 
 const PX_PER_MINUTE = 3.5;
 const MIN_BLOCK_HEIGHT = 44;
+/** Visual gap (px) between back-to-back appointment cards. */
+const CARD_GAP = 6;
 const SLOT_STEP = 5;
 const DRAG_THRESHOLD_PX = 8;
+/** Touch: hold this long (without moving) before a card can be dragged. */
+const LONG_PRESS_MS = 350;
+/** Notes that are status markers, not real customer notes. */
+const STATUS_NOTES = new Set(["הברזה", "בוטל"]);
+
+type PressState = {
+  id: number;
+  pointerId: number;
+  pointerType: string;
+  startX: number;
+  startY: number;
+  lastY: number;
+  top: number;
+  height: number;
+  timer: number | null;
+};
+
+function getStickyNote(appt: AdminCalendarAppointment): string | null {
+  if (appt.status === "cancelled") return null;
+  const note = appt.notes?.trim();
+  if (!note || STATUS_NOTES.has(note)) return null;
+  return note;
+}
 
 function BlockLabel({ appt }: { appt: AdminCalendarAppointment }) {
   const startMin = timeToMinutes(appt.time);
@@ -185,6 +211,9 @@ export function AdminDayCalendar({
 }: AdminDayCalendarProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const didDragRef = useRef(false);
+  const pressRef = useRef<PressState | null>(null);
+  const dragActiveRef = useRef(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [pendingCreateSlot, setPendingCreateSlot] =
     useState<PendingCreateSlot | null>(null);
@@ -208,6 +237,21 @@ export function AdminDayCalendar({
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // While a card is being dragged (after a long-press), stop the page from
+  // scrolling under the finger. Must be a non-passive native listener.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const block = (e: TouchEvent) => {
+      if (dragActiveRef.current && e.cancelable) e.preventDefault();
+    };
+    el.addEventListener("touchmove", block, { passive: false });
+    return () => {
+      el.removeEventListener("touchmove", block);
+      if (pressRef.current?.timer) window.clearTimeout(pressRef.current.timer);
+    };
+  }, [workingHours]);
 
   useEffect(() => {
     setPendingCreateSlot(null);
@@ -448,6 +492,27 @@ export function AdminDayCalendar({
     return Math.max(0, Math.min(totalHeight - height, top));
   }
 
+  function clearPress() {
+    if (pressRef.current?.timer) window.clearTimeout(pressRef.current.timer);
+    pressRef.current = null;
+  }
+
+  function armDrag(press: PressState, startY: number, appt: AdminCalendarAppointment) {
+    dragActiveRef.current = true;
+    didDragRef.current = true;
+    setDrag({
+      id: appt.id,
+      startY,
+      startTop: press.top,
+      currentTop: press.top,
+      originalMinutes: timeToMinutes(appt.time),
+      height: press.height,
+    });
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      navigator.vibrate(12);
+    }
+  }
+
   function handleBlockPointerDown(
     e: React.PointerEvent<HTMLButtonElement>,
     appt: AdminCalendarAppointment,
@@ -457,36 +522,74 @@ export function AdminDayCalendar({
     e.stopPropagation();
     if (appt.status === "cancelled" || !onReschedule) return;
     didDragRef.current = false;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    setDrag({
+    clearPress();
+
+    const press: PressState = {
       id: appt.id,
+      pointerId: e.pointerId,
+      pointerType: e.pointerType,
+      startX: e.clientX,
       startY: e.clientY,
-      startTop: top,
-      currentTop: top,
-      originalMinutes: timeToMinutes(appt.time),
+      lastY: e.clientY,
+      top,
       height,
-    });
+      timer: null,
+    };
+    pressRef.current = press;
+
+    if (e.pointerType === "mouse") {
+      // Mouse: drag begins once the pointer moves past the threshold.
+      e.currentTarget.setPointerCapture(e.pointerId);
+      return;
+    }
+
+    // Touch / pen: only a deliberate long-press starts a drag, so a normal
+    // finger swipe scrolls the calendar instead of moving the appointment.
+    press.timer = window.setTimeout(() => {
+      press.timer = null;
+      if (pressRef.current !== press) return;
+      armDrag(press, press.lastY, appt);
+    }, LONG_PRESS_MS);
   }
 
   function handleBlockPointerMove(
     e: React.PointerEvent<HTMLButtonElement>,
-    apptId: number
+    appt: AdminCalendarAppointment
   ) {
-    if (!drag || drag.id !== apptId) return;
+    const press = pressRef.current;
 
-    e.stopPropagation();
-    const deltaY = e.clientY - drag.startY;
-    if (Math.abs(deltaY) >= DRAG_THRESHOLD_PX) {
-      didDragRef.current = true;
+    if (drag && drag.id === appt.id) {
+      e.stopPropagation();
+      const deltaY = e.clientY - drag.startY;
+      if (Math.abs(deltaY) >= DRAG_THRESHOLD_PX) {
+        didDragRef.current = true;
+      }
+      const nextTop = snapTop(
+        clampTop(drag.startTop + deltaY, drag.height),
+        drag.height
+      );
+      setDrag({ ...drag, currentTop: nextTop });
+      return;
     }
-    const nextTop = snapTop(clampTop(drag.startTop + deltaY, drag.height), drag.height);
-    setDrag({ ...drag, currentTop: nextTop });
+
+    if (!press || press.id !== appt.id) return;
+    press.lastY = e.clientY;
+    const moved = Math.hypot(e.clientX - press.startX, e.clientY - press.startY);
+    if (moved < DRAG_THRESHOLD_PX) return;
+
+    if (press.pointerType === "mouse") {
+      armDrag(press, press.startY, appt);
+    } else {
+      // Finger moved before the long-press fired: the user is scrolling.
+      clearPress();
+    }
   }
 
   function handleBlockPointerUp(
     e: React.PointerEvent<HTMLButtonElement>,
     appt: AdminCalendarAppointment
   ) {
+    clearPress();
     if (!drag || drag.id !== appt.id) return;
 
     e.stopPropagation();
@@ -500,6 +603,7 @@ export function AdminDayCalendar({
     );
 
     const dragHeight = drag.height;
+    dragActiveRef.current = false;
     setDrag(null);
 
     if (!moved) {
@@ -513,8 +617,11 @@ export function AdminDayCalendar({
     e: React.PointerEvent<HTMLButtonElement>,
     apptId: number
   ) {
+    clearPress();
     if (!drag || drag.id !== apptId) return;
     e.stopPropagation();
+    dragActiveRef.current = false;
+    didDragRef.current = false;
     setDrag(null);
   }
 
@@ -619,7 +726,7 @@ export function AdminDayCalendar({
           rescheduleMode && "admin-cal--reschedule-mode"
         )}
       >
-      <div className="admin-cal__scroll">
+      <div className="admin-cal__scroll" ref={scrollRef}>
         <div className="admin-cal__grid" style={{ height: totalHeight }}>
           <div className="admin-cal__times" aria-hidden="true">
             {hourLabels.map(({ minutes, label }) => (
@@ -794,6 +901,12 @@ export function AdminDayCalendar({
               const selected = selectedId === appt.id;
               const draggable =
                 Boolean(onReschedule) && appt.status !== "cancelled";
+              const stickyNote = getStickyNote(appt);
+              // How many note lines fit beside the label in this card.
+              const noteLines = Math.max(
+                1,
+                Math.min(4, Math.floor((height - 18) / 15))
+              );
 
               return (
                 <button
@@ -806,13 +919,17 @@ export function AdminDayCalendar({
                       "admin-cal-block--cancelled",
                     selected && !isDragging && "admin-cal-block--selected",
                     isDragging && "admin-cal-block--dragging",
-                    draggable && "admin-cal-block--draggable"
+                    draggable && "admin-cal-block--draggable",
+                    stickyNote && "admin-cal-block--has-note"
                   )}
-                  style={{ top, height }}
+                  style={{
+                    top: top + CARD_GAP / 2,
+                    height: Math.max(height - CARD_GAP, MIN_BLOCK_HEIGHT - CARD_GAP),
+                  }}
                   onPointerDown={(e) =>
                     handleBlockPointerDown(e, appt, baseTop, height)
                   }
-                  onPointerMove={(e) => handleBlockPointerMove(e, appt.id)}
+                  onPointerMove={(e) => handleBlockPointerMove(e, appt)}
                   onPointerUp={(e) => handleBlockPointerUp(e, appt)}
                   onPointerCancel={(e) =>
                     handleBlockPointerCancel(e, appt.id)
@@ -838,6 +955,14 @@ export function AdminDayCalendar({
                       }
                     />
                   </span>
+                  {stickyNote && (
+                    <span
+                      className="admin-sticky-note"
+                      style={{ ["--note-lines" as string]: noteLines }}
+                    >
+                      {stickyNote}
+                    </span>
+                  )}
                 </button>
               );
             })}
