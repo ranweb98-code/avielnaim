@@ -85,6 +85,8 @@ const PICK_BAR_HEIGHT = 44;
 
 const PX_PER_MINUTE = 3.5;
 const MIN_BLOCK_HEIGHT = 44;
+/** Visual gap (px) between back-to-back appointment cards. */
+const CARD_GAP = 6;
 const SLOT_STEP = 5;
 const DRAG_THRESHOLD_PX = 8;
 /** Touch: hold this long (without moving) before a card can be dragged. */
@@ -920,7 +922,10 @@ export function AdminDayCalendar({
                     draggable && "admin-cal-block--draggable",
                     stickyNote && "admin-cal-block--has-note"
                   )}
-                  style={{ top, height }}
+                  style={{
+                    top: top + CARD_GAP / 2,
+                    height: Math.max(height - CARD_GAP, MIN_BLOCK_HEIGHT - CARD_GAP),
+                  }}
                   onPointerDown={(e) =>
                     handleBlockPointerDown(e, appt, baseTop, height)
                   }
