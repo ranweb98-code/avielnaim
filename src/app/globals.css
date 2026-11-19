@@ -1617,11 +1617,16 @@ input[type="date"] {
 }
 
 .admin-cal-block--draggable {
-  touch-action: none;
+  /* Vertical swipes scroll the calendar; dragging needs a long-press. */
+  touch-action: pan-y;
   cursor: grab;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .admin-cal-block--dragging {
+  touch-action: none;
   z-index: 10;
   opacity: 0.92;
   cursor: grabbing;
@@ -1869,6 +1874,61 @@ input[type="date"] {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Card with a customer note: label on the right, sticky note on the left */
+.admin-cal-block--has-note {
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding-block: 0.5rem;
+}
+
+.admin-cal-block--has-note .admin-cal-block__text {
+  flex: 1 1 0;
+  min-width: 0;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/* The "פתק" — a small yellow sticky note with a folded corner */
+.admin-sticky-note {
+  position: relative;
+  flex: 0 1 44%;
+  max-width: 44%;
+  min-width: 4.5rem;
+  align-self: flex-start;
+  padding: 0.3rem 0.5rem 0.35rem;
+  border-radius: 0.2rem 0.2rem 0.2rem 0.65rem;
+  background: linear-gradient(160deg, #fde68a 0%, #fcd34d 100%);
+  color: #4a3410;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.25;
+  text-align: start;
+  transform: rotate(-2deg);
+  transform-origin: top left;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.28),
+    inset 0 -10px 12px -10px rgba(120, 80, 0, 0.25);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--note-lines, 2);
+  line-clamp: var(--note-lines, 2);
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+
+.admin-sticky-note::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 0.65rem;
+  height: 0.65rem;
+  background: linear-gradient(45deg, rgba(0, 0, 0, 0.18) 50%, transparent 50%);
+  border-top-right-radius: 0.2rem;
 }
 
 /* Keep start–end times LTR inside RTL Hebrew labels */
